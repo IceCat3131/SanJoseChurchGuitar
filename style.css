@@ -237,3 +237,50 @@ body {
     justify-content: flex-start;
   }
 }
+
+
+/* 单曲页面头部布局：返回箭头 + 中间标题 + 左右切歌箭头 */
+.header-song {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 左上角返回箭头，靠左对齐 */
+.back-arrow {
+  text-decoration: none;
+  font-size: 18px;
+  line-height: 1;
+  color: #0066cc;
+  padding: 4px 6px;
+}
+
+/* 标题与左右箭头整体在中间 */
+.title-with-arrows {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 12px;
+}
+
+/* 中央标题居中显示 */
+.title-with-arrows #song-title {
+  margin: 0;
+  text-align: center;
+}
+
+/* 左右切换箭头按钮：蓝色、加粗 */
+.nav-arrow {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  font-weight: bold;
+  color: #0066cc;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.nav-arrow:hover {
+  opacity: 0.8;
+}

@@ -8,11 +8,15 @@
 </head>
 <body>
   <div class="page">
-    <header class="header">
-      <a href="index.html" class="back-link">← 返回列表</a>
-      <h1 id="song-title">诗歌吉他谱</h1>
-      <p id="song-subtitle" class="subtitle"></p>
+    <header class="header header-song">
+      <a href="index.html" class="back-arrow">←</a>
+      <div class="title-with-arrows">
+        <button id="btn-prev" class="nav-arrow">&lt;</button>
+        <h1 id="song-title">诗歌吉他谱</h1>
+        <button id="btn-next" class="nav-arrow">&gt;</button>
+      </div>
     </header>
+
 
     <section class="controls">
           <div class="book-switch">
@@ -26,14 +30,9 @@
             <button id="search-btn" class="search-button" title="跳转到该编号">
               🔍
             </button>
-            <span class="hint">共约 1000 首 / 本</span>
           </div>
         </section>
 
-    <nav class="nav-nav">
-      <button id="btn-prev">上一首</button>
-      <button id="btn-next">下一首</button>
-    </nav>
 
     <main>
       <div id="score-container" class="score-container">
@@ -100,8 +99,8 @@
       const path = `assets/${cfg.folder}/${filename}`;
 
       titleEl.textContent = `${cfg.label} 第 ${no} 首`;
-      subEl.textContent = `文件：${filename}`;
-      infoEl.textContent = `当前：${cfg.label} 第 ${no} 首（${filename}）`;
+      if (subEl) subEl.textContent = "";
+      if (infoEl) infoEl.textContent = "";
 
       container.innerHTML = "";
       const img = document.createElement("img");
