@@ -14,6 +14,22 @@
       <p id="song-subtitle" class="subtitle"></p>
     </header>
 
+    <section class="controls">
+          <div class="book-switch">
+            <button id="btn-book-c" class="book-button active" data-book="c">大本诗歌 (C)</button>
+            <button id="btn-book-ts" class="book-button" data-book="ts">小本诗歌 (TS)</button>
+          </div>
+          <div class="search-area">
+            <label for="search-no">编号：</label>
+            <input id="search-no" type="number" min="1" placeholder="输入编号，如 7 或 788">
+            <!-- 放大镜按钮 -->
+            <button id="search-btn" class="search-button" title="跳转到该编号">
+              🔍
+            </button>
+            <span class="hint">共约 1000 首 / 本</span>
+          </div>
+        </section>
+
     <nav class="nav-nav">
       <button id="btn-prev">上一首</button>
       <button id="btn-next">下一首</button>
@@ -29,6 +45,7 @@
       <p id="file-info" class="file-info"></p>
     </footer>
   </div>
+
 
   <script>
     const HYMNBOOKS = {
@@ -51,9 +68,27 @@
       return String(n).padStart(4, "0");
     }
 
+    // 当前选中的册（给搜索用）
+    let currentBook = "c";
+
+    function applyBookUI(book) {
+      const btnBookC = document.getElementById("btn-book-c");
+      const btnBookTs = document.getElementById("btn-book-ts");
+      if (btnBookC && btnBookTs) {
+        btnBookC.classList.toggle("active", book === "c");
+        btnBookTs.classList.toggle("active", book === "ts");
+      }
+      currentBook = book;
+    }
+
     function updatePage() {
       const { book, no } = getParams();
       const cfg = HYMNBOOKS[book];
+
+      // 同步顶部按钮和搜索框的值
+      applyBookUI(book);
+      const searchInput = document.getElementById("search-no");
+      if (searchInput) searchInput.value = no;
 
       const titleEl = document.getElementById("song-title");
       const subEl = document.getElementById("song-subtitle");
@@ -79,23 +114,65 @@
     }
 
     function gotoSong(book, no) {
+      const cfg = HYMNBOOKS[book];
+      if (no < 1) no = 1;
+      if (no > cfg.count) no = cfg.count;
       location.search = `?book=${book}&no=${no}`;
     }
 
+    // 上一首 / 下一首
     document.getElementById("btn-prev").addEventListener("click", () => {
       const { book, no } = getParams();
-      const cfg = HYMNBOOKS[book];
-      const newNo = no > 1 ? no - 1 : 1;
-      gotoSong(book, newNo);
+      gotoSong(book, no - 1);
     });
 
     document.getElementById("btn-next").addEventListener("click", () => {
       const { book, no } = getParams();
-      const cfg = HYMNBOOKS[book];
-      const newNo = no < cfg.count ? no + 1 : cfg.count;
-      gotoSong(book, newNo);
+      gotoSong(book, no + 1);
     });
 
+    // 搜索栏逻辑（和首页保持一致的行为）
+    (function setupSearch() {
+      const btnBookC = document.getElementById("btn-book-c");
+      const btnBookTs = document.getElementById("btn-book-ts");
+      const searchInput = document.getElementById("search-no");
+      const searchBtn = document.getElementById("search-btn");
+
+      if (!searchInput || !searchBtn || !btnBookC || !btnBookTs) return;
+
+      btnBookC.addEventListener("click", () => {
+        applyBookUI("c");
+      });
+
+      btnBookTs.addEventListener("click", () => {
+        applyBookUI("ts");
+      });
+
+      function jumpToSong() {
+        const val = searchInput.value.trim();
+        if (!val) {
+          alert("请输入编号，例如 7 或 788");
+          return;
+        }
+        const no = parseInt(val, 10);
+        const cfg = HYMNBOOKS[currentBook];
+        if (isNaN(no) || no < 1 || no > cfg.count) {
+          alert(`请输入 1 - ${cfg.count} 之间的编号`);
+          return;
+        }
+        gotoSong(currentBook, no);
+      }
+
+      searchBtn.addEventListener("click", jumpToSong);
+
+      searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          jumpToSong();
+        }
+      });
+    })();
+
+    // 初次加载当前页
     updatePage();
   </script>
 </body>
