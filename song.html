@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>诗歌吉他谱查看</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <a href="index.html" class="back-link">← 返回列表</a>
+      <h1 id="song-title">诗歌吉他谱</h1>
+      <p id="song-subtitle" class="subtitle"></p>
+    </header>
+
+    <nav class="nav-nav">
+      <button id="btn-prev">上一首</button>
+      <button id="btn-next">下一首</button>
+    </nav>
+
+    <main>
+      <div id="score-container" class="score-container">
+        <!-- SVG 将插入到这里 -->
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p id="file-info" class="file-info"></p>
+    </footer>
+  </div>
+
+  <script>
+    const HYMNBOOKS = {
+      c: { id: "c", label: "大本诗歌", prefix: "c", count: 1000, folder: "c" },
+      ts: { id: "ts", label: "小本诗歌", prefix: "ts", count: 1000, folder: "ts" }
+    };
+
+    function getParams() {
+      const params = new URLSearchParams(location.search);
+      let book = params.get("book") || "c";
+      let no = parseInt(params.get("no") || "1", 10);
+      if (!(book in HYMNBOOKS)) book = "c";
+      const cfg = HYMNBOOKS[book];
+      if (isNaN(no) || no < 1) no = 1;
+      if (no > cfg.count) no = cfg.count;
+      return { book, no };
+    }
+
+    function pad4(n) {
+      return String(n).padStart(4, "0");
+    }
+
+    function updatePage() {
+      const { book, no } = getParams();
+      const cfg = HYMNBOOKS[book];
+
+      const titleEl = document.getElementById("song-title");
+      const subEl = document.getElementById("song-subtitle");
+      const infoEl = document.getElementById("file-info");
+      const container = document.getElementById("score-container");
+
+      const noStr = pad4(no);
+      const filename = `${cfg.prefix}${noStr}_cn_g.svg`;
+      const path = `assets/${cfg.folder}/${filename}`;
+
+      titleEl.textContent = `${cfg.label} 第 ${no} 首`;
+      subEl.textContent = `文件：${filename}`;
+      infoEl.textContent = `当前：${cfg.label} 第 ${no} 首（${filename}）`;
+
+      container.innerHTML = "";
+      const img = document.createElement("img");
+      img.src = path;
+      img.alt = titleEl.textContent;
+      img.className = "score-svg";
+      container.appendChild(img);
+
+      document.title = `${titleEl.textContent} - 召会诗歌吉他谱`;
+    }
+
+    function gotoSong(book, no) {
+      location.search = `?book=${book}&no=${no}`;
+    }
+
+    document.getElementById("btn-prev").addEventListener("click", () => {
+      const { book, no } = getParams();
+      const cfg = HYMNBOOKS[book];
+      const newNo = no > 1 ? no - 1 : 1;
+      gotoSong(book, newNo);
+    });
+
+    document.getElementById("btn-next").addEventListener("click", () => {
+      const { book, no } = getParams();
+      const cfg = HYMNBOOKS[book];
+      const newNo = no < cfg.count ? no + 1 : cfg.count;
+      gotoSong(book, newNo);
+    });
+
+    updatePage();
+  </script>
+</body>
+</html>
