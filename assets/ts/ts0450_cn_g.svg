@@ -1,8 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.2" width="215.90mm" height="279.40mm" viewBox="0.0000 -0.0000 153.5737 198.7425">
 <style type="text/css">
-<![CDATA[
+
 tspan { white-space: pre; }
-]]>
+
 </style>
 <g transform="translate(68.7952, 9.7380)">
 <text font-family="Songti SC" font-weight="bold" font-size="3.1113" text-anchor="start" fill="currentColor">
@@ -51,9 +52,9 @@ tspan { white-space: pre; }
 <g transform="translate(70.0074, 28.7244)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(79.0842, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>定：</tspan>
+<g transform="translate(79.0842,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">定：</tspan>
 </text>
 </g>
 <g transform="translate(20.9882, 25.7225)">
@@ -65,10 +66,7 @@ tspan { white-space: pre; }
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
 <g transform="translate(9.8338, 29.7244)">
-<path transform="scale(0.0040, -0.0040)" d="M647 2c0 -114 -75 -214 -180 -248c3 -33 4 -66 4 -99c0 -21 0 -41 -1 -62c-7 -122 -92 -229 -211 -229c-108 0 -196 88 -196 197c0 58 54 103 113 103c54 0 95 -47 95 -103c0 -52 -43 -95 -95 -95c-9 0 -18 1 -27 4c25 -37 66 -61 113 -61c93 0 156 91 162 191
-c1 19 2 38 2 57c0 29 -1 58 -3 87c-5 -1 -44 -8 -88 -8c-194 0 -333 181 -333 376c0 177 129 308 244 443c-34 103 -55 171 -55 347c0 114 54 221 147 288c8 6 18 5 25 -1c68 -79 135 -242 135 -356c0 -142 -84 -255 -176 -364c21 -68 40 -136 57 -205c1 0 5 1 10 1
-c157 0 258 -129 258 -263zM463 -201c64 24 110 88 110 161c0 88 -64 175 -167 188c28 -133 49 -269 57 -349zM77 25c0 -144 141 -243 261 -243c1 0 46 -1 81 5c-7 66 -27 208 -60 362c-79 -8 -124 -60 -124 -118c0 -43 25 -88 80 -120c5 -5 7 -11 7 -17
-c0 -12 -10 -23 -23 -23c-16 0 -128 62 -128 188c0 89 60 177 163 200c-14 57 -30 113 -47 169c-105 -122 -210 -243 -210 -403zM242 784c0 -39 10 -95 39 -188c78 97 142 199 142 324c0 33 0 60 -20 118c-99 -46 -161 -145 -161 -254z" fill="currentColor"/>
+<path transform="scale(0.0040, -0.0040)" d="M647 2c0 -114 -75 -214 -180 -248c3 -33 4 -66 4 -99c0 -21 0 -41 -1 -62c-7 -122 -92 -229 -211 -229c-108 0 -196 88 -196 197c0 58 54 103 113 103c54 0 95 -47 95 -103c0 -52 -43 -95 -95 -95c-9 0 -18 1 -27 4c25 -37 66 -61 113 -61c93 0 156 91 162 191 c1 19 2 38 2 57c0 29 -1 58 -3 87c-5 -1 -44 -8 -88 -8c-194 0 -333 181 -333 376c0 177 129 308 244 443c-34 103 -55 171 -55 347c0 114 54 221 147 288c8 6 18 5 25 -1c68 -79 135 -242 135 -356c0 -142 -84 -255 -176 -364c21 -68 40 -136 57 -205c1 0 5 1 10 1 c157 0 258 -129 258 -263zM463 -201c64 24 110 88 110 161c0 88 -64 175 -167 188c28 -133 49 -269 57 -349zM77 25c0 -144 141 -243 261 -243c1 0 46 -1 81 5c-7 66 -27 208 -60 362c-79 -8 -124 -60 -124 -118c0 -43 25 -88 80 -120c5 -5 7 -11 7 -17 c0 -12 -10 -23 -23 -23c-16 0 -128 62 -128 188c0 89 60 177 163 200c-14 57 -30 113 -47 169c-105 -122 -210 -243 -210 -403zM242 784c0 -39 10 -95 39 -188c78 97 142 199 142 324c0 33 0 60 -20 118c-99 -46 -161 -145 -161 -254z" fill="currentColor"/>
 </g>
 <g transform="translate(13.4743, 28.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M31 37l-2 -62v-11c0 -22 2 -43 5 -64c43 38 89 80 89 137c0 32 -14 65 -42 65c-31 0 -49 -32 -50 -65zM-30 450c9 5 20 8 30 8s21 -3 30 -8l-8 -340c25 24 59 38 94 38c50 0 84 -50 84 -104c0 -78 -83 -117 -141 -169c-17 -15 -25 -44 -49 -44c-15 0 -26 13 -26 29z" fill="currentColor"/>
@@ -80,17 +78,16 @@ c0 -12 -10 -23 -23 -23c-16 0 -128 62 -128 188c0 89 60 177 163 200c-14 57 -30 113
 <path transform="scale(0.0040, -0.0040)" d="M31 37l-2 -62v-11c0 -22 2 -43 5 -64c43 38 89 80 89 137c0 32 -14 65 -42 65c-31 0 -49 -32 -50 -65zM-30 450c9 5 20 8 30 8s21 -3 30 -8l-8 -340c25 24 59 38 94 38c50 0 84 -50 84 -104c0 -78 -83 -117 -141 -169c-17 -15 -25 -44 -49 -44c-15 0 -26 13 -26 29z" fill="currentColor"/>
 </g>
 <g transform="translate(17.3053, 28.7244)">
-<path transform="scale(0.0040, -0.0040)" d="M250 265c114 0 172 -112 172 -166c0 -38 -30 -69 -66 -69c-30 0 -72 23 -72 72c0 37 26 75 70 75c3 0 6 -1 9 -1c-26 36 -67 59 -113 59c-107 0 -113 -74 -113 -189c0 -15 1 -30 1 -46s-1 -31 -1 -46c0 -115 6 -189 113 -189c78 0 133 70 151 149c2 8 8 11 14 11
-c7 0 15 -5 15 -14c0 -21 -49 -176 -180 -176c-145 0 -250 88 -250 265c0 63 18 265 250 265z" fill="currentColor"/>
+<path transform="scale(0.0040, -0.0040)" d="M250 265c114 0 172 -112 172 -166c0 -38 -30 -69 -66 -69c-30 0 -72 23 -72 72c0 37 26 75 70 75c3 0 6 -1 9 -1c-26 36 -67 59 -113 59c-107 0 -113 -74 -113 -189c0 -15 1 -30 1 -46s-1 -31 -1 -46c0 -115 6 -189 113 -189c78 0 133 70 151 149c2 8 8 11 14 11 c7 0 15 -5 15 -14c0 -21 -49 -176 -180 -176c-145 0 -250 88 -250 265c0 63 18 265 250 265z" fill="currentColor"/>
 </g>
-<g transform="translate(20.4010, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>神</tspan>
+<g transform="translate(20.401,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">神</tspan>
 </text>
 </g>
-<g transform="translate(17.9072, 34.1959)">
-<text font-family="Songti SC" font-weight="bold" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>1.</tspan>
+<g transform="translate(17.9072,34.6959)">
+<text font-family="Songti SC" font-weight="bold" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">1.</tspan>
 </text>
 </g>
 <g transform="translate(22.2134, 28.7244)">
@@ -99,9 +96,9 @@ c7 0 15 -5 15 -14c0 -21 -49 -176 -180 -176c-145 0 -250 88 -250 265c0 63 18 265 2
 <g transform="translate(26.0490, 30.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(25.4617, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>话</tspan>
+<g transform="translate(25.4617,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">话</tspan>
 </text>
 </g>
 <g transform="translate(27.2741, 28.7244)">
@@ -113,9 +110,9 @@ c7 0 15 -5 15 -14c0 -21 -49 -176 -180 -176c-145 0 -250 88 -250 265c0 63 18 265 2
 <g transform="translate(33.4287, 30.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(32.8414, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>语</tspan>
+<g transform="translate(32.8414,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">语</tspan>
 </text>
 </g>
 <g transform="translate(35.1709, 30.2244)">
@@ -127,9 +124,9 @@ c7 0 15 -5 15 -14c0 -21 -49 -176 -180 -176c-145 0 -250 88 -250 265c0 63 18 265 2
 <g transform="translate(44.4487, 30.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(43.8614, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>赐</tspan>
+<g transform="translate(43.8614,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">赐</tspan>
 </text>
 </g>
 <g transform="translate(45.6738, 28.7244)">
@@ -141,9 +138,9 @@ c7 0 15 -5 15 -14c0 -21 -49 -176 -180 -176c-145 0 -250 88 -250 265c0 63 18 265 2
 <g transform="translate(49.5624, 30.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(48.9751, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>盼</tspan>
+<g transform="translate(48.9751,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">盼</tspan>
 </text>
 </g>
 <g transform="translate(50.7875, 28.7244)">
@@ -152,9 +149,9 @@ c7 0 15 -5 15 -14c0 -21 -49 -176 -180 -176c-145 0 -250 88 -250 265c0 63 18 265 2
 <g transform="translate(54.6231, 30.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(54.0358, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>望</tspan>
+<g transform="translate(54.0358,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">望</tspan>
 </text>
 </g>
 <g transform="translate(55.8482, 28.7244)">
@@ -166,9 +163,9 @@ c7 0 15 -5 15 -14c0 -21 -49 -176 -180 -176c-145 0 -250 88 -250 265c0 63 18 265 2
 <g transform="translate(59.6838, 30.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(59.0966, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>何</tspan>
+<g transform="translate(59.0966,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">何</tspan>
 </text>
 </g>
 <g transform="translate(60.9090, 28.7244)">
@@ -177,9 +174,9 @@ c7 0 15 -5 15 -14c0 -21 -49 -176 -180 -176c-145 0 -250 88 -250 265c0 63 18 265 2
 <g transform="translate(64.7446, 29.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(64.1573, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>等</tspan>
+<g transform="translate(64.1573,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">等</tspan>
 </text>
 </g>
 <g transform="translate(65.9697, 28.7244)">
@@ -198,9 +195,9 @@ c7 0 15 -5 15 -14c0 -21 -49 -176 -180 -176c-145 0 -250 88 -250 265c0 63 18 265 2
 <g transform="translate(72.0885, 29.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(71.5013, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>坚</tspan>
+<g transform="translate(71.5013,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">坚</tspan>
 </text>
 </g>
 <g transform="translate(73.3137, 28.7244)">
@@ -213,15 +210,14 @@ c7 0 15 -5 15 -14c0 -21 -49 -176 -180 -176c-145 0 -250 88 -250 265c0 63 18 265 2
 <rect x="-0.0757" y="-2.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
 <g transform="translate(89.7298, 28.7244)">
-<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40
-c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
+<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40 c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
 </g>
 <g transform="translate(98.1996, 30.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(97.6123, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>主</tspan>
+<g transform="translate(97.6123,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">主</tspan>
 </text>
 </g>
 <g transform="translate(99.4248, 28.7244)">
@@ -233,9 +229,9 @@ c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92
 <g transform="translate(103.2603, 30.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(102.6731, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>来</tspan>
+<g transform="translate(102.6731,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">来</tspan>
 </text>
 </g>
 <g transform="translate(104.4855, 28.7244)">
@@ -249,9 +245,9 @@ c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92
 <g transform="translate(110.6523, 31.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(108.8273, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>时，</tspan>
+<g transform="translate(108.8273,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">时，</tspan>
 </text>
 </g>
 <g transform="translate(112.3945, 31.2244)">
@@ -263,9 +259,9 @@ c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92
 <g transform="translate(121.6723, 31.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(121.0850, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>我</tspan>
+<g transform="translate(121.085,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">我</tspan>
 </text>
 </g>
 <g transform="translate(122.8975, 28.7244)">
@@ -287,9 +283,9 @@ c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92
 <g transform="translate(126.7860, 31.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(126.1987, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>全</tspan>
+<g transform="translate(126.1987,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">全</tspan>
 </text>
 </g>
 <g transform="translate(128.0111, 28.7244)">
@@ -301,9 +297,9 @@ c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92
 <g transform="translate(131.8467, 30.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(131.2594, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>人</tspan>
+<g transform="translate(131.2594,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">人</tspan>
 </text>
 </g>
 <g transform="translate(133.0719, 28.7244)">
@@ -312,9 +308,9 @@ c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92
 <g transform="translate(136.9074, 30.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(136.3202, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>必</tspan>
+<g transform="translate(136.3202,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">必</tspan>
 </text>
 </g>
 <g transform="translate(138.1326, 28.7244)">
@@ -323,1201 +319,1618 @@ c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92
 <g transform="translate(141.7182, 31.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(141.1309, 34.1959)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>得</tspan>
+<g transform="translate(141.1309,34.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">得</tspan>
 </text>
 </g>
 <g transform="translate(142.9433, 28.7244)">
 <rect x="-0.0757" y="-1.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(45.9427, 40.7244)">
+<g transform="translate(45.9427,58.7244)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(9.0337, 42.7244)">
+<g transform="translate(9.0337,60.7244)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(9.0337, 41.7244)">
+<g transform="translate(9.0337,59.7244)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(9.0337, 40.7244)">
+<g transform="translate(9.0337,58.7244)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(9.0337, 39.7244)">
+<g transform="translate(9.0337,57.7244)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(9.0337, 38.7244)">
+<g transform="translate(9.0337,56.7244)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(147.0289, 40.7244)">
+<g transform="translate(147.0289,58.7244)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(113.3530, 40.7244)">
+<g transform="translate(113.353,58.7244)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(79.8206, 40.7244)">
+<g transform="translate(79.8206,58.7244)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(9.8338, 41.7244)">
-<path transform="scale(0.0040, -0.0040)" d="M647 2c0 -114 -75 -214 -180 -248c3 -33 4 -66 4 -99c0 -21 0 -41 -1 -62c-7 -122 -92 -229 -211 -229c-108 0 -196 88 -196 197c0 58 54 103 113 103c54 0 95 -47 95 -103c0 -52 -43 -95 -95 -95c-9 0 -18 1 -27 4c25 -37 66 -61 113 -61c93 0 156 91 162 191
-c1 19 2 38 2 57c0 29 -1 58 -3 87c-5 -1 -44 -8 -88 -8c-194 0 -333 181 -333 376c0 177 129 308 244 443c-34 103 -55 171 -55 347c0 114 54 221 147 288c8 6 18 5 25 -1c68 -79 135 -242 135 -356c0 -142 -84 -255 -176 -364c21 -68 40 -136 57 -205c1 0 5 1 10 1
-c157 0 258 -129 258 -263zM463 -201c64 24 110 88 110 161c0 88 -64 175 -167 188c28 -133 49 -269 57 -349zM77 25c0 -144 141 -243 261 -243c1 0 46 -1 81 5c-7 66 -27 208 -60 362c-79 -8 -124 -60 -124 -118c0 -43 25 -88 80 -120c5 -5 7 -11 7 -17
-c0 -12 -10 -23 -23 -23c-16 0 -128 62 -128 188c0 89 60 177 163 200c-14 57 -30 113 -47 169c-105 -122 -210 -243 -210 -403zM242 784c0 -39 10 -95 39 -188c78 97 142 199 142 324c0 33 0 60 -20 118c-99 -46 -161 -145 -161 -254z" fill="currentColor"/>
+<g transform="translate(9.8338,59.7244)">
+<path transform="scale(0.0040, -0.0040)" d="M647 2c0 -114 -75 -214 -180 -248c3 -33 4 -66 4 -99c0 -21 0 -41 -1 -62c-7 -122 -92 -229 -211 -229c-108 0 -196 88 -196 197c0 58 54 103 113 103c54 0 95 -47 95 -103c0 -52 -43 -95 -95 -95c-9 0 -18 1 -27 4c25 -37 66 -61 113 -61c93 0 156 91 162 191 c1 19 2 38 2 57c0 29 -1 58 -3 87c-5 -1 -44 -8 -88 -8c-194 0 -333 181 -333 376c0 177 129 308 244 443c-34 103 -55 171 -55 347c0 114 54 221 147 288c8 6 18 5 25 -1c68 -79 135 -242 135 -356c0 -142 -84 -255 -176 -364c21 -68 40 -136 57 -205c1 0 5 1 10 1 c157 0 258 -129 258 -263zM463 -201c64 24 110 88 110 161c0 88 -64 175 -167 188c28 -133 49 -269 57 -349zM77 25c0 -144 141 -243 261 -243c1 0 46 -1 81 5c-7 66 -27 208 -60 362c-79 -8 -124 -60 -124 -118c0 -43 25 -88 80 -120c5 -5 7 -11 7 -17 c0 -12 -10 -23 -23 -23c-16 0 -128 62 -128 188c0 89 60 177 163 200c-14 57 -30 113 -47 169c-105 -122 -210 -243 -210 -403zM242 784c0 -39 10 -95 39 -188c78 97 142 199 142 324c0 33 0 60 -20 118c-99 -46 -161 -145 -161 -254z" fill="currentColor"/>
 </g>
-<g transform="translate(13.4743, 40.7244)">
+<g transform="translate(13.4743,58.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M31 37l-2 -62v-11c0 -22 2 -43 5 -64c43 38 89 80 89 137c0 32 -14 65 -42 65c-31 0 -49 -32 -50 -65zM-30 450c9 5 20 8 30 8s21 -3 30 -8l-8 -340c25 24 59 38 94 38c50 0 84 -50 84 -104c0 -78 -83 -117 -141 -169c-17 -15 -25 -44 -49 -44c-15 0 -26 13 -26 29z" fill="currentColor"/>
 </g>
-<g transform="translate(14.4148, 39.2244)">
+<g transform="translate(14.4148,57.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M31 37l-2 -62v-11c0 -22 2 -43 5 -64c43 38 89 80 89 137c0 32 -14 65 -42 65c-31 0 -49 -32 -50 -65zM-30 450c9 5 20 8 30 8s21 -3 30 -8l-8 -340c25 24 59 38 94 38c50 0 84 -50 84 -104c0 -78 -83 -117 -141 -169c-17 -15 -25 -44 -49 -44c-15 0 -26 13 -26 29z" fill="currentColor"/>
 </g>
-<g transform="translate(15.3553, 41.2244)">
+<g transform="translate(15.3553,59.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M31 37l-2 -62v-11c0 -22 2 -43 5 -64c43 38 89 80 89 137c0 32 -14 65 -42 65c-31 0 -49 -32 -50 -65zM-30 450c9 5 20 8 30 8s21 -3 30 -8l-8 -340c25 24 59 38 94 38c50 0 84 -50 84 -104c0 -78 -83 -117 -141 -169c-17 -15 -25 -44 -49 -44c-15 0 -26 13 -26 29z" fill="currentColor"/>
 </g>
-<g transform="translate(8.2228, 37.7513)">
+<g transform="translate(8.2228,55.7513)">
 <text font-family="Songti SC" font-size="1.7463" text-anchor="start" fill="currentColor">
 <tspan>4</tspan>
 </text>
 </g>
-<g transform="translate(18.6553, 37.7225)">
+<g transform="translate(18.6553,55.7225)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>D</tspan>
 </text>
 </g>
-<g transform="translate(18.6553, 42.7244)">
-<path transform="scale(0.0040, -0.0040)" d="M310 63c0 22 -17 40 -40 40c-38 0 -197 -107 -224 -139c-7 -8 -10 -17 -10 -27c0 -22 17 -40 40 -40c38 0 197 107 224 139c7 8 10 17 10 27zM256 138c55 0 90 -22 90 -77c0 -25 -15 -112 -73 -151c-34 -23 -92 -48 -183 -48c-55 0 -90 22 -90 77c0 25 15 112 73 151
-c34 23 92 48 183 48z" fill="currentColor"/>
+<g transform="translate(18.6553,60.7244)">
+<path transform="scale(0.0040, -0.0040)" d="M310 63c0 22 -17 40 -40 40c-38 0 -197 -107 -224 -139c-7 -8 -10 -17 -10 -27c0 -22 17 -40 40 -40c38 0 197 107 224 139c7 8 10 17 10 27zM256 138c55 0 90 -22 90 -77c0 -25 -15 -112 -73 -151c-34 -23 -92 -48 -183 -48c-55 0 -90 22 -90 77c0 25 15 112 73 151 c34 23 92 48 183 48z" fill="currentColor"/>
 </g>
-<g transform="translate(16.8719, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>赎；</tspan>
+<g transform="translate(16.8719,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">赎；</tspan>
 </text>
 </g>
-<g transform="translate(19.9635, 40.7244)">
+<g transform="translate(19.9635,58.7244)">
 <rect x="-0.0757" y="-1.5000" width="0.1514" height="3.2544" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(130.3384, 39.7244)">
+<g transform="translate(130.3384,57.7244)">
 <polygon stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1000" fill="currentColor" stroke="currentColor" points="13.2313 -0.1900 13.2313 0.1900 0.0500 0.1900 0.0500 -0.1900"/>
 </g>
-<g transform="translate(29.5167, 40.7244)">
-<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40
-c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
+<g transform="translate(29.5167,58.7244)">
+<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40 c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
 </g>
-<g transform="translate(36.7850, 41.7244)">
+<g transform="translate(36.785,59.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(36.1977, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>但</tspan>
+<g transform="translate(36.1977,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">但</tspan>
 </text>
 </g>
-<g transform="translate(38.0101, 40.7244)">
+<g transform="translate(38.0101,58.7244)">
 <rect x="-0.0757" y="-2.1758" width="0.1514" height="3.0045" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(41.2449, 42.2244)">
+<g transform="translate(41.2449,60.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(40.6577, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>患</tspan>
+<g transform="translate(40.6577,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">患</tspan>
 </text>
 </g>
-<g transform="translate(42.4701, 40.7244)">
+<g transform="translate(42.4701,58.7244)">
 <rect x="-0.0757" y="-1.8242" width="0.1514" height="3.1528" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(47.7986, 42.7244)">
+<g transform="translate(47.7986,60.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(47.2113, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>难</tspan>
+<g transform="translate(47.2113,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">难</tspan>
 </text>
 </g>
-<g transform="translate(49.5409, 42.2244)">
+<g transform="translate(49.5409,60.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M0 0c0 30 25 55 55 55s55 -25 55 -55s-25 -55 -55 -55s-55 25 -55 55z" fill="currentColor"/>
 </g>
-<g transform="translate(49.0237, 40.7244)">
+<g transform="translate(49.0237,58.7244)">
 <rect x="-0.0757" y="-1.5000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(105.3325, 39.5427)">
+<g transform="translate(105.3325,57.5427)">
 <polygon stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1000" fill="currentColor" stroke="currentColor" points="4.5613 -0.0082 4.5613 0.3718 0.0500 0.1900 0.0500 -0.1900"/>
 </g>
-<g transform="translate(57.2657, 42.7244)">
+<g transform="translate(57.2657,60.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(56.6784, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>带</tspan>
+<g transform="translate(56.6784,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">带</tspan>
 </text>
 </g>
-<g transform="translate(58.4909, 40.7244)">
+<g transform="translate(58.4909,58.7244)">
 <rect x="-0.0757" y="-1.5000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(58.5665, 39.2744)">
+<g transform="translate(58.5665,57.2744)">
 <path transform="scale(0.0040, -0.0040)" d="M0 -250h-19v250h19c0 -197 207 -334 207 -531c0 -71 -15 -140 -41 -206c-5 -9 -14 -13 -22 -13c-14 0 -29 12 -26 30c26 60 43 124 43 189c0 102 -92 206 -161 281z" fill="currentColor"/>
 </g>
-<g transform="translate(61.7786, 42.7244)">
+<g transform="translate(61.7786,60.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(61.1913, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>来</tspan>
+<g transform="translate(61.1913,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">来</tspan>
 </text>
 </g>
-<g transform="translate(63.0038, 40.7244)">
+<g transform="translate(63.0038,58.7244)">
 <rect x="-0.0757" y="-1.1853" width="0.1514" height="3.0140" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(66.2386, 42.7244)">
+<g transform="translate(66.2386,60.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(65.6513, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>疑</tspan>
+<g transform="translate(65.6513,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">疑</tspan>
 </text>
 </g>
-<g transform="translate(67.4638, 40.7244)">
+<g transform="translate(67.4638,58.7244)">
 <rect x="-0.0757" y="-1.3951" width="0.1514" height="3.2238" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(70.6986, 42.2244)">
+<g transform="translate(70.6986,60.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(70.1113, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>惑</tspan>
+<g transform="translate(70.1113,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">惑</tspan>
 </text>
 </g>
-<g transform="translate(71.9237, 40.7244)">
+<g transform="translate(71.9237,58.7244)">
 <rect x="-0.0757" y="-1.6049" width="0.1514" height="2.9336" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(75.1586, 41.7244)">
+<g transform="translate(75.1586,59.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(74.5713, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>与</tspan>
+<g transform="translate(74.5713,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">与</tspan>
 </text>
 </g>
-<g transform="translate(76.3837, 40.7244)">
+<g transform="translate(76.3837,58.7244)">
 <rect x="-0.0757" y="-1.8147" width="0.1514" height="2.6433" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(81.6765, 37.7225)">
+<g transform="translate(81.6765,55.7225)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>E</tspan>
 </text>
 </g>
-<g transform="translate(82.9569, 37.7225)">
+<g transform="translate(82.9569,55.7225)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>m</tspan>
 </text>
 </g>
-<g transform="translate(81.6765, 41.7244)">
+<g transform="translate(81.6765,59.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(81.0892, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>忧</tspan>
+<g transform="translate(81.0892,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">忧</tspan>
 </text>
 </g>
-<g transform="translate(82.9017, 40.7244)">
+<g transform="translate(82.9017,58.7244)">
 <rect x="-0.0757" y="-2.5000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(89.2956, 42.2244)">
+<g transform="translate(89.2956,60.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(87.4707, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>惧，</tspan>
+<g transform="translate(87.4707,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">惧，</tspan>
 </text>
 </g>
-<g transform="translate(90.5208, 40.7244)">
+<g transform="translate(90.5208,58.7244)">
 <rect x="-0.0757" y="-2.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(62.9281, 39.5427)">
+<g transform="translate(62.9281,57.5427)">
 <polygon stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1000" fill="currentColor" stroke="currentColor" points="13.4813 -0.8264 13.4813 -0.4464 0.0500 0.1900 0.0500 -0.1900"/>
 </g>
-<g transform="translate(96.9148, 40.7244)">
-<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40
-c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
+<g transform="translate(96.9148,58.7244)">
+<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40 c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
 </g>
-<g transform="translate(104.1831, 42.2244)">
+<g transform="translate(104.1831,60.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(103.5958, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>盼</tspan>
+<g transform="translate(103.5958,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">盼</tspan>
 </text>
 </g>
-<g transform="translate(105.4082, 40.7244)">
+<g transform="translate(105.4082,58.7244)">
 <rect x="-0.0757" y="-1.1788" width="0.1514" height="2.5075" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(108.6431, 42.7244)">
+<g transform="translate(108.6431,60.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(108.0558, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>望</tspan>
+<g transform="translate(108.0558,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">望</tspan>
 </text>
 </g>
-<g transform="translate(109.8682, 40.7244)">
+<g transform="translate(109.8682,58.7244)">
 <rect x="-0.0757" y="-1.0030" width="0.1514" height="2.8317" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(115.2089, 37.7225)">
+<g transform="translate(115.2089,55.7225)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>A</tspan>
 </text>
 </g>
-<g transform="translate(115.2089, 43.2244)">
+<g transform="translate(115.2089,61.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(113.3840, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>隐，</tspan>
+<g transform="translate(113.384,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">隐，</tspan>
 </text>
 </g>
-<g transform="translate(116.9512, 43.2244)">
+<g transform="translate(116.9512,61.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M0 0c0 30 25 55 55 55s55 -25 55 -55s-25 -55 -55 -55s-55 25 -55 55z" fill="currentColor"/>
 </g>
-<g transform="translate(116.4341, 40.7244)">
+<g transform="translate(116.4341,58.7244)">
 <rect x="-0.0757" y="-1.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(37.9344, 38.5427)">
+<g transform="translate(37.9344,56.5427)">
 <polygon stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1000" fill="currentColor" stroke="currentColor" points="4.5613 0.1736 4.5613 0.5536 0.0500 0.1900 0.0500 -0.1900"/>
 </g>
-<g transform="translate(124.6761, 43.2244)">
+<g transform="translate(124.6761,61.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(124.0888, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>异</tspan>
+<g transform="translate(124.0888,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">异</tspan>
 </text>
 </g>
-<g transform="translate(125.9012, 40.7244)">
+<g transform="translate(125.9012,58.7244)">
 <rect x="-0.0757" y="-1.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(125.9769, 39.7744)">
+<g transform="translate(125.9769,57.7744)">
 <path transform="scale(0.0040, -0.0040)" d="M0 -250h-19v250h19c0 -197 207 -334 207 -531c0 -71 -15 -140 -41 -206c-5 -9 -14 -13 -22 -13c-14 0 -29 12 -26 30c26 60 43 124 43 189c0 102 -92 206 -161 281z" fill="currentColor"/>
 </g>
-<g transform="translate(129.1890, 37.7225)">
+<g transform="translate(129.189,55.7225)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>A</tspan>
 </text>
 </g>
-<g transform="translate(130.6401, 36.8316)">
+<g transform="translate(130.6401,54.8316)">
 <text font-family="Hiragino Sans GB" font-size="1.3856" text-anchor="start" fill="currentColor">
 <tspan>7</tspan>
 </text>
 </g>
-<g transform="translate(129.1890, 43.2244)">
+<g transform="translate(129.189,61.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(128.6017, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>象</tspan>
+<g transform="translate(128.6017,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">象</tspan>
 </text>
 </g>
-<g transform="translate(130.4141, 40.7244)">
+<g transform="translate(130.4141,58.7244)">
 <rect x="-0.0757" y="-1.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(133.6490, 42.7244)">
+<g transform="translate(133.649,60.7244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(133.0617, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>逐</tspan>
+<g transform="translate(133.0617,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">逐</tspan>
 </text>
 </g>
-<g transform="translate(134.8741, 40.7244)">
+<g transform="translate(134.8741,58.7244)">
 <rect x="-0.0757" y="-1.0000" width="0.1514" height="2.8287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(138.1089, 42.2244)">
+<g transform="translate(138.1089,60.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(137.5217, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>渐</tspan>
+<g transform="translate(137.5217,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">渐</tspan>
 </text>
 </g>
-<g transform="translate(139.3341, 40.7244)">
+<g transform="translate(139.3341,58.7244)">
 <rect x="-0.0757" y="-1.0000" width="0.1514" height="2.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(142.3189, 43.2244)">
+<g transform="translate(142.3189,61.2244)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(141.7316, 46.2083)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>糢</tspan>
+<g transform="translate(141.7316,64.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">糢</tspan>
 </text>
 </g>
-<g transform="translate(143.5441, 40.7244)">
+<g transform="translate(143.5441,58.7244)">
 <rect x="-0.0757" y="-1.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(45.9987, 53.1267)">
+<g transform="translate(45.9987,89.1267)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(9.0337, 55.1267)">
+<g transform="translate(9.0337,91.1267)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(9.0337, 54.1267)">
+<g transform="translate(9.0337,90.1267)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(9.0337, 53.1267)">
+<g transform="translate(9.0337,89.1267)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(9.0337, 52.1267)">
+<g transform="translate(9.0337,88.1267)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(9.0337, 51.1267)">
+<g transform="translate(9.0337,87.1267)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(147.0289, 53.1267)">
+<g transform="translate(147.0289,89.1267)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(113.0951, 53.1267)">
+<g transform="translate(113.0951,89.1267)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(79.6157, 53.1267)">
+<g transform="translate(79.6157,89.1267)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(9.8338, 54.1267)">
-<path transform="scale(0.0040, -0.0040)" d="M647 2c0 -114 -75 -214 -180 -248c3 -33 4 -66 4 -99c0 -21 0 -41 -1 -62c-7 -122 -92 -229 -211 -229c-108 0 -196 88 -196 197c0 58 54 103 113 103c54 0 95 -47 95 -103c0 -52 -43 -95 -95 -95c-9 0 -18 1 -27 4c25 -37 66 -61 113 -61c93 0 156 91 162 191
-c1 19 2 38 2 57c0 29 -1 58 -3 87c-5 -1 -44 -8 -88 -8c-194 0 -333 181 -333 376c0 177 129 308 244 443c-34 103 -55 171 -55 347c0 114 54 221 147 288c8 6 18 5 25 -1c68 -79 135 -242 135 -356c0 -142 -84 -255 -176 -364c21 -68 40 -136 57 -205c1 0 5 1 10 1
-c157 0 258 -129 258 -263zM463 -201c64 24 110 88 110 161c0 88 -64 175 -167 188c28 -133 49 -269 57 -349zM77 25c0 -144 141 -243 261 -243c1 0 46 -1 81 5c-7 66 -27 208 -60 362c-79 -8 -124 -60 -124 -118c0 -43 25 -88 80 -120c5 -5 7 -11 7 -17
-c0 -12 -10 -23 -23 -23c-16 0 -128 62 -128 188c0 89 60 177 163 200c-14 57 -30 113 -47 169c-105 -122 -210 -243 -210 -403zM242 784c0 -39 10 -95 39 -188c78 97 142 199 142 324c0 33 0 60 -20 118c-99 -46 -161 -145 -161 -254z" fill="currentColor"/>
+<g transform="translate(9.8338,90.1267)">
+<path transform="scale(0.0040, -0.0040)" d="M647 2c0 -114 -75 -214 -180 -248c3 -33 4 -66 4 -99c0 -21 0 -41 -1 -62c-7 -122 -92 -229 -211 -229c-108 0 -196 88 -196 197c0 58 54 103 113 103c54 0 95 -47 95 -103c0 -52 -43 -95 -95 -95c-9 0 -18 1 -27 4c25 -37 66 -61 113 -61c93 0 156 91 162 191 c1 19 2 38 2 57c0 29 -1 58 -3 87c-5 -1 -44 -8 -88 -8c-194 0 -333 181 -333 376c0 177 129 308 244 443c-34 103 -55 171 -55 347c0 114 54 221 147 288c8 6 18 5 25 -1c68 -79 135 -242 135 -356c0 -142 -84 -255 -176 -364c21 -68 40 -136 57 -205c1 0 5 1 10 1 c157 0 258 -129 258 -263zM463 -201c64 24 110 88 110 161c0 88 -64 175 -167 188c28 -133 49 -269 57 -349zM77 25c0 -144 141 -243 261 -243c1 0 46 -1 81 5c-7 66 -27 208 -60 362c-79 -8 -124 -60 -124 -118c0 -43 25 -88 80 -120c5 -5 7 -11 7 -17 c0 -12 -10 -23 -23 -23c-16 0 -128 62 -128 188c0 89 60 177 163 200c-14 57 -30 113 -47 169c-105 -122 -210 -243 -210 -403zM242 784c0 -39 10 -95 39 -188c78 97 142 199 142 324c0 33 0 60 -20 118c-99 -46 -161 -145 -161 -254z" fill="currentColor"/>
 </g>
-<g transform="translate(13.4743, 53.1267)">
+<g transform="translate(13.4743,89.1267)">
 <path transform="scale(0.0040, -0.0040)" d="M31 37l-2 -62v-11c0 -22 2 -43 5 -64c43 38 89 80 89 137c0 32 -14 65 -42 65c-31 0 -49 -32 -50 -65zM-30 450c9 5 20 8 30 8s21 -3 30 -8l-8 -340c25 24 59 38 94 38c50 0 84 -50 84 -104c0 -78 -83 -117 -141 -169c-17 -15 -25 -44 -49 -44c-15 0 -26 13 -26 29z" fill="currentColor"/>
 </g>
-<g transform="translate(14.4148, 51.6267)">
+<g transform="translate(14.4148,87.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M31 37l-2 -62v-11c0 -22 2 -43 5 -64c43 38 89 80 89 137c0 32 -14 65 -42 65c-31 0 -49 -32 -50 -65zM-30 450c9 5 20 8 30 8s21 -3 30 -8l-8 -340c25 24 59 38 94 38c50 0 84 -50 84 -104c0 -78 -83 -117 -141 -169c-17 -15 -25 -44 -49 -44c-15 0 -26 13 -26 29z" fill="currentColor"/>
 </g>
-<g transform="translate(15.3553, 53.6267)">
+<g transform="translate(15.3553,89.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M31 37l-2 -62v-11c0 -22 2 -43 5 -64c43 38 89 80 89 137c0 32 -14 65 -42 65c-31 0 -49 -32 -50 -65zM-30 450c9 5 20 8 30 8s21 -3 30 -8l-8 -340c25 24 59 38 94 38c50 0 84 -50 84 -104c0 -78 -83 -117 -141 -169c-17 -15 -25 -44 -49 -44c-15 0 -26 13 -26 29z" fill="currentColor"/>
 </g>
-<g transform="translate(8.2228, 50.1536)">
+<g transform="translate(8.2228,86.1536)">
 <text font-family="Songti SC" font-size="1.7463" text-anchor="start" fill="currentColor">
 <tspan>8</tspan>
 </text>
 </g>
-<g transform="translate(18.6553, 49.5803)">
+<g transform="translate(18.6553,85.5803)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>D</tspan>
 </text>
 </g>
-<g transform="translate(18.6553, 55.1267)">
-<path transform="scale(0.0040, -0.0040)" d="M310 63c0 22 -17 40 -40 40c-38 0 -197 -107 -224 -139c-7 -8 -10 -17 -10 -27c0 -22 17 -40 40 -40c38 0 197 107 224 139c7 8 10 17 10 27zM256 138c55 0 90 -22 90 -77c0 -25 -15 -112 -73 -151c-34 -23 -92 -48 -183 -48c-55 0 -90 22 -90 77c0 25 15 112 73 151
-c34 23 92 48 183 48z" fill="currentColor"/>
+<g transform="translate(18.6553,91.1267)">
+<path transform="scale(0.0040, -0.0040)" d="M310 63c0 22 -17 40 -40 40c-38 0 -197 -107 -224 -139c-7 -8 -10 -17 -10 -27c0 -22 17 -40 40 -40c38 0 197 107 224 139c7 8 10 17 10 27zM256 138c55 0 90 -22 90 -77c0 -25 -15 -112 -73 -151c-34 -23 -92 -48 -183 -48c-55 0 -90 22 -90 77c0 25 15 112 73 151 c34 23 92 48 183 48z" fill="currentColor"/>
 </g>
-<g transform="translate(16.8719, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>糊。</tspan>
+<g transform="translate(16.8719,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">糊。</tspan>
 </text>
 </g>
-<g transform="translate(19.9635, 53.1267)">
+<g transform="translate(19.9635,89.1267)">
 <rect x="-0.0757" y="-1.5000" width="0.1514" height="3.2544" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(29.4570, 53.1267)">
-<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40
-c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
+<g transform="translate(29.457,89.1267)">
+<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40 c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
 </g>
-<g transform="translate(130.0017, 50.3085)">
+<g transform="translate(130.0017,86.30850000000001)">
 <polygon stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1000" fill="currentColor" stroke="currentColor" points="13.6716 -0.1900 13.6716 0.1900 0.0500 0.1900 0.0500 -0.1900"/>
 </g>
-<g transform="translate(36.6855, 54.1267)">
+<g transform="translate(36.6855,90.1267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(36.0982, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>磨</tspan>
+<g transform="translate(36.0982,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">磨</tspan>
 </text>
 </g>
-<g transform="translate(38.4277, 53.6267)">
+<g transform="translate(38.4277,89.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M0 0c0 30 25 55 55 55s55 -25 55 -55s-25 -55 -55 -55s-55 25 -55 55z" fill="currentColor"/>
 </g>
-<g transform="translate(37.9106, 53.1267)">
+<g transform="translate(37.9106,89.1267)">
 <rect x="-0.0757" y="-2.8204" width="0.1514" height="3.6490" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(42.9619, 53.6267)">
+<g transform="translate(42.9619,89.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(42.3746, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>难</tspan>
+<g transform="translate(42.3746,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">难</tspan>
 </text>
 </g>
-<g transform="translate(44.1870, 53.1267)">
+<g transform="translate(44.187,89.1267)">
 <rect x="-0.0757" y="-2.9979" width="0.1514" height="3.3265" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(47.9516, 53.1267)">
+<g transform="translate(47.9516,89.1267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(46.1266, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>间，</tspan>
+<g transform="translate(46.1266,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">间，</tspan>
 </text>
 </g>
-<g transform="translate(49.6939, 52.6267)">
+<g transform="translate(49.6939,88.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M0 0c0 30 25 55 55 55s55 -25 55 -55s-25 -55 -55 -55s-55 25 -55 55z" fill="currentColor"/>
 </g>
-<g transform="translate(48.0273, 53.1267)">
+<g transform="translate(48.0273,89.1267)">
 <rect x="-0.0757" y="0.1713" width="0.1514" height="3.1620" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(57.3673, 53.1267)">
+<g transform="translate(57.3673,89.1267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(56.7800, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>本</tspan>
+<g transform="translate(56.78,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">本</tspan>
 </text>
 </g>
-<g transform="translate(57.4430, 53.1267)">
+<g transform="translate(57.443,89.1267)">
 <rect x="-0.0757" y="0.1713" width="0.1514" height="3.2037" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(57.5186, 56.4517)">
+<g transform="translate(57.5186,92.4517)">
 <path transform="scale(0.0040, -0.0040)" d="M0 0h-19v250h19v-250zM0 0v250c95 59 220 149 220 259c0 56 -16 111 -41 161c-3 18 12 30 26 30c8 0 17 -4 22 -13c25 -56 40 -116 40 -178c0 -203 -267 -306 -267 -509z" fill="currentColor"/>
 </g>
-<g transform="translate(105.1624, 51.3085)">
+<g transform="translate(105.1624,87.30850000000001)">
 <polygon stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1000" fill="currentColor" stroke="currentColor" points="4.5414 -0.5536 4.5414 -0.1736 0.0500 0.1900 0.0500 -0.1900"/>
 </g>
-<g transform="translate(61.8074, 53.1267)">
+<g transform="translate(61.8074,89.1267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(61.2201, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>不</tspan>
+<g transform="translate(61.2201,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">不</tspan>
 </text>
 </g>
-<g transform="translate(61.8830, 53.1267)">
+<g transform="translate(61.883,89.1267)">
 <rect x="-0.0757" y="0.1713" width="0.1514" height="2.8242" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(66.2475, 53.1267)">
+<g transform="translate(66.2475,89.1267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(65.6602, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>知</tspan>
+<g transform="translate(65.6602,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">知</tspan>
 </text>
 </g>
-<g transform="translate(66.3231, 53.1267)">
+<g transform="translate(66.3231,89.1267)">
 <rect x="-0.0757" y="0.1713" width="0.1514" height="2.5594" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(70.9375, 51.6267)">
+<g transform="translate(70.9375,87.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(70.3503, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>如</tspan>
+<g transform="translate(70.3503,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">如</tspan>
 </text>
 </g>
-<g transform="translate(71.0132, 53.1267)">
+<g transform="translate(71.0132,89.1267)">
 <rect x="-0.0757" y="-1.3287" width="0.1514" height="3.7797" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(75.3776, 52.1267)">
+<g transform="translate(75.3776,88.1267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(74.7903, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>何</tspan>
+<g transform="translate(74.7903,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">何</tspan>
 </text>
 </g>
-<g transform="translate(75.4533, 53.1267)">
+<g transform="translate(75.4533,89.1267)">
 <rect x="-0.0757" y="-0.8287" width="0.1514" height="3.0150" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(81.6257, 49.5803)">
+<g transform="translate(81.6257,85.5803)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>G</tspan>
 </text>
 </g>
-<g transform="translate(81.6257, 52.1267)">
+<g transform="translate(81.6257,88.1267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(81.0385, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>祷</tspan>
+<g transform="translate(81.0385,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">祷</tspan>
 </text>
 </g>
-<g transform="translate(81.7014, 53.1267)">
+<g transform="translate(81.7014,89.1267)">
 <rect x="-0.0757" y="-0.8287" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(89.2051, 52.6267)">
+<g transform="translate(89.2051,88.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(87.3801, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>告，</tspan>
+<g transform="translate(87.3801,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">告，</tspan>
 </text>
 </g>
-<g transform="translate(89.2807, 53.1267)">
+<g transform="translate(89.2807,89.1267)">
 <rect x="-0.0757" y="-0.3287" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(61.8074, 56.1267)">
+<g transform="translate(61.8074,92.1267)">
 <polygon stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1000" fill="currentColor" stroke="currentColor" points="13.6716 -1.0082 13.6716 -0.6282 0.0500 0.1900 0.0500 -0.1900"/>
 </g>
-<g transform="translate(96.7844, 53.1267)">
-<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40
-c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
+<g transform="translate(96.7844,89.1267)">
+<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40 c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
 </g>
-<g transform="translate(104.0129, 54.6267)">
+<g transform="translate(104.0129,90.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(103.4256, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>无</tspan>
+<g transform="translate(103.4256,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">无</tspan>
 </text>
 </g>
-<g transform="translate(105.2381, 53.1267)">
+<g transform="translate(105.2381,89.1267)">
 <rect x="-0.0757" y="-1.8242" width="0.1514" height="3.1529" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(108.4530, 54.1267)">
+<g transform="translate(108.453,90.1267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(107.8657, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>言</tspan>
+<g transform="translate(107.8657,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">言</tspan>
 </text>
 </g>
-<g transform="translate(109.6781, 53.1267)">
+<g transform="translate(109.6781,89.1267)">
 <rect x="-0.0757" y="-2.1758" width="0.1514" height="3.0045" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(114.9435, 49.5803)">
+<g transform="translate(114.9435,85.5803)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>A</tspan>
 </text>
 </g>
-<g transform="translate(114.9435, 53.6267)">
+<g transform="translate(114.9435,89.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(113.1186, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>中，</tspan>
+<g transform="translate(113.1186,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">中，</tspan>
 </text>
 </g>
-<g transform="translate(116.6858, 53.6267)">
+<g transform="translate(116.6858,89.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M0 0c0 30 25 55 55 55s55 -25 55 -55s-25 -55 -55 -55s-55 25 -55 55z" fill="currentColor"/>
 </g>
-<g transform="translate(116.1687, 53.1267)">
+<g transform="translate(116.1687,89.1267)">
 <rect x="-0.0757" y="-3.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(37.8349, 50.3085)">
+<g transform="translate(37.8349,86.30850000000001)">
 <polygon stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1000" fill="currentColor" stroke="currentColor" points="6.3778 -0.3718 6.3778 0.0082 0.0500 0.1900 0.0500 -0.1900"/>
 </g>
-<g transform="translate(43.0870, 50.9782)">
+<g transform="translate(43.087,86.9782)">
 <polygon stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1000" fill="currentColor" stroke="currentColor" points="1.1257 -0.2232 1.1257 0.1568 0.0500 0.1900 0.0500 -0.1900"/>
 </g>
-<g transform="translate(124.3592, 53.6267)">
+<g transform="translate(124.3592,89.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(123.7719, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>只</tspan>
+<g transform="translate(123.7719,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">只</tspan>
 </text>
 </g>
-<g transform="translate(125.5844, 53.1267)">
+<g transform="translate(125.5844,89.1267)">
 <rect x="-0.0757" y="-3.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(125.6601, 50.1767)">
+<g transform="translate(125.6601,86.1767)">
 <path transform="scale(0.0040, -0.0040)" d="M0 -250h-19v250h19c0 -197 207 -334 207 -531c0 -71 -15 -140 -41 -206c-5 -9 -14 -13 -22 -13c-14 0 -29 12 -26 30c26 60 43 124 43 189c0 102 -92 206 -161 281z" fill="currentColor"/>
 </g>
-<g transform="translate(128.8522, 49.5803)">
+<g transform="translate(128.8522,85.5803)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>A</tspan>
 </text>
 </g>
-<g transform="translate(130.3033, 48.6894)">
+<g transform="translate(130.3033,84.6894)">
 <text font-family="Hiragino Sans GB" font-size="1.3856" text-anchor="start" fill="currentColor">
 <tspan>7</tspan>
 </text>
 </g>
-<g transform="translate(128.8522, 53.6267)">
+<g transform="translate(128.8522,89.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(128.2650, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>有</tspan>
+<g transform="translate(128.265,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">有</tspan>
 </text>
 </g>
-<g transform="translate(130.0774, 53.1267)">
+<g transform="translate(130.0774,89.1267)">
 <rect x="-0.0757" y="-2.8182" width="0.1514" height="3.1469" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(133.5423, 52.6267)">
+<g transform="translate(133.5423,88.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(132.9550, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>深</tspan>
+<g transform="translate(132.955,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">深</tspan>
 </text>
 </g>
-<g transform="translate(134.7675, 53.1267)">
+<g transform="translate(134.7675,89.1267)">
 <rect x="-0.0757" y="-2.8182" width="0.1514" height="2.1469" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(137.9824, 53.1267)">
+<g transform="translate(137.9824,89.1267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(137.3951, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>处</tspan>
+<g transform="translate(137.3951,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">处</tspan>
 </text>
 </g>
-<g transform="translate(139.2076, 53.1267)">
+<g transform="translate(139.2076,89.1267)">
 <rect x="-0.0757" y="-2.8182" width="0.1514" height="2.6469" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(142.4225, 53.6267)">
+<g transform="translate(142.4225,89.6267)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(141.8352, 58.9378)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>叹</tspan>
+<g transform="translate(141.8352,95.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">叹</tspan>
 </text>
 </g>
-<g transform="translate(143.6476, 53.1267)">
+<g transform="translate(143.6476,89.1267)">
 <rect x="-0.0757" y="-2.8182" width="0.1514" height="3.1469" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(41.3449, 65.3291)">
+<g transform="translate(41.3449,119.3291)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(9.0337, 67.3291)">
+<g transform="translate(9.0337,121.3291)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(9.0337, 66.3291)">
+<g transform="translate(9.0337,120.3291)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(9.0337, 65.3291)">
+<g transform="translate(9.0337,119.3291)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(9.0337, 64.3291)">
+<g transform="translate(9.0337,118.3291)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(9.0337, 63.3291)">
+<g transform="translate(9.0337,117.3291)">
 <line stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1164" stroke="currentColor" x1="0.0582" y1="0" x2="138.1582" y2="0"/>
 </g>
-<g transform="translate(146.5516, 65.3291)">
+<g transform="translate(146.5516,119.3291)">
 <rect x="0.0000" y="-2.0000" width="0.6986" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(145.9811, 65.3291)">
+<g transform="translate(145.9811,119.3291)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(126.4736, 65.3291)">
+<g transform="translate(126.4736,119.3291)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(98.0261, 65.3291)">
+<g transform="translate(98.0261,119.3291)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(69.9945, 65.3291)">
+<g transform="translate(69.9945,119.3291)">
 <rect x="0.0000" y="-2.0000" width="0.2212" height="4.0000" ry="0.0000" fill="currentColor"/>
 </g>
-<g transform="translate(9.8338, 66.3291)">
-<path transform="scale(0.0040, -0.0040)" d="M647 2c0 -114 -75 -214 -180 -248c3 -33 4 -66 4 -99c0 -21 0 -41 -1 -62c-7 -122 -92 -229 -211 -229c-108 0 -196 88 -196 197c0 58 54 103 113 103c54 0 95 -47 95 -103c0 -52 -43 -95 -95 -95c-9 0 -18 1 -27 4c25 -37 66 -61 113 -61c93 0 156 91 162 191
-c1 19 2 38 2 57c0 29 -1 58 -3 87c-5 -1 -44 -8 -88 -8c-194 0 -333 181 -333 376c0 177 129 308 244 443c-34 103 -55 171 -55 347c0 114 54 221 147 288c8 6 18 5 25 -1c68 -79 135 -242 135 -356c0 -142 -84 -255 -176 -364c21 -68 40 -136 57 -205c1 0 5 1 10 1
-c157 0 258 -129 258 -263zM463 -201c64 24 110 88 110 161c0 88 -64 175 -167 188c28 -133 49 -269 57 -349zM77 25c0 -144 141 -243 261 -243c1 0 46 -1 81 5c-7 66 -27 208 -60 362c-79 -8 -124 -60 -124 -118c0 -43 25 -88 80 -120c5 -5 7 -11 7 -17
-c0 -12 -10 -23 -23 -23c-16 0 -128 62 -128 188c0 89 60 177 163 200c-14 57 -30 113 -47 169c-105 -122 -210 -243 -210 -403zM242 784c0 -39 10 -95 39 -188c78 97 142 199 142 324c0 33 0 60 -20 118c-99 -46 -161 -145 -161 -254z" fill="currentColor"/>
+<g transform="translate(9.8338,120.3291)">
+<path transform="scale(0.0040, -0.0040)" d="M647 2c0 -114 -75 -214 -180 -248c3 -33 4 -66 4 -99c0 -21 0 -41 -1 -62c-7 -122 -92 -229 -211 -229c-108 0 -196 88 -196 197c0 58 54 103 113 103c54 0 95 -47 95 -103c0 -52 -43 -95 -95 -95c-9 0 -18 1 -27 4c25 -37 66 -61 113 -61c93 0 156 91 162 191 c1 19 2 38 2 57c0 29 -1 58 -3 87c-5 -1 -44 -8 -88 -8c-194 0 -333 181 -333 376c0 177 129 308 244 443c-34 103 -55 171 -55 347c0 114 54 221 147 288c8 6 18 5 25 -1c68 -79 135 -242 135 -356c0 -142 -84 -255 -176 -364c21 -68 40 -136 57 -205c1 0 5 1 10 1 c157 0 258 -129 258 -263zM463 -201c64 24 110 88 110 161c0 88 -64 175 -167 188c28 -133 49 -269 57 -349zM77 25c0 -144 141 -243 261 -243c1 0 46 -1 81 5c-7 66 -27 208 -60 362c-79 -8 -124 -60 -124 -118c0 -43 25 -88 80 -120c5 -5 7 -11 7 -17 c0 -12 -10 -23 -23 -23c-16 0 -128 62 -128 188c0 89 60 177 163 200c-14 57 -30 113 -47 169c-105 -122 -210 -243 -210 -403zM242 784c0 -39 10 -95 39 -188c78 97 142 199 142 324c0 33 0 60 -20 118c-99 -46 -161 -145 -161 -254z" fill="currentColor"/>
 </g>
-<g transform="translate(13.4743, 65.3291)">
+<g transform="translate(13.4743,119.3291)">
 <path transform="scale(0.0040, -0.0040)" d="M31 37l-2 -62v-11c0 -22 2 -43 5 -64c43 38 89 80 89 137c0 32 -14 65 -42 65c-31 0 -49 -32 -50 -65zM-30 450c9 5 20 8 30 8s21 -3 30 -8l-8 -340c25 24 59 38 94 38c50 0 84 -50 84 -104c0 -78 -83 -117 -141 -169c-17 -15 -25 -44 -49 -44c-15 0 -26 13 -26 29z" fill="currentColor"/>
 </g>
-<g transform="translate(14.4148, 63.8291)">
+<g transform="translate(14.4148,117.8291)">
 <path transform="scale(0.0040, -0.0040)" d="M31 37l-2 -62v-11c0 -22 2 -43 5 -64c43 38 89 80 89 137c0 32 -14 65 -42 65c-31 0 -49 -32 -50 -65zM-30 450c9 5 20 8 30 8s21 -3 30 -8l-8 -340c25 24 59 38 94 38c50 0 84 -50 84 -104c0 -78 -83 -117 -141 -169c-17 -15 -25 -44 -49 -44c-15 0 -26 13 -26 29z" fill="currentColor"/>
 </g>
-<g transform="translate(15.3553, 65.8291)">
+<g transform="translate(15.3553,119.8291)">
 <path transform="scale(0.0040, -0.0040)" d="M31 37l-2 -62v-11c0 -22 2 -43 5 -64c43 38 89 80 89 137c0 32 -14 65 -42 65c-31 0 -49 -32 -50 -65zM-30 450c9 5 20 8 30 8s21 -3 30 -8l-8 -340c25 24 59 38 94 38c50 0 84 -50 84 -104c0 -78 -83 -117 -141 -169c-17 -15 -25 -44 -49 -44c-15 0 -26 13 -26 29z" fill="currentColor"/>
 </g>
-<g transform="translate(7.4119, 62.3786)">
+<g transform="translate(7.4119,116.3786)">
 <text font-family="Songti SC" font-size="1.7463" text-anchor="start" fill="currentColor">
 <tspan>12</tspan>
 </text>
 </g>
-<g transform="translate(18.6553, 62.3271)">
+<g transform="translate(18.6553,116.3271)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>D</tspan>
 </text>
 </g>
-<g transform="translate(18.6553, 66.3291)">
-<path transform="scale(0.0040, -0.0040)" d="M310 63c0 22 -17 40 -40 40c-38 0 -197 -107 -224 -139c-7 -8 -10 -17 -10 -27c0 -22 17 -40 40 -40c38 0 197 107 224 139c7 8 10 17 10 27zM256 138c55 0 90 -22 90 -77c0 -25 -15 -112 -73 -151c-34 -23 -92 -48 -183 -48c-55 0 -90 22 -90 77c0 25 15 112 73 151
-c34 23 92 48 183 48z" fill="currentColor"/>
+<g transform="translate(18.6553,120.3291)">
+<path transform="scale(0.0040, -0.0040)" d="M310 63c0 22 -17 40 -40 40c-38 0 -197 -107 -224 -139c-7 -8 -10 -17 -10 -27c0 -22 17 -40 40 -40c38 0 197 107 224 139c7 8 10 17 10 27zM256 138c55 0 90 -22 90 -77c0 -25 -15 -112 -73 -151c-34 -23 -92 -48 -183 -48c-55 0 -90 22 -90 77c0 25 15 112 73 151 c34 23 92 48 183 48z" fill="currentColor"/>
 </g>
-<g transform="translate(16.8719, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>息；</tspan>
+<g transform="translate(16.8719,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">息；</tspan>
 </text>
 </g>
-<g transform="translate(19.9635, 65.3291)">
+<g transform="translate(19.9635,119.3291)">
 <rect x="-0.0757" y="-2.5000" width="0.1514" height="3.2544" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(27.5462, 65.3291)">
-<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40
-c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
+<g transform="translate(27.5462,119.3291)">
+<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40 c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
 </g>
-<g transform="translate(33.5008, 66.3291)">
+<g transform="translate(33.5008,120.3291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(32.9136, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>虽</tspan>
+<g transform="translate(32.9136,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">虽</tspan>
 </text>
 </g>
-<g transform="translate(34.7260, 65.3291)">
+<g transform="translate(34.726,119.3291)">
 <rect x="-0.0757" y="-2.1748" width="0.1514" height="3.0035" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(112.4105, 64.3291)">
+<g transform="translate(112.4105,118.3291)">
 <polygon stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1000" fill="currentColor" stroke="currentColor" points="11.2608 -0.1900 11.2608 0.1900 0.0500 0.1900 0.0500 -0.1900"/>
 </g>
-<g transform="translate(37.3040, 66.8291)">
+<g transform="translate(37.304,120.8291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(36.7167, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>软</tspan>
+<g transform="translate(36.7167,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">软</tspan>
 </text>
 </g>
-<g transform="translate(38.5292, 65.3291)">
+<g transform="translate(38.5292,119.3291)">
 <rect x="-0.0757" y="-1.8252" width="0.1514" height="3.1538" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(42.9545, 67.3291)">
+<g transform="translate(42.9545,121.3291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(41.1295, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>弱，</tspan>
+<g transform="translate(41.1295,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">弱，</tspan>
 </text>
 </g>
-<g transform="translate(44.6968, 66.8291)">
+<g transform="translate(44.6968,120.8291)">
 <path transform="scale(0.0040, -0.0040)" d="M0 0c0 30 25 55 55 55s55 -25 55 -55s-25 -55 -55 -55s-55 25 -55 55z" fill="currentColor"/>
 </g>
-<g transform="translate(44.1797, 65.3291)">
+<g transform="translate(44.1797,119.3291)">
 <rect x="-0.0757" y="-1.5000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(50.7238, 67.3291)">
+<g transform="translate(50.7238,121.3291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(50.1365, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>有</tspan>
+<g transform="translate(50.1365,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">有</tspan>
 </text>
 </g>
-<g transform="translate(51.9489, 65.3291)">
+<g transform="translate(51.9489,119.3291)">
 <rect x="-0.0757" y="-1.5000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(52.0246, 63.8791)">
+<g transform="translate(52.0246,117.8791)">
 <path transform="scale(0.0040, -0.0040)" d="M0 -250h-19v250h19c0 -197 207 -334 207 -531c0 -71 -15 -140 -41 -206c-5 -9 -14 -13 -22 -13c-14 0 -29 12 -26 30c26 60 43 124 43 189c0 102 -92 206 -161 281z" fill="currentColor"/>
 </g>
-<g transform="translate(54.5798, 67.3291)">
+<g transform="translate(54.5798,121.3291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(53.9926, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>那</tspan>
+<g transform="translate(53.9926,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">那</tspan>
 </text>
 </g>
-<g transform="translate(55.8050, 65.3291)">
+<g transform="translate(55.805,119.3291)">
 <rect x="-0.0757" y="-1.1860" width="0.1514" height="3.0146" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(91.3192, 64.1473)">
+<g transform="translate(91.3192,118.1473)">
 <polygon stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1000" fill="currentColor" stroke="currentColor" points="3.9045 -0.0082 3.9045 0.3718 0.0500 0.1900 0.0500 -0.1900"/>
 </g>
-<g transform="translate(58.3830, 67.3291)">
+<g transform="translate(58.383,121.3291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(57.7957, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>灵</tspan>
+<g transform="translate(57.7957,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">灵</tspan>
 </text>
 </g>
-<g transform="translate(59.6082, 65.3291)">
+<g transform="translate(59.6082,119.3291)">
 <rect x="-0.0757" y="-1.3953" width="0.1514" height="3.2240" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(62.1862, 66.8291)">
+<g transform="translate(62.1862,120.8291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(61.5989, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>帮</tspan>
+<g transform="translate(61.5989,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">帮</tspan>
 </text>
 </g>
-<g transform="translate(63.4113, 65.3291)">
+<g transform="translate(63.4113,119.3291)">
 <rect x="-0.0757" y="-1.6047" width="0.1514" height="2.9334" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(65.9893, 66.3291)">
+<g transform="translate(65.9893,120.3291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(65.4021, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>同</tspan>
+<g transform="translate(65.4021,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">同</tspan>
 </text>
 </g>
-<g transform="translate(67.2145, 65.3291)">
+<g transform="translate(67.2145,119.3291)">
 <rect x="-0.0757" y="-1.8140" width="0.1514" height="2.6427" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(71.6041, 62.3271)">
+<g transform="translate(71.6041,116.3271)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>E</tspan>
 </text>
 </g>
-<g transform="translate(72.8845, 62.3271)">
+<g transform="translate(72.8845,116.3271)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>m</tspan>
 </text>
 </g>
-<g transform="translate(71.6041, 66.3291)">
+<g transform="translate(71.6041,120.3291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(71.0168, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>担</tspan>
+<g transform="translate(71.0168,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">担</tspan>
 </text>
 </g>
-<g transform="translate(72.8293, 65.3291)">
+<g transform="translate(72.8293,119.3291)">
 <rect x="-0.0757" y="-2.5000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(77.9096, 66.8291)">
+<g transform="translate(77.9096,120.8291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(76.0846, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>负，</tspan>
+<g transform="translate(76.0846,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">负，</tspan>
 </text>
 </g>
-<g transform="translate(79.1348, 65.3291)">
+<g transform="translate(79.1348,119.3291)">
 <rect x="-0.0757" y="-2.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(84.2151, 65.3291)">
-<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40
-c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
+<g transform="translate(84.2151,119.3291)">
+<path transform="scale(0.0040, -0.0040)" d="M-9 78c0 59 124 84 124 182c0 25 -9 50 -26 70l-31 37c-3 4 -4 8 -4 12c0 10 9 18 19 18c5 0 9 -1 13 -6l149 -178c7 -9 11 -17 11 -26c0 -59 -124 -84 -124 -182c0 -25 9 -51 26 -71l79 -94c3 -4 4 -8 4 -12c0 -10 -9 -18 -19 -18c-11 0 -38 40 -102 40 c-23 0 -55 -4 -55 -65c0 -33 11 -73 27 -92c8 -9 -6 -20 -14 -11c-44 53 -92 145 -92 199c0 41 26 43 46 43c30 0 69 -9 106 -23l-126 151c-7 9 -11 17 -11 26z" fill="currentColor"/>
 </g>
-<g transform="translate(90.1697, 66.8291)">
+<g transform="translate(90.1697,120.8291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(55.7293, 64.1473)">
+<g transform="translate(55.7293,118.1473)">
 <polygon stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1000" fill="currentColor" stroke="currentColor" points="11.5108 -0.8264 11.5108 -0.4464 0.0500 0.1900 0.0500 -0.1900"/>
 </g>
-<g transform="translate(91.3949, 65.3291)">
+<g transform="translate(91.3949,119.3291)">
 <rect x="-0.0757" y="-1.1783" width="0.1514" height="2.5070" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(93.9729, 67.3291)">
+<g transform="translate(93.9729,121.3291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(93.3856, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>着</tspan>
+<g transform="translate(93.3856,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">着</tspan>
 </text>
 </g>
-<g transform="translate(95.1981, 65.3291)">
+<g transform="translate(95.1981,119.3291)">
 <rect x="-0.0757" y="-1.0035" width="0.1514" height="2.8321" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(99.6357, 62.3271)">
+<g transform="translate(99.6357,116.3271)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>A</tspan>
 </text>
 </g>
-<g transform="translate(99.6357, 67.8291)">
+<g transform="translate(99.6357,121.8291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(97.8107, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>神，</tspan>
+<g transform="translate(97.8107,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">神，</tspan>
 </text>
 </g>
-<g transform="translate(101.3779, 67.8291)">
+<g transform="translate(101.3779,121.8291)">
 <path transform="scale(0.0040, -0.0040)" d="M0 0c0 30 25 55 55 55s55 -25 55 -55s-25 -55 -55 -55s-55 25 -55 55z" fill="currentColor"/>
 </g>
-<g transform="translate(100.8608, 65.3291)">
+<g transform="translate(100.8608,119.3291)">
 <rect x="-0.0757" y="-1.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(107.4049, 67.8291)">
+<g transform="translate(107.4049,121.8291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(106.8176, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>为</tspan>
+<g transform="translate(106.8176,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">为</tspan>
 </text>
 </g>
-<g transform="translate(108.6301, 65.3291)">
+<g transform="translate(108.6301,119.3291)">
 <rect x="-0.0757" y="-1.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(108.7057, 64.3791)">
+<g transform="translate(108.7057,118.3791)">
 <path transform="scale(0.0040, -0.0040)" d="M0 -250h-19v250h19c0 -197 207 -334 207 -531c0 -71 -15 -140 -41 -206c-5 -9 -14 -13 -22 -13c-14 0 -29 12 -26 30c26 60 43 124 43 189c0 102 -92 206 -161 281z" fill="currentColor"/>
 </g>
-<g transform="translate(34.6503, 63.1473)">
+<g transform="translate(34.6503,117.1473)">
 <polygon stroke-linejoin="round" stroke-linecap="round" stroke-width="0.1000" fill="currentColor" stroke="currentColor" points="3.9045 0.1736 3.9045 0.5536 0.0500 0.1900 0.0500 -0.1900"/>
 </g>
-<g transform="translate(111.2610, 62.3271)">
+<g transform="translate(111.261,116.3271)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>A</tspan>
 </text>
 </g>
-<g transform="translate(112.7121, 61.4362)">
+<g transform="translate(112.7121,115.4362)">
 <text font-family="Hiragino Sans GB" font-size="1.3856" text-anchor="start" fill="currentColor">
 <tspan>7</tspan>
 </text>
 </g>
-<g transform="translate(111.2610, 67.8291)">
+<g transform="translate(111.261,121.8291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(110.6737, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>我</tspan>
+<g transform="translate(110.6737,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">我</tspan>
 </text>
 </g>
-<g transform="translate(112.4862, 65.3291)">
+<g transform="translate(112.4862,119.3291)">
 <rect x="-0.0757" y="-1.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(115.0642, 67.3291)">
+<g transform="translate(115.0642,121.3291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(114.4769, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>代</tspan>
+<g transform="translate(114.4769,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">代</tspan>
 </text>
 </g>
-<g transform="translate(116.2893, 65.3291)">
+<g transform="translate(116.2893,119.3291)">
 <rect x="-0.0757" y="-1.0000" width="0.1514" height="2.8287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(118.8673, 66.8291)">
+<g transform="translate(118.8673,120.8291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(118.2800, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>祷</tspan>
+<g transform="translate(118.28,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">祷</tspan>
 </text>
 </g>
-<g transform="translate(120.0925, 65.3291)">
+<g transform="translate(120.0925,119.3291)">
 <rect x="-0.0757" y="-1.0000" width="0.1514" height="2.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(122.4205, 67.8291)">
+<g transform="translate(122.4205,121.8291)">
 <path transform="scale(0.0040, -0.0040)" d="M212 138c68 0 113 -38 113 -95c0 -90 -109 -181 -212 -181c-68 0 -113 38 -113 95c0 90 109 181 212 181z" fill="currentColor"/>
 </g>
-<g transform="translate(121.8332, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>求</tspan>
+<g transform="translate(121.8332,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">求</tspan>
 </text>
 </g>
-<g transform="translate(123.6456, 65.3291)">
+<g transform="translate(123.6456,119.3291)">
 <rect x="-0.0757" y="-1.0000" width="0.1514" height="3.3287" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(128.0832, 62.3271)">
+<g transform="translate(128.0832,116.3271)">
 <text font-family="Hiragino Sans GB" font-size="1.9604" text-anchor="start" fill="currentColor">
 <tspan>D</tspan>
 </text>
 </g>
-<g transform="translate(128.0832, 67.3291)">
-<path transform="scale(0.0040, -0.0040)" d="M310 63c0 22 -17 40 -40 40c-38 0 -197 -107 -224 -139c-7 -8 -10 -17 -10 -27c0 -22 17 -40 40 -40c38 0 197 107 224 139c7 8 10 17 10 27zM256 138c55 0 90 -22 90 -77c0 -25 -15 -112 -73 -151c-34 -23 -92 -48 -183 -48c-55 0 -90 22 -90 77c0 25 15 112 73 151
-c34 23 92 48 183 48z" fill="currentColor"/>
+<g transform="translate(128.0832,121.3291)">
+<path transform="scale(0.0040, -0.0040)" d="M310 63c0 22 -17 40 -40 40c-38 0 -197 -107 -224 -139c-7 -8 -10 -17 -10 -27c0 -22 17 -40 40 -40c38 0 197 107 224 139c7 8 10 17 10 27zM256 138c55 0 90 -22 90 -77c0 -25 -15 -112 -73 -151c-34 -23 -92 -48 -183 -48c-55 0 -90 22 -90 77c0 25 15 112 73 151 c34 23 92 48 183 48z" fill="currentColor"/>
 </g>
-<g transform="translate(126.2998, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>祈。</tspan>
+<g transform="translate(126.2998,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">祈。</tspan>
 </text>
 </g>
-<g transform="translate(129.3914, 65.3291)">
+<g transform="translate(129.3914,119.3291)">
 <rect x="-0.0757" y="-1.5000" width="0.1514" height="3.2544" ry="0.0500" fill="currentColor"/>
 </g>
-<g transform="translate(136.9741, 65.3291)">
+<g transform="translate(136.9741,119.3291)">
 <path transform="scale(0.0040, -0.0040)" d="M362 0h-349c-7 0 -13 6 -13 13v131c0 7 6 12 13 12h349c7 0 13 -5 13 -12v-131c0 -7 -6 -13 -13 -13z" fill="currentColor"/>
 </g>
-<g transform="translate(89.5825, 70.8291)">
-<text font-family="Songti SC" font-size="2.4697" text-anchor="start" fill="currentColor">
-<tspan>照</tspan>
+<g transform="translate(89.5825,125.3291)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">
+<tspan font-size="2.7">照</tspan>
 </text>
 </g>
-<g transform="translate(63.5017, 80.3291)">
-<text font-family="Songti SC" font-weight="bold" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>2.</tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 80.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>主，我是不敢求受苦更深， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 83.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>只望能免去试炼袭击； </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 86.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>你若许，求将苦杯速撤去， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 89.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>但必须是你旨，非我意。 </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 92.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>真希奇！此时艰难虽四布， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 95.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>深处竟安然一无罣虑； </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 98.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>因有神大爱浇灌我心内， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 101.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>溢我魂，驱尽所有疑惧。 </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 103.3291)">
+<g transform="translate(65.5955,175.32909999999998)">
 <text font-family="Songti SC" font-size="1.5560" text-anchor="start" fill="currentColor">
 <tspan> </tspan>
 </text>
 </g>
-<g transform="translate(63.5017, 106.3291)">
-<text font-family="Songti SC" font-weight="bold" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>3.</tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 106.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>何稳妥！神主宰调度万有， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 109.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>全为使爱祂者得益处； </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 112.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>勿让我因眼瞎竟不知悉， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 115.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>无一事非祂爱所部署。 </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 118.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>乃是父答应那灵的代求， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 121.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>赐我以诸般试炼、煎熬； </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 124.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>患难中，愿主扩增我减少， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 127.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>直到我充满基督荣耀。 </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 129.3291)">
+<g transform="translate(65.5955,201.3291)">
 <text font-family="Songti SC" font-size="1.5560" text-anchor="start" fill="currentColor">
 <tspan> </tspan>
 </text>
 </g>
-<g transform="translate(63.5017, 132.3291)">
-<text font-family="Songti SC" font-weight="bold" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>4.</tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 132.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>神儿女既有神儿子生命， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 135.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>祂岂不借管教施成全？ </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 138.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>如器皿在窑匠甄陶手中， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 141.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>岂不经琢磨使荣美现？ </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 144.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>神衷心所渴望是得众子， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 147.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>模成祂长子荣耀形像； </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 150.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>我们既是基督许多弟兄， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 153.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>岂能不与祂一式一样？ </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 155.3291)">
+<g transform="translate(65.5955,227.3291)">
 <text font-family="Songti SC" font-size="1.5560" text-anchor="start" fill="currentColor">
 <tspan> </tspan>
 </text>
 </g>
-<g transform="translate(63.5017, 158.3291)">
-<text font-family="Songti SC" font-weight="bold" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>5.</tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 158.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>何盼望！同基督作神后嗣； </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 161.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>何辉煌！救恩要达至极。 </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 164.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>今时的苦楚似沉痛难当， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 167.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>不配与将来荣耀相比。 </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 170.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>凡事上，我们已得胜有馀， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 173.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>乃借祂-那爱我们的主； </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 176.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>荣耀日，神众子就要显出， </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 179.3291)">
-<text font-family="Songti SC" font-size="2.2001" text-anchor="start" fill="currentColor">
-<tspan>受造物享自由何满足！ </tspan>
-</text>
-</g>
-<g transform="translate(65.5955, 181.3291)">
+<g transform="translate(65.5955,253.3291)">
 <text font-family="Songti SC" font-size="1.5560" text-anchor="start" fill="currentColor">
 <tspan> </tspan>
 </text>
 </g>
-<g transform="translate(69.8408, 191.9677)">
+<g transform="translate(69.8408,263.96770000000004)">
 <text font-family="Trebuchet MS" font-size="2.2001" text-anchor="start" fill="currentColor">
 <tspan>www.hymnal.net</tspan>
 </text>
 </g>
+<g transform="translate(17.9072,38.6959)">
+<text font-family="Songti SC" font-weight="bold" font-size="2.7" text-anchor="start" fill="currentColor">2.</text></g>
+<g transform="translate(20.401,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">主</text></g>
+<g transform="translate(25.4617,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">我</text></g>
+<g transform="translate(32.8414,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">是</text></g>
+<g transform="translate(43.8614,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">不</text></g>
+<g transform="translate(48.9751,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">敢</text></g>
+<g transform="translate(54.0358,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">求</text></g>
+<g transform="translate(59.0966,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">受</text></g>
+<g transform="translate(64.1573,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">苦</text></g>
+<g transform="translate(71.5013,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">更</text></g>
+<g transform="translate(79.0842,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">深</text></g>
+<g transform="translate(97.6123,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">只</text></g>
+<g transform="translate(102.6731,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">望</text></g>
+<g transform="translate(108.8273,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">能</text></g>
+<g transform="translate(121.085,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">免</text></g>
+<g transform="translate(126.1987,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">去</text></g>
+<g transform="translate(131.2594,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">试</text></g>
+<g transform="translate(136.3202,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">炼</text></g>
+<g transform="translate(141.1309,38.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">袭</text></g>
+<g transform="translate(16.8719,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">击</text></g>
+<g transform="translate(36.1977,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">你</text></g>
+<g transform="translate(40.6577,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">若</text></g>
+<g transform="translate(47.2113,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">许</text></g>
+<g transform="translate(56.6784,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">求</text></g>
+<g transform="translate(61.1913,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">将</text></g>
+<g transform="translate(65.6513,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">苦</text></g>
+<g transform="translate(70.1113,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">杯</text></g>
+<g transform="translate(74.5713,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">速</text></g>
+<g transform="translate(81.0892,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">撤</text></g>
+<g transform="translate(87.4707,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">去</text></g>
+<g transform="translate(103.5958,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">但</text></g>
+<g transform="translate(108.0558,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">必</text></g>
+<g transform="translate(113.384,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">须</text></g>
+<g transform="translate(124.0888,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">是</text></g>
+<g transform="translate(128.6017,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">你</text></g>
+<g transform="translate(133.0617,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">旨</text></g>
+<g transform="translate(137.5217,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">非</text></g>
+<g transform="translate(141.7316,68.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">我</text></g>
+<g transform="translate(16.8719,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">意</text></g>
+<g transform="translate(36.0982,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">真</text></g>
+<g transform="translate(42.3746,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">希</text></g>
+<g transform="translate(46.1266,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">奇</text></g>
+<g transform="translate(56.78,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">此</text></g>
+<g transform="translate(61.2201,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">时</text></g>
+<g transform="translate(65.6602,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">艰</text></g>
+<g transform="translate(70.3503,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">难</text></g>
+<g transform="translate(74.7903,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">虽</text></g>
+<g transform="translate(81.0385,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">四</text></g>
+<g transform="translate(87.3801,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">布</text></g>
+<g transform="translate(103.4256,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">深</text></g>
+<g transform="translate(107.8657,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">处</text></g>
+<g transform="translate(113.1186,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">竟</text></g>
+<g transform="translate(123.7719,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">安</text></g>
+<g transform="translate(128.265,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">然</text></g>
+<g transform="translate(132.955,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">一</text></g>
+<g transform="translate(137.3951,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">无</text></g>
+<g transform="translate(141.8352,99.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">罣</text></g>
+<g transform="translate(16.8719,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">虑</text></g>
+<g transform="translate(32.9136,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">因</text></g>
+<g transform="translate(36.7167,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">有</text></g>
+<g transform="translate(41.1295,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">神</text></g>
+<g transform="translate(50.1365,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">大</text></g>
+<g transform="translate(53.9926,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">爱</text></g>
+<g transform="translate(57.7957,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">浇</text></g>
+<g transform="translate(61.5989,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">灌</text></g>
+<g transform="translate(65.4021,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">我</text></g>
+<g transform="translate(71.0168,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">心</text></g>
+<g transform="translate(76.0846,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">内</text></g>
+<g transform="translate(89.5825,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">溢</text></g>
+<g transform="translate(93.3856,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">我</text></g>
+<g transform="translate(97.8107,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">魂</text></g>
+<g transform="translate(106.8176,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">驱</text></g>
+<g transform="translate(110.6737,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">尽</text></g>
+<g transform="translate(114.4769,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">所</text></g>
+<g transform="translate(118.28,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">有</text></g>
+<g transform="translate(121.8332,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">疑</text></g>
+<g transform="translate(126.2998,129.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">惧</text></g>
+<g transform="translate(17.9072,42.6959)">
+<text font-family="Songti SC" font-weight="bold" font-size="2.7" text-anchor="start" fill="currentColor">3.</text></g>
+<g transform="translate(20.401,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">何</text></g>
+<g transform="translate(25.4617,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">稳</text></g>
+<g transform="translate(32.8414,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">妥</text></g>
+<g transform="translate(43.8614,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">神</text></g>
+<g transform="translate(48.9751,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">主</text></g>
+<g transform="translate(54.0358,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">宰</text></g>
+<g transform="translate(59.0966,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">调</text></g>
+<g transform="translate(64.1573,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">度</text></g>
+<g transform="translate(71.5013,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">万</text></g>
+<g transform="translate(79.0842,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">有</text></g>
+<g transform="translate(97.6123,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">全</text></g>
+<g transform="translate(102.6731,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">为</text></g>
+<g transform="translate(108.8273,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">使</text></g>
+<g transform="translate(121.085,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">爱</text></g>
+<g transform="translate(126.1987,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">祂</text></g>
+<g transform="translate(131.2594,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">者</text></g>
+<g transform="translate(136.3202,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">得</text></g>
+<g transform="translate(141.1309,42.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">益</text></g>
+<g transform="translate(16.8719,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">处</text></g>
+<g transform="translate(36.1977,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">勿</text></g>
+<g transform="translate(40.6577,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">让</text></g>
+<g transform="translate(47.2113,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">我</text></g>
+<g transform="translate(56.6784,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">因</text></g>
+<g transform="translate(61.1913,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">眼</text></g>
+<g transform="translate(65.6513,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">瞎</text></g>
+<g transform="translate(70.1113,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">竟</text></g>
+<g transform="translate(74.5713,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">不</text></g>
+<g transform="translate(81.0892,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">知</text></g>
+<g transform="translate(87.4707,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">悉</text></g>
+<g transform="translate(103.5958,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">无</text></g>
+<g transform="translate(108.0558,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">一</text></g>
+<g transform="translate(113.384,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">事</text></g>
+<g transform="translate(124.0888,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">非</text></g>
+<g transform="translate(128.6017,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">祂</text></g>
+<g transform="translate(133.0617,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">爱</text></g>
+<g transform="translate(137.5217,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">所</text></g>
+<g transform="translate(141.7316,72.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">部</text></g>
+<g transform="translate(16.8719,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">署</text></g>
+<g transform="translate(36.0982,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">乃</text></g>
+<g transform="translate(42.3746,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">是</text></g>
+<g transform="translate(46.1266,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">父</text></g>
+<g transform="translate(56.78,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">答</text></g>
+<g transform="translate(61.2201,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">应</text></g>
+<g transform="translate(65.6602,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">那</text></g>
+<g transform="translate(70.3503,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">灵</text></g>
+<g transform="translate(74.7903,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">的</text></g>
+<g transform="translate(81.0385,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">代</text></g>
+<g transform="translate(87.3801,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">求</text></g>
+<g transform="translate(103.4256,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">赐</text></g>
+<g transform="translate(107.8657,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">我</text></g>
+<g transform="translate(113.1186,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">以</text></g>
+<g transform="translate(123.7719,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">诸</text></g>
+<g transform="translate(128.265,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">般</text></g>
+<g transform="translate(132.955,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">试</text></g>
+<g transform="translate(137.3951,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">炼</text></g>
+<g transform="translate(141.8352,103.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">煎</text></g>
+<g transform="translate(16.8719,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">熬</text></g>
+<g transform="translate(32.9136,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">患</text></g>
+<g transform="translate(36.7167,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">难</text></g>
+<g transform="translate(41.1295,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">中</text></g>
+<g transform="translate(50.1365,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">愿</text></g>
+<g transform="translate(53.9926,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">主</text></g>
+<g transform="translate(57.7957,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">扩</text></g>
+<g transform="translate(61.5989,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">增</text></g>
+<g transform="translate(65.4021,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">我</text></g>
+<g transform="translate(71.0168,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">减</text></g>
+<g transform="translate(76.0846,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">少</text></g>
+<g transform="translate(89.5825,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">直</text></g>
+<g transform="translate(93.3856,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">到</text></g>
+<g transform="translate(97.8107,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">我</text></g>
+<g transform="translate(106.8176,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">充</text></g>
+<g transform="translate(110.6737,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">满</text></g>
+<g transform="translate(114.4769,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">基</text></g>
+<g transform="translate(118.28,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">督</text></g>
+<g transform="translate(121.8332,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">荣</text></g>
+<g transform="translate(126.2998,133.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">耀</text></g>
+<g transform="translate(17.9072,46.6959)">
+<text font-family="Songti SC" font-weight="bold" font-size="2.7" text-anchor="start" fill="currentColor">4.</text></g>
+<g transform="translate(20.401,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">神</text></g>
+<g transform="translate(25.4617,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">儿</text></g>
+<g transform="translate(32.8414,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">女</text></g>
+<g transform="translate(43.8614,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">既</text></g>
+<g transform="translate(48.9751,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">有</text></g>
+<g transform="translate(54.0358,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">神</text></g>
+<g transform="translate(59.0966,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">儿</text></g>
+<g transform="translate(64.1573,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">子</text></g>
+<g transform="translate(71.5013,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">生</text></g>
+<g transform="translate(79.0842,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">命</text></g>
+<g transform="translate(97.6123,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">祂</text></g>
+<g transform="translate(102.6731,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">岂</text></g>
+<g transform="translate(108.8273,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">不</text></g>
+<g transform="translate(121.085,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">借</text></g>
+<g transform="translate(126.1987,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">管</text></g>
+<g transform="translate(131.2594,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">教</text></g>
+<g transform="translate(136.3202,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">施</text></g>
+<g transform="translate(141.1309,46.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">成</text></g>
+<g transform="translate(16.8719,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">全</text></g>
+<g transform="translate(36.1977,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">如</text></g>
+<g transform="translate(40.6577,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">器</text></g>
+<g transform="translate(47.2113,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">皿</text></g>
+<g transform="translate(56.6784,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">在</text></g>
+<g transform="translate(61.1913,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">窑</text></g>
+<g transform="translate(65.6513,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">匠</text></g>
+<g transform="translate(70.1113,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">甄</text></g>
+<g transform="translate(74.5713,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">陶</text></g>
+<g transform="translate(81.0892,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">手</text></g>
+<g transform="translate(87.4707,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">中</text></g>
+<g transform="translate(103.5958,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">岂</text></g>
+<g transform="translate(108.0558,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">不</text></g>
+<g transform="translate(113.384,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">经</text></g>
+<g transform="translate(124.0888,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">琢</text></g>
+<g transform="translate(128.6017,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">磨</text></g>
+<g transform="translate(133.0617,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">使</text></g>
+<g transform="translate(137.5217,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">荣</text></g>
+<g transform="translate(141.7316,76.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">美</text></g>
+<g transform="translate(16.8719,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">现</text></g>
+<g transform="translate(36.0982,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">神</text></g>
+<g transform="translate(42.3746,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">衷</text></g>
+<g transform="translate(46.1266,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">心</text></g>
+<g transform="translate(56.78,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">所</text></g>
+<g transform="translate(61.2201,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">渴</text></g>
+<g transform="translate(65.6602,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">望</text></g>
+<g transform="translate(70.3503,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">是</text></g>
+<g transform="translate(74.7903,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">得</text></g>
+<g transform="translate(81.0385,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">众</text></g>
+<g transform="translate(87.3801,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">子</text></g>
+<g transform="translate(103.4256,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">模</text></g>
+<g transform="translate(107.8657,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">成</text></g>
+<g transform="translate(113.1186,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">祂</text></g>
+<g transform="translate(123.7719,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">长</text></g>
+<g transform="translate(128.265,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">子</text></g>
+<g transform="translate(132.955,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">荣</text></g>
+<g transform="translate(137.3951,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">耀</text></g>
+<g transform="translate(141.8352,107.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">形</text></g>
+<g transform="translate(16.8719,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">像</text></g>
+<g transform="translate(32.9136,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">我</text></g>
+<g transform="translate(36.7167,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">们</text></g>
+<g transform="translate(41.1295,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">既</text></g>
+<g transform="translate(50.1365,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">是</text></g>
+<g transform="translate(53.9926,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">基</text></g>
+<g transform="translate(57.7957,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">督</text></g>
+<g transform="translate(61.5989,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">许</text></g>
+<g transform="translate(65.4021,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">多</text></g>
+<g transform="translate(71.0168,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">弟</text></g>
+<g transform="translate(76.0846,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">兄</text></g>
+<g transform="translate(89.5825,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">岂</text></g>
+<g transform="translate(93.3856,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">能</text></g>
+<g transform="translate(97.8107,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">不</text></g>
+<g transform="translate(106.8176,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">与</text></g>
+<g transform="translate(110.6737,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">祂</text></g>
+<g transform="translate(114.4769,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">一</text></g>
+<g transform="translate(118.28,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">式</text></g>
+<g transform="translate(121.8332,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">一</text></g>
+<g transform="translate(126.2998,137.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">样</text></g>
+<g transform="translate(17.9072,50.6959)">
+<text font-family="Songti SC" font-weight="bold" font-size="2.7" text-anchor="start" fill="currentColor">5.</text></g>
+<g transform="translate(20.401,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">何</text></g>
+<g transform="translate(25.4617,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">盼</text></g>
+<g transform="translate(32.8414,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">望</text></g>
+<g transform="translate(43.8614,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">同</text></g>
+<g transform="translate(48.9751,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">基</text></g>
+<g transform="translate(54.0358,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">督</text></g>
+<g transform="translate(59.0966,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">作</text></g>
+<g transform="translate(64.1573,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">神</text></g>
+<g transform="translate(71.5013,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">后</text></g>
+<g transform="translate(79.0842,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">嗣</text></g>
+<g transform="translate(97.6123,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">何</text></g>
+<g transform="translate(102.6731,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">辉</text></g>
+<g transform="translate(108.8273,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">煌</text></g>
+<g transform="translate(121.085,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">救</text></g>
+<g transform="translate(126.1987,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">恩</text></g>
+<g transform="translate(131.2594,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">要</text></g>
+<g transform="translate(136.3202,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">达</text></g>
+<g transform="translate(141.1309,50.6959)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">至</text></g>
+<g transform="translate(16.8719,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">极</text></g>
+<g transform="translate(36.1977,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">今</text></g>
+<g transform="translate(40.6577,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">时</text></g>
+<g transform="translate(47.2113,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">的</text></g>
+<g transform="translate(56.6784,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">苦</text></g>
+<g transform="translate(61.1913,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">楚</text></g>
+<g transform="translate(65.6513,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">似</text></g>
+<g transform="translate(70.1113,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">沉</text></g>
+<g transform="translate(74.5713,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">痛</text></g>
+<g transform="translate(81.0892,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">难</text></g>
+<g transform="translate(87.4707,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">当</text></g>
+<g transform="translate(103.5958,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">不</text></g>
+<g transform="translate(108.0558,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">配</text></g>
+<g transform="translate(113.384,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">与</text></g>
+<g transform="translate(124.0888,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">将</text></g>
+<g transform="translate(128.6017,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">来</text></g>
+<g transform="translate(133.0617,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">荣</text></g>
+<g transform="translate(137.5217,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">耀</text></g>
+<g transform="translate(141.7316,80.70830000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">相</text></g>
+<g transform="translate(16.8719,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">比</text></g>
+<g transform="translate(36.0982,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">凡</text></g>
+<g transform="translate(42.3746,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">事</text></g>
+<g transform="translate(46.1266,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">上</text></g>
+<g transform="translate(56.78,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">我</text></g>
+<g transform="translate(61.2201,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">们</text></g>
+<g transform="translate(65.6602,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">已</text></g>
+<g transform="translate(70.3503,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">得</text></g>
+<g transform="translate(74.7903,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">胜</text></g>
+<g transform="translate(81.0385,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">有</text></g>
+<g transform="translate(87.3801,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">馀</text></g>
+<g transform="translate(103.4256,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">乃</text></g>
+<g transform="translate(107.8657,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">借</text></g>
+<g transform="translate(113.1186,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">祂</text></g>
+<g transform="translate(123.7719,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">那</text></g>
+<g transform="translate(128.265,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">爱</text></g>
+<g transform="translate(132.955,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">我</text></g>
+<g transform="translate(137.3951,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">们</text></g>
+<g transform="translate(141.8352,111.43780000000001)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">的</text></g>
+<g transform="translate(16.8719,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">主</text></g>
+<g transform="translate(32.9136,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">荣</text></g>
+<g transform="translate(36.7167,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">耀</text></g>
+<g transform="translate(41.1295,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">日</text></g>
+<g transform="translate(50.1365,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">神</text></g>
+<g transform="translate(53.9926,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">众</text></g>
+<g transform="translate(57.7957,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">子</text></g>
+<g transform="translate(61.5989,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">就</text></g>
+<g transform="translate(65.4021,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">要</text></g>
+<g transform="translate(71.0168,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">显</text></g>
+<g transform="translate(76.0846,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">出</text></g>
+<g transform="translate(89.5825,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">受</text></g>
+<g transform="translate(93.3856,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">造</text></g>
+<g transform="translate(97.8107,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">物</text></g>
+<g transform="translate(106.8176,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">享</text></g>
+<g transform="translate(110.6737,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">自</text></g>
+<g transform="translate(114.4769,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">由</text></g>
+<g transform="translate(118.28,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">何</text></g>
+<g transform="translate(121.8332,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">满</text></g>
+<g transform="translate(126.2998,141.32909999999998)">
+<text font-family="Songti SC" font-size="2.7" text-anchor="start" fill="currentColor">足</text></g>
 </svg>
