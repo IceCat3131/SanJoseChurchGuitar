@@ -303,12 +303,14 @@ body {
 /* 小本按钮：中间块，无圆角 */
 .controls .book-switch .book-button + .book-button {
   border-radius: 0;
+  border-right: 0;
 }
 
 /* 输入框：中间，无圆角，去掉左边边线（与前面按钮无缝拼接） */
 .controls #search-no {
   border-left: none;
   border-radius: 0;
+  margin-left: -1px; /* 轻微重叠，避免竖屏出现白缝 */
 }
 
 /* 放大镜按钮：右侧圆角，左边无边线 */
@@ -342,4 +344,27 @@ body {
     width: 80px;
     flex: 0 0 auto;
   }
+}
+
+/* 搜索条布局：小本靠右对齐，放大镜图标靠左，输入框撑满中间 */
+.controls .book-switch {
+  flex: 0 0 auto;
+}
+
+.controls .search-area {
+  flex: 1 1 auto;
+}
+
+.controls #search-no {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+
+.controls .book-button {
+  text-align: right;
+}
+
+.controls .search-button {
+  text-align: left;
 }
