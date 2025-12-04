@@ -47,15 +47,15 @@ body {
   margin: 16px 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 0;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .book-switch {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap;
+  gap: 0;
 }
 
 .book-button {
@@ -77,7 +77,7 @@ body {
 .search-area {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   font-size: 14px;
   flex-wrap: nowrap;
 }
@@ -321,3 +321,33 @@ body {
   cursor:pointer;
 }
 .nav-arrow:hover{opacity:0.8;}
+
+/* 按钮 + 搜索框 拼接一条，没有缝隙 */
+.controls .book-button,
+.controls #search-no,
+.controls .search-button {
+  border-radius: 0;
+  margin: 0;
+}
+
+/* 左端的大本按钮：左侧圆角 */
+.controls .book-switch .book-button:first-child {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+/* 右端的放大镜按钮：右侧圆角 */
+.controls .search-button {
+  border-radius: 0 4px 4px 0;
+}
+
+/* 输入框去掉默认圆角 */
+.controls #search-no {
+  border-radius: 0;
+}
+
+/* 大本/小本按钮之间、按钮与输入框之间不留空隙 */
+.controls .book-switch,
+.controls .search-area {
+  margin: 0;
+}
