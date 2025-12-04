@@ -46,10 +46,9 @@ body {
 .controls {
   margin: 16px 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0;
+  flex-wrap: nowrap;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center; /* 整条居中 */
 }
 
 .book-switch {
@@ -77,9 +76,9 @@ body {
 .search-area {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 0;
   font-size: 14px;
-  flex-wrap: nowrap;
 }
 
 #search-no {
@@ -238,43 +237,44 @@ body {
   }
 }
 
-
-/* 单曲页面头部布局：返回箭头 + 中间标题 + 左右切歌箭头 */
+/* 单曲页面：两行布局，第一行返回箭头，第二行居中 < 标题 > */
 .header-song {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  margin-top: 8px;
+  margin-bottom: 8px;
 }
 
-/* 左上角返回箭头，靠左对齐 */
+.top-left-back {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 4px;
+}
+
 .back-arrow {
   text-decoration: none;
-  font-size: 18px;
-  line-height: 1;
+  font-size: 20px;
+  font-weight: bold;
   color: #0066cc;
-  padding: 4px 6px;
+  padding: 2px 4px;
 }
 
-/* 标题与左右箭头整体在中间 */
-.title-with-arrows {
+.title-row {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
-  gap: 12px;
+  gap: 14px;
 }
 
-/* 中央标题居中显示 */
-.title-with-arrows #song-title {
+.title-row #song-title {
   margin: 0;
+  font-size: 22px;
   text-align: center;
 }
 
-/* 左右切换箭头按钮：蓝色、加粗 */
 .nav-arrow {
   border: none;
   background: transparent;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: bold;
   color: #0066cc;
   cursor: pointer;
@@ -285,69 +285,59 @@ body {
   opacity: 0.8;
 }
 
-
-/* back arrow alone at top left */
-.top-left-back{
-  width:100%;
-  text-align:left;
-  margin-bottom:6px;
-}
-.back-arrow{
-  font-size:20px;
-  color:#0066cc;
-  text-decoration:none;
-  font-weight:bold;
-}
-
-/* second row: centered < title > */
-.title-row{
-  width:100%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:14px;
-}
-.title-row h1{
-  margin:0;
-  font-size:22px;
-  text-align:center;
-}
-.nav-arrow{
-  border:none;
-  background:transparent;
-  font-size:24px;
-  font-weight:bold;
-  color:#0066cc;
-  cursor:pointer;
-}
-.nav-arrow:hover{opacity:0.8;}
-
-/* 按钮 + 搜索框 拼接一条，没有缝隙 */
+/* 搜索条：拼成一整条，统一高度 */
 .controls .book-button,
 .controls #search-no,
 .controls .search-button {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid #ccc;
   border-radius: 0;
-  margin: 0;
+  box-sizing: border-box;
 }
 
-/* 左端的大本按钮：左侧圆角 */
+/* 大本按钮：左侧圆角 */
 .controls .book-switch .book-button:first-child {
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
 }
 
-/* 右端的放大镜按钮：右侧圆角 */
-.controls .search-button {
-  border-radius: 0 4px 4px 0;
-}
-
-/* 输入框去掉默认圆角 */
-.controls #search-no {
+/* 小本按钮：中间块，无圆角 */
+.controls .book-switch .book-button + .book-button {
   border-radius: 0;
 }
 
-/* 大本/小本按钮之间、按钮与输入框之间不留空隙 */
+/* 输入框：中间，无圆角，去掉左边边线（与前面按钮无缝拼接） */
+.controls #search-no {
+  border-left: none;
+  border-radius: 0;
+}
+
+/* 放大镜按钮：右侧圆角，左边无边线 */
+.controls .search-button {
+  border-left: none;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+/* 组之间不留额外空隙 */
 .controls .book-switch,
 .controls .search-area {
   margin: 0;
+}
+
+/* 手机上保持一行，整体尽量居中 */
+@media (max-width: 600px) {
+  .controls {
+    flex-wrap: nowrap;
+    justify-content: center;
+  }
+
+  .search-area {
+    width: auto;
+  }
+
+  #search-no {
+    width: 80px;
+  }
 }
