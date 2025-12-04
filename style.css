@@ -241,12 +241,9 @@ body {
 .header-song {
   margin-top: 8px;
   margin-bottom: 8px;
-}
-
-.top-left-back {
-  width: 100%;
-  text-align: left;
-  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .back-arrow {
@@ -255,6 +252,7 @@ body {
   font-weight: bold;
   color: #0066cc;
   padding: 2px 4px;
+  margin-right: auto; /* 靠左，其余内容居中 */
 }
 
 .title-row {
@@ -329,15 +327,19 @@ body {
 /* 手机上保持一行，整体尽量居中 */
 @media (max-width: 600px) {
   .controls {
+    flex-direction: row;
     flex-wrap: nowrap;
     justify-content: center;
+    align-items: center;
   }
 
   .search-area {
     width: auto;
+    flex-wrap: nowrap;
   }
 
   #search-no {
     width: 80px;
+    flex: 0 0 auto;
   }
 }
