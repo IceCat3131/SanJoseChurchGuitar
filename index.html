@@ -1,101 +1,130 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <title>召会诗歌吉他谱索引</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8">
+  <title>召会诗歌吉他谱</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="site-header">
-    <h1>召会诗歌吉他谱</h1>
-    <p class="site-subtitle">支持大本 / 小本，吉他谱 + 歌词切换</p>
-  </header>
+  <div class="page">
+    <header class="header">
+      <h1>召会诗歌吉他谱</h1>
+      <p class="subtitle">大本 / 小本 诗歌吉他谱 在线阅读</p>
+    </header>
 
-  <section class="controls">
-    <div class="book-switch">
-      <button id="btn-book-c" class="book-button active" data-book="c">大本</button>
-      <button id="btn-book-ts" class="book-button" data-book="ts">小本</button>
-    </div>
+    <section class="controls">
+      <div class="book-switch">
+        <button id="btn-book-c" class="book-button active" data-book="c">大本</button>
+        <button id="btn-book-ts" class="book-button" data-book="ts">小本</button>
+      </div>
+      <div class="search-area">
+        <input id="search-no" type="number" min="1" placeholder="输入编号，如 7 或 788">
+        <!-- 放大镜按钮 -->
+        <button id="search-btn" class="search-button" title="跳转到该编号">
+          🔍
+        </button>
+        
+      </div>
+    </section>
 
-    <div class="search-area">
-      <input id="search-no" type="number" min="1" placeholder="输入编号，如 7 或 788" />
-      <button id="search-btn" class="search-button" title="跳转到该编号">🔍</button>
-    </div>
-  </section>
+    <section>
+      <div id="song-list" class="song-list"></div>
+    </section>
 
-  <main class="index-main">
-    <p class="index-tip">
-      选择 <strong>大本 / 小本</strong>，然后输入编号并点击 🔍 或回车，即可跳转到该首歌的吉他谱页面。<br />
-      在吉他谱页面中可以切换 <strong>吉他 / 歌词</strong> 视图。
-    </p>
-  </main>
-
-  <footer class="site-footer">
-    <span>简单静态站点，可直接放到任意静态空间使用。</span>
-  </footer>
+    <footer class="footer">
+      <p>本网站仅供诗歌吉他谱查阅使用。</p>
+    </footer>
+  </div>
 
   <script>
-    // 册别配置，与 song.html 保持一致
     const HYMNBOOKS = {
-      c: { id: "c", label: "大本诗歌", prefix: "c", count: 1000, folder: "c" },
-      ts: { id: "ts", label: "小本诗歌", prefix: "ts", count: 1000, folder: "ts" }
+      c: { id: "c", label: "大本诗歌", prefix: "c", count: 1000 },
+      ts: { id: "ts", label: "小本诗歌", prefix: "ts", count: 1000 }
     };
 
     let currentBook = "c";
 
-    function applyBookUI(book) {
-      const btnBookC = document.getElementById("btn-book-c");
-      const btnBookTs = document.getElementById("btn-book-ts");
-      if (btnBookC && btnBookTs) {
-        btnBookC.classList.toggle("active", book === "c");
-        btnBookTs.classList.toggle("active", book === "ts");
-      }
-      currentBook = book;
+    const listDiv = document.getElementById("song-list");
+    const searchInput = document.getElementById("search-no");
+    const btnBookC = document.getElementById("btn-book-c");
+    const btnBookTs = document.getElementById("btn-book-ts");
+    const searchBtn = document.getElementById("search-btn");
+
+    function pad4(n) {
+      return String(n).padStart(4, "0");
     }
 
-    function gotoSong(book, no) {
-      const cfg = HYMNBOOKS[book];
-      if (!cfg) return;
-      if (no < 1) no = 1;
-      if (no > cfg.count) no = cfg.count;
-      location.href = "song.html?book=" + encodeURIComponent(book) + "&no=" + encodeURIComponent(no);
+    // 渲染列表（输入数字时用于过滤）
+    function renderList() {
+      const bookCfg = HYMNBOOKS[currentBook];
+      const filterNo = searchInput.value.trim();
+      listDiv.innerHTML = "";
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "song-list-inner";
+
+      for (let i = 1; i <= bookCfg.count; i++) {
+        if (filterNo && !String(i).includes(filterNo)) continue;
+        const a = document.createElement("a");
+        a.className = "song-item";
+        a.href = `song.html?book=${bookCfg.id}&no=${i}`;
+        a.textContent = `${bookCfg.label} 第 ${i} 首 (${bookCfg.prefix}${pad4(i)})`;
+        wrapper.appendChild(a);
+      }
+
+      if (!wrapper.childNodes.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-tip";
+        empty.textContent = "没有找到对应编号，可以尝试换个数字。";
+        listDiv.appendChild(empty);
+      } else {
+        listDiv.appendChild(wrapper);
+      }
     }
 
-    (function setup() {
-      const btnBookC = document.getElementById("btn-book-c");
-      const btnBookTs = document.getElementById("btn-book-ts");
-      const searchInput = document.getElementById("search-no");
-      const searchBtn = document.getElementById("search-btn");
+    // 新增：根据输入编号，直接跳转
+    function jumpToSong() {
+      const bookCfg = HYMNBOOKS[currentBook];
+      const val = searchInput.value.trim();
+      if (!val) {
+        alert("请输入编号，例如 7 或 788");
+        return;
+      }
+      const no = parseInt(val, 10);
+      if (isNaN(no) || no < 1 || no > bookCfg.count) {
+        alert(`请输入 1 - ${bookCfg.count} 之间的编号`);
+        return;
+      }
+      // 直接跳转到对应乐谱
+      location.href = `song.html?book=${bookCfg.id}&no=${no}`;
+    }
 
-      if (btnBookC) {
-        btnBookC.addEventListener("click", () => applyBookUI("c"));
-      }
-      if (btnBookTs) {
-        btnBookTs.addEventListener("click", () => applyBookUI("ts"));
-      }
+    function switchBook(bookId) {
+      currentBook = bookId;
+      btnBookC.classList.toggle("active", bookId === "c");
+      btnBookTs.classList.toggle("active", bookId === "ts");
+      renderList();
+    }
 
-      function jumpToSong() {
-        const raw = searchInput.value.trim();
-        const no = parseInt(raw, 10);
-        if (isNaN(no) || no < 1 || no > 1000) {
-          alert("请输入 1~1000 编号");
-          return;
-        }
-        gotoSong(currentBook, no);
-      }
+    btnBookC.addEventListener("click", () => switchBook("c"));
+    btnBookTs.addEventListener("click", () => switchBook("ts"));
 
-      if (searchBtn) {
-        searchBtn.addEventListener("click", jumpToSong);
+    // 输入时还是作为「过滤列表」
+    searchInput.addEventListener("input", renderList);
+
+    // 点击放大镜：跳转
+    searchBtn.addEventListener("click", jumpToSong);
+
+    // 回车键：也跳转
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        jumpToSong();
       }
-      if (searchInput) {
-        searchInput.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            jumpToSong();
-          }
-        });
-      }
-    })();
+    });
+
+    // 初始渲染
+    renderList();
   </script>
 </body>
 </html>
