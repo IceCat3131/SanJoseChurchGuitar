@@ -448,8 +448,8 @@ body {
 
 /* 让 “-” 按钮稍微长一点，视觉上不要太短 */
 #btn-font-minus {
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 /* 歌词显示区域样式 */
