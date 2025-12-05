@@ -438,3 +438,55 @@ body {
   color: #666;
   font-size: 14px;
 }
+
+/* 搜索框下面一行工具栏：左 +-/字号，中间 吉他/歌词，右 简/繁 按钮 */
+.view-toolbar {
+  margin: 8px 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.view-tools-left,
+.view-tools-right {
+  display: flex;
+  gap: 6px;
+}
+
+/* 居中显示吉他 / 歌词 */
+.view-toolbar .view-switch {
+  margin-top: 0;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+}
+
+/* 字号按钮样式 */
+.font-button {
+  padding: 2px 8px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* 简 / 繁 切换按钮 */
+.lang-button {
+  padding: 2px 10px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* 默认歌词字号稍大一些 */
+.lyrics-container {
+  font-size: 18px;
+}

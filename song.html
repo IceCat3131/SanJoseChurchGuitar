@@ -26,11 +26,21 @@
             <input id="search-no" type="number" min="1" placeholder="输入编号，如 7 或 788">
             <button id="search-btn" class="search-button" title="跳转到该编号">🔍</button>
           </div>
-          <div class="view-switch">
-            <button id="btn-view-guitar" class="view-button active">吉他</button>
-            <button id="btn-view-lyrics" class="view-button">歌词</button>
-          </div>
         </section>
+    <section class="view-toolbar">
+      <div class="view-tools-left">
+        <button id="btn-font-plus" class="font-button">+</button>
+        <button id="btn-font-minus" class="font-button">-</button>
+      </div>
+      <div class="view-switch">
+        <button id="btn-view-guitar" class="view-button active">吉他</button>
+        <button id="btn-view-lyrics" class="view-button">歌词</button>
+      </div>
+      <div class="view-tools-right">
+        <button id="btn-lang-toggle" class="lang-button">繁</button>
+      </div>
+    </section>
+
 
     <main>
       <div id="score-container" class="score-container">
@@ -67,6 +77,63 @@
     // 当前选中的册（给搜索用）
     let currentBook = "c";
     let currentView = "guitar";
+
+    // 当前语言 & 歌词显示状态
+    let currentLang = "simplified";      // 当前显示：简体 或 繁体
+    let baseLyricsHtml = "";             // 原始歌词（HTML）
+    let currentFontSize = 20;            // 默认字号稍微大一点
+
+    function applyLyricsFontSize() {
+      const el = document.querySelector(".lyrics-container");
+      if (el) {
+        el.style.fontSize = currentFontSize + "px";
+      }
+    }
+
+    // 简单的简体 -> 繁体转换（常用字映射）
+    function toTraditional(text) {
+      const map = {
+        "赞": "讚",
+        "頌": "頌",
+        "颂": "頌",
+        "灵": "靈",
+        "圣": "聖",
+        "乐": "樂",
+        "爱": "愛",
+        "国": "國",
+        "广": "廣",
+        "发": "發",
+        "声": "聲",
+        "复": "復",
+        "众": "眾",
+        "荣": "榮",
+        "义": "義",
+        "门": "門",
+        "时": "時",
+        "里": "裡",
+        "台": "臺",
+        "启": "啟",
+        "现": "現",
+        "会": "會",
+        "观": "觀",
+        "经": "經",
+        "话": "話"
+      };
+      return text.replace(/./g, ch => map[ch] || ch);
+    }
+
+    // 根据当前语言和字号重新渲染歌词
+    function renderLyrics() {
+      const container = document.getElementById("score-container");
+      if (!container || !baseLyricsHtml) return;
+      let html = baseLyricsHtml;
+      if (currentLang === "traditional") {
+        html = toTraditional(html);
+      }
+      container.innerHTML = html;
+      applyLyricsFontSize();
+    }
+
 
     function applyBookUI(book) {
       const btnBookC = document.getElementById("btn-book-c");
@@ -153,7 +220,8 @@
           });
           html += "</div>";
 
-          container.innerHTML = html;
+          baseLyricsHtml = html;
+          renderLyrics();
         })
         .catch((err) => {
           console.error(err);
@@ -249,7 +317,46 @@ function gotoSong(book, no) {
       btnViewLyrics.addEventListener("click", () => applyView("lyrics"));
     })();
 
-    // 初次加载当前页
+    // 字号 + / - 控制
+    (function setupFontControls() {
+      const btnPlus = document.getElementById("btn-font-plus");
+      const btnMinus = document.getElementById("btn-font-minus");
+      if (!btnPlus || !btnMinus) return;
+
+      btnPlus.addEventListener("click", () => {
+        currentFontSize += 2;
+        if (currentFontSize > 32) currentFontSize = 32;
+        applyLyricsFontSize();
+      });
+
+      btnMinus.addEventListener("click", () => {
+        currentFontSize -= 2;
+        if (currentFontSize < 12) currentFontSize = 12;
+        applyLyricsFontSize();
+      });
+    })();
+
+    // 简 / 繁 切换（单按钮）
+    (function setupLangToggle() {
+      const btnLang = document.getElementById("btn-lang-toggle");
+      if (!btnLang) return;
+
+      function applyLang(lang) {
+        currentLang = lang;
+        btnLang.textContent = (lang === "simplified") ? "繁" : "简";
+        renderLyrics();
+      }
+
+      // 初始化按钮文字
+      applyLang(currentLang);
+
+      btnLang.addEventListener("click", () => {
+        const next = currentLang === "simplified" ? "traditional" : "simplified";
+        applyLang(next);
+      });
+    })();
+
+// 初次加载当前页
     updatePage();
   </script>
 </body>
