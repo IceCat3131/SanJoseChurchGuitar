@@ -387,7 +387,7 @@ body {
 .view-tools-right {
   display: flex;
   flex-shrink: 0;
-  gap: 8px;
+  gap: 4px;
 }
 
 /* 中间的 吉他 / 歌词 按钮组 */
