@@ -439,54 +439,54 @@ body {
   font-size: 14px;
 }
 
-/* 搜索框下面一行工具栏：左 +-/字号，中间 吉他/歌词，右 简/繁 按钮 */
+/* 搜索框下面一行工具栏：左 +/-，中间 吉他/歌词，右 简/繁（全部同一行） */
 .view-toolbar {
   margin: 8px 0 4px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: nowrap;
   gap: 8px;
 }
 
 .view-tools-left,
 .view-tools-right {
   display: flex;
+  flex-shrink: 0;
   gap: 6px;
 }
 
-/* 居中显示吉他 / 歌词 */
+/* 居中显示吉他 / 歌词，中间自适应撑满 */
 .view-toolbar .view-switch {
-  margin-top: 0;
+  margin: 0;
   border: none;
   border-radius: 0;
   overflow: visible;
   display: flex;
   justify-content: center;
-  gap: 8px;
-  flex: 1;
+  gap: 12px;
+  flex: 1 1 auto;
 }
 
-/* 字号按钮样式 */
-.font-button {
-  padding: 2px 8px;
-  border: 1px solid #ccc;
-  background: #f5f5f5;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-/* 简 / 繁 切换按钮 */
+/* 统一按钮样式：无底色、无边框、加粗、大一号 */
+.view-button,
+.font-button,
 .lang-button {
-  padding: 2px 10px;
-  border: 1px solid #ccc;
-  background: #f5f5f5;
-  border-radius: 4px;
+  background: none;
+  border: none;
+  padding: 2px 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 0;
 }
 
-/* 默认歌词字号稍大一些 */
+/* 激活的“吉他 / 歌词”可以稍微高亮一点（只用文字效果，不用底色） */
+.view-button.active {
+  text-decoration: underline;
+}
+
+/* 默认歌词字号更大一些，配合 JS 的 currentFontSize=20 */
 .lyrics-container {
-  font-size: 18px;
+  font-size: 20px;
 }

@@ -27,19 +27,19 @@
             <button id="search-btn" class="search-button" title="跳转到该编号">🔍</button>
           </div>
         </section>
-    <section class="view-toolbar">
-      <div class="view-tools-left">
-        <button id="btn-font-plus" class="font-button">+</button>
-        <button id="btn-font-minus" class="font-button">-</button>
-      </div>
-      <div class="view-switch">
-        <button id="btn-view-guitar" class="view-button active">吉他</button>
-        <button id="btn-view-lyrics" class="view-button">歌词</button>
-      </div>
-      <div class="view-tools-right">
-        <button id="btn-lang-toggle" class="lang-button">繁</button>
-      </div>
-    </section>
+        <section class="view-toolbar">
+          <div class="view-tools-left">
+            <button id="btn-font-plus" class="font-button">+</button>
+            <button id="btn-font-minus" class="font-button">-</button>
+          </div>
+          <div class="view-switch">
+            <button id="btn-view-guitar" class="view-button active">吉他</button>
+            <button id="btn-view-lyrics" class="view-button">歌词</button>
+          </div>
+          <div class="view-tools-right">
+            <button id="btn-lang-toggle" class="lang-button">繁</button>
+          </div>
+        </section>
 
 
     <main>
@@ -80,8 +80,8 @@
 
     // 当前语言 & 歌词显示状态
     let currentLang = "simplified";      // 当前显示：简体 或 繁体
-    let baseLyricsHtml = "";             // 原始歌词（HTML）
-    let currentFontSize = 20;            // 默认字号稍微大一点
+    let baseLyricsHtml = "";             // 原始歌词 HTML
+    let currentFontSize = 20;            // 默认歌词字号
 
     function applyLyricsFontSize() {
       const el = document.querySelector(".lyrics-container");
@@ -94,7 +94,6 @@
     function toTraditional(text) {
       const map = {
         "赞": "讚",
-        "頌": "頌",
         "颂": "頌",
         "灵": "靈",
         "圣": "聖",
@@ -176,11 +175,6 @@
       if (!container) return;
 
       if (infoEl) infoEl.textContent = "";
-      if (titleEl) {
-        const cfg = HYMNBOOKS[book];
-        titleEl.textContent = `${cfg.label} 第 ${no} 首`;
-        document.title = `${titleEl.textContent} - 召会诗歌吉他谱`;
-      }
 
       container.innerHTML = '<p class="lyrics-loading">歌词加载中…</p>';
 
@@ -201,11 +195,16 @@
             throw new Error("未找到该首歌词");
           }
 
-          let html = '<div class="lyrics-container">';
-          if (song.full_title || song.title) {
-            const t = song.full_title || song.title;
-            html += `<h2 class="lyrics-title">${t}</h2>`;
+          // 用歌词里的歌名作为页面标题
+          if (titleEl) {
+            const t = song.full_title || song.title || song.big_title || "";
+            if (t) {
+              titleEl.textContent = t;
+              document.title = `${t} - 召会诗歌吉他谱`;
+            }
           }
+
+          let html = '<div class="lyrics-container">';
           (song.lyrics || []).forEach((sec) => {
             if (!sec || !Array.isArray(sec.lines)) return;
             html += '<div class="lyrics-section">';
@@ -343,6 +342,7 @@ function gotoSong(book, no) {
 
       function applyLang(lang) {
         currentLang = lang;
+        // 当前是简体，就显示“繁”；当前是繁体，就显示“简”
         btnLang.textContent = (lang === "simplified") ? "繁" : "简";
         renderLyrics();
       }
