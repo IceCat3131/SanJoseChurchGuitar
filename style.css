@@ -387,7 +387,7 @@ body {
 .view-tools-right {
   display: flex;
   flex-shrink: 0;
-  gap: 4px;
+  gap: 2px;
 }
 
 /* 中间的 吉他 / 歌词 按钮组 */
@@ -492,4 +492,8 @@ body {
   text-align: center;
   color: #666;
   font-size: 14px;
+}
+/* 只控制 + 按钮的大小 */
+#btn-font-plus {
+  font-size: 32px;  /* 你的目标大小 */
 }
