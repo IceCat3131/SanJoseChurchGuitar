@@ -78,10 +78,12 @@
     let currentBook = "c";
     let currentView = "guitar";
 
-    // 当前语言 & 歌词显示状态
-    let currentLang = "simplified";      // 当前显示：简体 或 繁体
-    let baseLyricsHtml = "";             // 原始歌词 HTML
-    let currentFontSize = 20;            // 默认歌词字号
+    // 当前歌词显示语言：simplified = 简体, traditional = 繁体
+    let currentLang = "simplified";
+    // 缓存歌词 HTML，用于切换简繁和字号
+    let baseLyricsHtml = "";
+    // 当前歌词字号（像素）
+    let currentFontSize = 20;
 
     function applyLyricsFontSize() {
       const el = document.querySelector(".lyrics-container");
@@ -90,7 +92,7 @@
       }
     }
 
-    // 简单的简体 -> 繁体转换（常用字映射）
+    // 简单的简体 -> 繁体转换（常用高频字）
     function toTraditional(text) {
       const map = {
         "赞": "讚",
@@ -121,7 +123,6 @@
       return text.replace(/./g, ch => map[ch] || ch);
     }
 
-    // 根据当前语言和字号重新渲染歌词
     function renderLyrics() {
       const container = document.getElementById("score-container");
       if (!container || !baseLyricsHtml) return;
@@ -133,8 +134,7 @@
       applyLyricsFontSize();
     }
 
-
-    function applyBookUI(book) {
+function applyBookUI(book) {
       const btnBookC = document.getElementById("btn-book-c");
       const btnBookTs = document.getElementById("btn-book-ts");
       if (btnBookC && btnBookTs) {
@@ -168,14 +168,44 @@
       container.appendChild(img);
     }
 
+    
+    // 根据 JSON 中的 title 更新页面顶部标题
+    function updateTitleFromJson(book, no) {
+      const titleEl = document.getElementById("song-title");
+      if (!titleEl) return;
+
+      const cfg = HYMNBOOKS[book];
+      const groupStart = Math.floor((no - 1) / 100) * 100 + 1;
+      const groupEnd = groupStart + 99;
+      const bookFolder = book === "c" ? "c_text" : "ts_text";
+      const jsonFile = `${book}_${groupStart}_${groupEnd}.json`;
+      const jsonPath = `assets/${bookFolder}/${jsonFile}`;
+
+      fetch(jsonPath)
+        .then((resp) => {
+          if (!resp.ok) throw new Error("网络错误");
+          return resp.json();
+        })
+        .then((list) => {
+          const song = list.find((item) => String(item.no) === String(no));
+          if (!song || !song.title) return;
+          const t = song.title;
+          titleEl.textContent = t;
+          document.title = `${t} - 召会诗歌吉他谱`;
+        })
+        .catch((err) => {
+          console.error("updateTitleFromJson error", err);
+          // 出错时保持原来的标题（大本诗歌 第 X 首）
+        });
+    }
+
+
     function loadLyrics(book, no) {
       const container = document.getElementById("score-container");
       const infoEl = document.getElementById("file-info");
-      const titleEl = document.getElementById("song-title");
       if (!container) return;
 
       if (infoEl) infoEl.textContent = "";
-
       container.innerHTML = '<p class="lyrics-loading">歌词加载中…</p>';
 
       const groupStart = Math.floor((no - 1) / 100) * 100 + 1;
@@ -195,14 +225,8 @@
             throw new Error("未找到该首歌词");
           }
 
-          // 用歌词里的歌名作为页面标题
-          if (titleEl) {
-            const t = song.full_title || song.title || song.big_title || "";
-            if (t) {
-              titleEl.textContent = t;
-              document.title = `${t} - 召会诗歌吉他谱`;
-            }
-          }
+          // 更新顶部标题为 JSON 中的 title
+          updateTitleFromJson(book, no);
 
           let html = '<div class="lyrics-container">';
           (song.lyrics || []).forEach((sec) => {
@@ -228,6 +252,7 @@
         });
     }
 
+
     function updatePage() {
       const { book, no } = getParams();
       applyBookUI(book);
@@ -235,12 +260,16 @@
       const searchInput = document.getElementById("search-no");
       if (searchInput) searchInput.value = no;
 
+      // 标题统一使用 JSON 里的 title
+      updateTitleFromJson(book, no);
+
       if (currentView === "lyrics") {
         loadLyrics(book, no);
       } else {
         showGuitar(book, no);
       }
     }
+
 function gotoSong(book, no) {
       const cfg = HYMNBOOKS[book];
       if (no < 1) no = 1;
@@ -342,12 +371,11 @@ function gotoSong(book, no) {
 
       function applyLang(lang) {
         currentLang = lang;
-        // 当前是简体，就显示“繁”；当前是繁体，就显示“简”
         btnLang.textContent = (lang === "simplified") ? "繁" : "简";
         renderLyrics();
       }
 
-      // 初始化按钮文字
+      // 初始化：默认简体，按钮文案为“繁”
       applyLang(currentLang);
 
       btnLang.addEventListener("click", () => {
@@ -355,6 +383,7 @@ function gotoSong(book, no) {
         applyLang(next);
       });
     })();
+
 
 // 初次加载当前页
     updatePage();
