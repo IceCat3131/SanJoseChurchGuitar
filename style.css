@@ -290,7 +290,7 @@ body {
 .controls .search-button {
   height: 34px;
   padding: 0 12px;
-  border: 1px solid #cccccc00;
+  border: 1px solid #e9ebf2;
   border-radius: 0;
   box-sizing: border-box;
 }
@@ -344,6 +344,9 @@ body {
   #search-no {
     width: 160px;
     flex: 0 0 auto;
+       /* ← 加下面这两行来改变手机版底色和边框 */
+    background-color: #e9ebf2 !important;
+    border: none !important;
   }
 }
 
