@@ -85,7 +85,7 @@ body {
 #search-no {
   padding: 4px 8px;
   font-size: 14px;
-  width: 260px;
+  width: 520px;
 }
 
 .search-button {
@@ -281,7 +281,7 @@ body {
 }
 
 .nav-arrow:hover {
-  opacity: 0.8;
+  opacity: 0.5;
 }
 
 /* 搜索条：拼成一整条，统一高度 */
@@ -290,7 +290,7 @@ body {
 .controls .search-button {
   height: 34px;
   padding: 0 12px;
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc00;
   border-radius: 0;
   box-sizing: border-box;
 }
@@ -342,7 +342,7 @@ body {
   }
 
   #search-no {
-    width: 80px;
+    width: 160px;
     flex: 0 0 auto;
   }
 }
