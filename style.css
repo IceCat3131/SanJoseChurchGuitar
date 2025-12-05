@@ -52,7 +52,7 @@ body {
 
 .search-shell {
   width: 100%;
-  max-width: 420px;
+  max-width: 840px;
 }
 
 .search-pill {
@@ -60,7 +60,7 @@ body {
   align-items: center;
   padding: 6px 12px;
   border-radius: 999px;
-  background: #edf2ff;
+  background: #e9ebf2;
 }
 
 /* 左侧：大本 / 小本 文字按钮 */
@@ -513,4 +513,28 @@ body {
 /* 单独控制 + 按钮大小 */
 #btn-font-plus {
   font-size: 48px !important;  /* 比 24px 大一圈 */
+}
+/* 彻底禁用旧版 input 样式 */
+#search-no,
+.pill-input {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+/* 新 UI 搜索条样式 */
+.search-pill {
+  background: #e9ebf2 !important;  /* ← 你要的底色 */
+  padding: 8px 14px !important;     /* 调整高度与厚度 */
+  border-radius: 14px !important;   /* 整个搜索框的大圆角 */
+  border: none !important;          /* 去掉边框 */
+}
+
+/* 输入框本体 */
+.pill-input {
+  text-align: center !important;    /* 居中输入 */
+  padding: 4px 6px !important;
+  background: transparent !important;
 }
