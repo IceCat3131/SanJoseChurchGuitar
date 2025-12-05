@@ -24,23 +24,18 @@
           </div>
           <div class="search-area">
             <input id="search-no" type="number" min="1" placeholder="输入编号，如 7 或 788">
-            <!-- 放大镜按钮 -->
-            <button id="search-btn" class="search-button" title="跳转到该编号">
-              🔍
-            </button>
+            <button id="search-btn" class="search-button" title="跳转到该编号">🔍</button>
+          </div>
+          <div class="view-switch">
+            <button id="btn-view-guitar" class="view-button active">吉他</button>
+            <button id="btn-view-lyrics" class="view-button">歌词</button>
           </div>
         </section>
-    <section class="view-toggle">
-      <button id="btn-view-guitar" class="view-button active-view">吉他</button>
-      <button id="btn-view-lyrics" class="view-button">歌词</button>
-    </section>
-
 
     <main>
       <div id="score-container" class="score-container">
         <!-- SVG 将插入到这里 -->
       </div>
-      <div id="lyrics-container" class="lyrics-container" style="display:none;"></div>
     </main>
 
     <footer class="footer">
@@ -69,104 +64,9 @@
       return String(n).padStart(4, "0");
     }
 
-    // 当前视图：guitar = 吉他谱, lyrics = 歌词
-    let currentView = "guitar";
-
-    // 计算歌词 JSON 文件路径
-    function getLyricsJsonPath(book, no) {
-      const rangeStart = Math.floor((no - 1) / 100) * 100 + 1;
-      const rangeEnd = rangeStart + 99;
-      const folder = book === "c" ? "c_text" : "ts_text";
-      const prefix = book; // c 或 ts
-      return `assets/${folder}/${prefix}_${rangeStart}_${rangeEnd}.json`;
-    }
-
-    // 从 JSON 提取当前首歌词
-    function extractLyricsFromJson(data, no) {
-      const key = String(no);
-      let entry = null;
-
-      if (data[key]) {
-        entry = data[key];
-      } else if (data.songs && data.songs[key]) {
-        entry = data.songs[key];
-      } else if (Array.isArray(data)) {
-        entry = data.find(item => String(item.no) === key || String(item.id) === key);
-      }
-
-      if (!entry) return "没有找到这首的歌词";
-
-      let text = "";
-      if (typeof entry === "string") {
-        text = entry;
-      } else if (Array.isArray(entry)) {
-        text = entry.join("\n");
-      } else if (entry.text) {
-        text = entry.text;
-      } else if (entry.lyrics) {
-        text = entry.lyrics;
-      } else {
-        text = JSON.stringify(entry, null, 2);
-      }
-
-      return text;
-    }
-
-    async function loadLyrics(book, no) {
-      const container = document.getElementById("lyrics-container");
-      if (!container) return;
-      container.innerHTML = "歌词加载中…";
-
-      try {
-        const path = getLyricsJsonPath(book, no);
-        const res = await fetch(path);
-        if (!res.ok) throw new Error("not found");
-        const data = await res.json();
-        const text = extractLyricsFromJson(data, no);
-        const html = text.replace(/\n/g, "<br>");
-        container.innerHTML = `<div class="lyrics-text">${html}</div>`;
-      } catch (e) {
-        console.error("loadLyrics error", e);
-        container.innerHTML = "没有找到歌词或加载失败。";
-      }
-    }
-
-    function showGuitarView() {
-      currentView = "guitar";
-      const score = document.getElementById("score-container");
-      const lyrics = document.getElementById("lyrics-container");
-      const btnG = document.getElementById("btn-view-guitar");
-      const btnL = document.getElementById("btn-view-lyrics");
-
-      if (score) score.style.display = "block";
-      if (lyrics) lyrics.style.display = "none";
-
-      if (btnG && btnL) {
-        btnG.classList.add("active-view");
-        btnL.classList.remove("active-view");
-      }
-    }
-
-    async function showLyricsView(book, no) {
-      currentView = "lyrics";
-      const score = document.getElementById("score-container");
-      const lyrics = document.getElementById("lyrics-container");
-      const btnG = document.getElementById("btn-view-guitar");
-      const btnL = document.getElementById("btn-view-lyrics");
-
-      if (score) score.style.display = "none";
-      if (lyrics) lyrics.style.display = "block";
-
-      if (btnG && btnL) {
-        btnG.classList.remove("active-view");
-        btnL.classList.add("active-view");
-      }
-
-      await loadLyrics(book, no);
-    }
-
     // 当前选中的册（给搜索用）
     let currentBook = "c";
+    let currentView = "guitar";
 
     function applyBookUI(book) {
       const btnBookC = document.getElementById("btn-book-c");
@@ -178,25 +78,20 @@
       currentBook = book;
     }
 
-    function updatePage() {
-      const { book, no } = getParams();
+    
+    function showGuitar(book, no) {
       const cfg = HYMNBOOKS[book];
-
-      applyBookUI(book);
-      const searchInput = document.getElementById("search-no");
-      if (searchInput) searchInput.value = no;
-
       const titleEl = document.getElementById("song-title");
-      const subEl = document.getElementById("song-subtitle");
       const infoEl = document.getElementById("file-info");
       const container = document.getElementById("score-container");
+      if (!titleEl || !container) return;
 
       const noStr = pad4(no);
       const filename = `${cfg.prefix}${noStr}_cn_g.svg`;
       const path = `assets/${cfg.folder}/${filename}`;
 
       titleEl.textContent = `${cfg.label} 第 ${no} 首`;
-      if (subEl) subEl.textContent = "";
+      document.title = `${titleEl.textContent} - 召会诗歌吉他谱`;
       if (infoEl) infoEl.textContent = "";
 
       container.innerHTML = "";
@@ -205,17 +100,81 @@
       img.alt = titleEl.textContent;
       img.className = "score-svg";
       container.appendChild(img);
-
-      document.title = `${titleEl.textContent} - 召会诗歌吉他谱`;
-
-      if (currentView === "lyrics") {
-        showLyricsView(book, no);
-      } else {
-        showGuitarView();
-      }
     }
 
-    function gotoSong(book, no) {
+    function loadLyrics(book, no) {
+      const container = document.getElementById("score-container");
+      const infoEl = document.getElementById("file-info");
+      const titleEl = document.getElementById("song-title");
+      if (!container) return;
+
+      if (infoEl) infoEl.textContent = "";
+      if (titleEl) {
+        const cfg = HYMNBOOKS[book];
+        titleEl.textContent = `${cfg.label} 第 ${no} 首`;
+        document.title = `${titleEl.textContent} - 召会诗歌吉他谱`;
+      }
+
+      container.innerHTML = '<p class="lyrics-loading">歌词加载中…</p>';
+
+      const groupStart = Math.floor((no - 1) / 100) * 100 + 1;
+      const groupEnd = groupStart + 99;
+      const bookFolder = book === "c" ? "c_text" : "ts_text";
+      const jsonFile = `${book}_${groupStart}_${groupEnd}.json`;
+      const jsonPath = `assets/${bookFolder}/${jsonFile}`;
+
+      fetch(jsonPath)
+        .then((resp) => {
+          if (!resp.ok) throw new Error("网络错误");
+          return resp.json();
+        })
+        .then((list) => {
+          const song = list.find((item) => String(item.no) === String(no));
+          if (!song || !Array.isArray(song.lyrics)) {
+            throw new Error("未找到该首歌词");
+          }
+
+          let html = '<div class="lyrics-container">';
+          if (song.full_title || song.title) {
+            const t = song.full_title || song.title;
+            html += `<h2 class="lyrics-title">${t}</h2>`;
+          }
+          (song.lyrics || []).forEach((sec) => {
+            if (!sec || !Array.isArray(sec.lines)) return;
+            html += '<div class="lyrics-section">';
+            if (sec.section_no) {
+              html += `<div class="lyrics-section-no">${sec.section_no}</div>`;
+            }
+            html += '<div class="lyrics-lines">';
+            sec.lines.forEach((line) => {
+              html += `<p>${line}</p>`;
+            });
+            html += "</div></div>";
+          });
+          html += "</div>";
+
+          container.innerHTML = html;
+        })
+        .catch((err) => {
+          console.error(err);
+          container.innerHTML = '<p class="lyrics-error">没有找到歌词或加载失败。</p>';
+        });
+    }
+
+    function updatePage() {
+      const { book, no } = getParams();
+      applyBookUI(book);
+
+      const searchInput = document.getElementById("search-no");
+      if (searchInput) searchInput.value = no;
+
+      if (currentView === "lyrics") {
+        loadLyrics(book, no);
+      } else {
+        showGuitar(book, no);
+      }
+    }
+function gotoSong(book, no) {
       const cfg = HYMNBOOKS[book];
       if (no < 1) no = 1;
       if (no > cfg.count) no = cfg.count;
@@ -273,20 +232,21 @@
       });
     })();
 
-    // 吉他 / 歌词 切换逻辑
-    (function setupViewToggle() {
-      const btnG = document.getElementById("btn-view-guitar");
-      const btnL = document.getElementById("btn-view-lyrics");
-      if (!btnG || !btnL) return;
+    // 视图切换（吉他 / 歌词）
+    (function setupViewSwitch() {
+      const btnViewGuitar = document.getElementById("btn-view-guitar");
+      const btnViewLyrics = document.getElementById("btn-view-lyrics");
+      if (!btnViewGuitar || !btnViewLyrics) return;
 
-      btnG.addEventListener("click", () => {
-        showGuitarView();
-      });
+      function applyView(view) {
+        currentView = view;
+        btnViewGuitar.classList.toggle("active", view === "guitar");
+        btnViewLyrics.classList.toggle("active", view === "lyrics");
+        updatePage();
+      }
 
-      btnL.addEventListener("click", () => {
-        const { book, no } = getParams();
-        showLyricsView(book, no);
-      });
+      btnViewGuitar.addEventListener("click", () => applyView("guitar"));
+      btnViewLyrics.addEventListener("click", () => applyView("lyrics"));
     })();
 
     // 初次加载当前页

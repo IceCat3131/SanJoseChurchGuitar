@@ -369,41 +369,72 @@ body {
   text-align: left;
 }
 
-/* 吉他 / 歌词 切换按钮区域 */
-.view-toggle {
-  margin: 8px 0 4px;
-  display: flex;
-  justify-content: center;
-  gap: 8px;
+
+/* 吉他 / 歌词 视图切换按钮 */
+.view-switch {
+  margin-top: 8px;
+  display: inline-flex;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid #ccc;
+  font-size: 14px;
 }
 
 .view-button {
   padding: 4px 12px;
-  border: 1px solid #ccc;
+  border: none;
   background: #f5f5f5;
   cursor: pointer;
-  border-radius: 4px;
   font-size: 14px;
 }
 
-.view-button.active-view {
-  background: #0066cc;
+.view-button + .view-button {
+  border-left: 1px solid #ccc;
+}
+
+.view-button.active {
+  background: #007bff;
   color: #fff;
-  border-color: #0066cc;
 }
 
-/* 歌词显示区域 */
+/* 歌词显示区域样式 */
 .lyrics-container {
-  display: none;
   margin-top: 12px;
-  padding: 8px 12px;
-  background: #ffffff;
-  border: 1px solid #ddd;
-  border-radius: 4px;
   line-height: 1.7;
-  font-size: 16px;
+  font-size: 15px;
 }
 
-.lyrics-container .lyrics-text {
-  white-space: pre-line;
+.lyrics-title {
+  margin: 4px 0 12px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.lyrics-section {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.lyrics-section-no {
+  width: 2.2em;
+  flex-shrink: 0;
+  font-weight: 600;
+  padding-right: 4px;
+}
+
+.lyrics-lines {
+  flex: 1;
+}
+
+.lyrics-lines p {
+  margin: 0 0 4px 0;
+}
+
+.lyrics-error,
+.lyrics-loading {
+  margin-top: 12px;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
 }
