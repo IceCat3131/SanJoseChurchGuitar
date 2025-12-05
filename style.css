@@ -69,8 +69,8 @@ body {
 
 .book-button.active {
   border-color: #007bff;
-  background: #e6f0ff;
-  color: #0056b3;
+  background: #007bff;
+  color: #fff;
 }
 
 /* 搜索区域 + 放大镜 */
@@ -442,9 +442,16 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 24px; /* 放大 1.5 倍 */
   font-weight: 700;
 }
+
+/* 让 “-” 按钮稍微长一点，视觉上不要太短 */
+#btn-font-minus {
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
 /* 歌词显示区域样式 */
 .lyrics-container {
   margin-top: 12px;
