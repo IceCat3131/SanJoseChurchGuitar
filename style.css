@@ -369,72 +369,94 @@ body {
   text-align: left;
 }
 
-
-/* 吉他 / 歌词 视图切换按钮 */
-.view-switch {
-  margin-top: 8px;
-  display: inline-flex;
-  border-radius: 20px;
-  overflow: hidden;
-  border: 1px solid #ccc;
-  font-size: 14px;
+/* 吉他 / 歌词 切换按钮区域 */
+.view-toggle {
+  margin: 8px 0 4px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
 }
 
 .view-button {
   padding: 4px 12px;
-  border: none;
+  border: 1px solid #ccc;
   background: #f5f5f5;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.view-button.active-view {
+  background: #0066cc;
+  color: #fff;
+  border-color: #0066cc;
+}
+
+/* 歌词显示区域 */
+.lyrics-container {
+  display: none;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  line-height: 1.7;
+  font-size: 16px;
+}
+
+.lyrics-container .lyrics-text {
+  white-space: pre-line;
+}
+
+/* 搜索框下面的工具栏：左边 +/-，中间 吉他/歌词，右边 简/繁 */
+.view-toolbar {
+  margin: 8px 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.view-tools-left,
+.view-tools-right {
+  display: flex;
+  gap: 6px;
+}
+
+.view-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+/* 字体大小按钮 */
+.font-button {
+  padding: 2px 8px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
 }
 
-.view-button + .view-button {
-  border-left: 1px solid #ccc;
-}
-
-.view-button.active {
-  background: #007bff;
-  color: #fff;
-}
-
-/* 歌词显示区域样式 */
-.lyrics-container {
-  margin-top: 12px;
-  line-height: 1.7;
-  font-size: 15px;
-}
-
-.lyrics-title {
-  margin: 4px 0 12px;
-  text-align: center;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.lyrics-section {
-  display: flex;
-  margin-bottom: 8px;
-}
-
-.lyrics-section-no {
-  width: 2.2em;
-  flex-shrink: 0;
-  font-weight: 600;
-  padding-right: 4px;
-}
-
-.lyrics-lines {
-  flex: 1;
-}
-
-.lyrics-lines p {
-  margin: 0 0 4px 0;
-}
-
-.lyrics-error,
-.lyrics-loading {
-  margin-top: 12px;
-  text-align: center;
-  color: #666;
+/* 语言切换按钮：简 / 繁 */
+.lang-button {
+  padding: 2px 10px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  border-radius: 4px;
+  cursor: pointer;
   font-size: 14px;
+}
+
+.lang-button.active-lang {
+  background: #0066cc;
+  color: #fff;
+  border-color: #0066cc;
+}
+
+/* 歌词默认字号稍微大一点 */
+.lyrics-container {
+  font-size: 18px;
 }
