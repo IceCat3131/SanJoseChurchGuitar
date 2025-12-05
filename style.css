@@ -493,7 +493,7 @@ body {
   color: #666;
   font-size: 14px;
 }
-/* 只控制 + 按钮的大小 */
+/* 单独控制 + 按钮大小 */
 #btn-font-plus {
-  font-size: 32px;  /* 你的目标大小 */
+  font-size: 32px !important;  /* 比 24px 大一圈 */
 }
