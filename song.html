@@ -18,18 +18,15 @@
     </header>
 
     <section class="controls">
-      <div class="search-shell">
-        <div class="search-pill">
-          <div class="pill-book">
-            <button id="btn-book-c" class="pill-book-button active" data-book="c">大本</button>
-            <span class="pill-divider">|</span>
-            <button id="btn-book-ts" class="pill-book-button" data-book="ts">小本</button>
+          <div class="book-switch">
+            <button id="btn-book-c" class="book-button active" data-book="c">大本</button>
+            <button id="btn-book-ts" class="book-button" data-book="ts">小本</button>
           </div>
-          <input id="search-no" class="pill-input" type="number" min="1" placeholder="输入编号，如 31">
-          <button id="search-btn" class="pill-icon-btn" title="跳转到该编号">🔍</button>
-        </div>
-      </div>
-    </section>
+          <div class="search-area">
+            <input id="search-no" type="number" min="1" placeholder="输入编号，如 7 或 788">
+            <button id="search-btn" class="search-button" title="跳转到该编号">🔍</button>
+          </div>
+        </section>
         <section class="view-toolbar">
           <div class="view-tools-left">
             <button id="btn-font-plus" class="font-button">+</button>
