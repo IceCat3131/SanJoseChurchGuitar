@@ -442,14 +442,14 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 24px; /* 放大 1.5 倍 */
+  font-size: 32px; /* 放大 1.5 倍 */
   font-weight: 700;
 }
 
 /* 让 “-” 按钮稍微长一点，视觉上不要太短 */
 #btn-font-minus {
-  padding-left: 18px;
-  padding-right: 18px;
+  padding-left: 32px;
+  padding-right: 32px;
 }
 
 /* 歌词显示区域样式 */
