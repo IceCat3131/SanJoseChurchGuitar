@@ -1,484 +1,334 @@
-* {
+
+/* 基本颜色与排版 */
+:root {
+  --bg-page: #f5f7fb;
+  --bg-card: #ffffff;
+  --bg-search: #e9ebf2;
+  --primary: #2563eb;
+  --primary-soft: #e0ecff;
+  --text-main: #111827;
+  --text-subtle: #6b7280;
+  --border-soft: #e5e7eb;
+  --btn-gray: #e5e7eb;
+  --btn-gray-text: #4b5563;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.06);
+  --transition-fast: 150ms ease-out;
+  --lyrics-font-size: 16px;
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  background: var(--bg-page);
+  color: var(--text-main);
 }
 
 body {
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-               "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
-               "Noto Sans CJK SC", sans-serif;
-  background: #f7f7f7;
-  color: #222;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* 页面统一外框：手机居中，平板/电脑也居中显示 */
 .page {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 16px 20px;
-  background: #fff;
   min-height: 100vh;
-}
-
-.header h1 {
-  margin: 0 0 4px 0;
-  font-size: 24px;
-}
-
-.subtitle {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.footer {
-  margin-top: 24px;
-  font-size: 12px;
-  color: #888;
-  text-align: center;
-}
-
-.file-info {
-  font-size: 12px;
-  color: #888;
-}
-
-/* 顶部控制区域：书本切换 + 搜索 */
-.controls {
-  margin: 16px 0;
   display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: center; /* 整条居中 */
-}
-
-.book-switch {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0;
-}
-
-.book-button {
-  padding: 6px 14px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  background: #f5f5f5;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.book-button.active {
-  border-color: #007bff;
-  background: #007bff;
-  color: #fff;
-}
-
-/* 搜索区域 + 放大镜 */
-.search-area {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 0;
-  font-size: 14px;
-}
-
-#search-no {
-  padding: 4px 8px;
-  font-size: 14px;
-  width: 520px;
-}
-
-.search-button {
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  background: #f5f5f5;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-}
-
-.search-button:hover {
-  background: #eee;
-}
-
-.hint {
-  font-size: 12px;
-  color: #777;
-}
-
-/* 列表区域 */
-.song-list {
-  margin-top: 8px;
-  border-top: 1px solid #eee;
-}
-
-.song-list-inner {
-  display: flex;
-  flex-direction: column;
-  max-height: 60vh;
-  overflow-y: auto;
-  padding-top: 8px;
-}
-
-.song-item {
-  padding: 6px 0;
-  text-decoration: none;
-  color: #0066cc;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 18px;
-}
-
-.song-item:hover {
-  background: #f9f9f9;
-}
-
-.empty-tip {
-  padding: 12px 0;
-  color: #999;
-  font-size: 14px;
-}
-
-/* 返回 / 上一首 / 下一首 */
-.back-link {
-  text-decoration: none;
-  color: #0066cc;
-  font-size: 14px;
-}
-
-.back-link:hover {
-  text-decoration: underline;
-}
-
-.nav-nav {
-  margin: 12px 0 16px 0;
-  display: flex;
-  gap: 8px;
-}
-
-.nav-nav button {
-  padding: 6px 12px;
-  font-size: 14px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  background: #f5f5f5;
-  cursor: pointer;
-}
-
-.nav-nav button:hover {
-  background: #eee;
-}
-
-/* 乐谱容器 */
-.score-container {
-  margin-top: 8px;
-}
-
-/* 让 SVG 自适应屏幕宽度 */
-.score-svg {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  margin-bottom: 16px;
-}
-
-/* --------- 平板（中等屏幕）细调 ---------- */
-@media (max-width: 900px) {
-  .page {
-    padding: 14px 14px;
-  }
-
-  .header h1 {
-    font-size: 22px;
-  }
-
-  .song-item {
-    font-size: 14px;
-  }
-}
-
-/* --------- 手机（小屏幕）适配 ---------- */
-@media (max-width: 600px) {
-  .page {
-    padding: 12px 10px;
-  }
-
-  .header h1 {
-    font-size: 20px;
-  }
-
-  .subtitle {
-    font-size: 13px;
-  }
-
-  .controls {
-    flex-direction: row;
-    align-items: center;
-    gap: 0;
-  }
-
-  .search-area {
-    width: auto;
-    justify-content: center;
-    flex-wrap: nowrap;
-  }
-
-  #search-no {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .hint {
-    width: 100%;
-    margin-top: 4px;
-  }
-
-  .nav-nav {
-    justify-content: flex-start;
-  }
-}
-
-/* 单曲页面：两行布局，第一行返回箭头，第二行居中 < 标题 > */
-.header-song {
-  margin-top: 8px;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.back-arrow {
-  text-decoration: none;
-  font-size: 20px;
-  font-weight: bold;
-  color: #0066cc;
-  padding: 2px 4px;
-  margin-right: auto; /* 靠左，其余内容居中 */
-}
-
-.title-row {
-  width: 100%;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 14px;
 }
 
-.title-row #song-title {
-  margin: 0;
+.page-inner {
+  width: 100%;
+  max-width: 960px;           /* 电脑上不要太宽 */
+  padding: 12px 16px 32px;
+}
+
+/* 顶部标题（首页用） */
+.page-title {
   font-size: 22px;
-  text-align: center;
+  font-weight: 700;
+  margin: 8px 4px 16px;
 }
 
-.nav-arrow {
-  border: none;
-  background: transparent;
-  font-size: 24px;
-  font-weight: bold;
-  color: #0066cc;
-  cursor: pointer;
-  padding: 0 4px;
-}
-
-.nav-arrow:hover {
-  opacity: 0.5;
-}
-
-/* 搜索条：拼成一整条，统一高度 */
-.controls .book-button,
-.controls #search-no,
-.controls .search-button {
-  height: 34px;
-  padding: 0 12px;
-  border: 1px solid #e9ebf2;
-  border-radius: 0;
-  box-sizing: border-box;
-}
-
-/* 大本按钮：左侧圆角 */
-.controls .book-switch .book-button:first-child {
-  border-top-left-radius: 4px;
-  border-bottom-left-radius: 4px;
-}
-
-/* 小本按钮：中间块，无圆角 */
-.controls .book-switch .book-button + .book-button {
-  border-radius: 0;
-  border-right: 0;
-}
-
-/* 输入框：中间，无圆角，去掉左边边线（与前面按钮无缝拼接） */
-.controls #search-no {
-  border-left: none;
-  border-radius: 0;
-  margin-left: -1px; /* 轻微重叠，避免竖屏出现白缝 */
-}
-
-/* 放大镜按钮：右侧圆角，左边无边线 */
-.controls .search-button {
-  border-left: none;
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
-}
-
-/* 组之间不留额外空隙 */
-.controls .book-switch,
-.controls .search-area {
-  margin: 0;
-}
-
-/* 手机上保持一行，整体尽量居中 */
-@media (max-width: 600px) {
-  .controls {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .search-area {
-    width: auto;
-    flex-wrap: nowrap;
-  }
-
-  #search-no {
-    width: 160px;
-    flex: 0 0 auto;
-       /* ← 加下面这两行来改变手机版底色和边框 */
-    background-color: #e9ebf2 !important;
-    border: none !important;
-  }
-}
-
-/* 搜索条布局：小本靠右对齐，放大镜图标靠左，输入框撑满中间 */
-.controls .book-switch {
-  flex: 0 0 auto;
-}
-
-.controls .search-area {
-  flex: 1 1 auto;
-}
-
-.controls #search-no {
-  flex: 1 1 auto;
-  min-width: 0;
-  width: auto;
-}
-
-.controls .book-button {
-  text-align: right;
-}
-
-.controls .search-button {
-  text-align: left;
-}
-
-
-/* 吉他 / 歌词 视图切换按钮 */
-
-/* 搜索框下面的视图 / 工具栏 */
-.view-toolbar {
-  margin: 8px 0 4px;
+/* 顶部栏（乐谱页：返回、标题、前后按钮） */
+.topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: nowrap;
+  gap: 8px;
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
+
+.topbar-left,
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.topbar-button {
+  border: none;
+  background: transparent;
+  padding: 4px 6px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--primary);
+}
+
+.topbar-button.disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.topbar-title {
+  flex: 1;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 600;
+  padding: 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 卡片容器：搜索框 & 列表 */
+.card {
+  background: var(--bg-card);
+  border-radius: 32px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow-soft);
+}
+
+/* 搜索条（首页 & 乐谱页共用） */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-search);
+  border-radius: 32px;
+  padding: 10px 14px;
+}
+
+.search-book-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.search-book-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-subtle);
+  transition: color var(--transition-fast);
+}
+
+.search-book-btn.active {
+  color: var(--primary);
+}
+
+.search-book-divider {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(148, 163, 184, 0.7);
+}
+
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  padding: 6px 4px;
+  outline: none;
+  color: var(--text-main);
+}
+
+.search-input::placeholder {
+  color: var(--text-subtle);
+}
+
+.search-icon-btn {
+  border: none;
+  background: transparent;
+  padding: 4px 4px 4px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.search-icon {
+  font-size: 20px;
+}
+
+/* 首页：列表卡片 */
+.list-card {
+  margin-top: 20px;
+  background: var(--bg-card);
+  border-radius: 32px;
+  padding: 10px 0;
+  box-shadow: var(--shadow-soft);
+}
+
+.song-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.song-item {
+  padding: 10px 24px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.song-item-label {
+  white-space: nowrap;
+}
+
+.song-item-code {
+  font-size: 14px;
+  color: var(--text-subtle);
+}
+
+.song-item + .song-item {
+  border-top: 1px solid #f3f4f6;
+}
+
+.song-item:active {
+  background: rgba(37, 99, 235, 0.05);
+}
+
+/* 底部声明 */
+.footer-text {
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--text-subtle);
+  text-align: center;
+}
+
+/* 乐谱页：控制条（+/- 吉他 歌词 简繁） */
+.controls-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 2px 10px;
+}
+
+.controls-left {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.view-tools-left,
-.view-tools-right {
-  display: flex;
-  flex-shrink: 0;
-  gap: 2px;
-}
-
-/* 中间的 吉他 / 歌词 按钮组 */
-.view-switch {
-  margin-top: 0;
-  display: inline-flex;
-  flex: 1 1 auto;
-  justify-content: center;
-}
-
-/* 吉他 / 歌词 按钮：字体大、加粗，有边框和底色 */
-.view-button {
-  padding: 4px 16px;
-  border: 1px solid #ccc;
-  background: #f5f5f5;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-/* 左右两个按钮无缝拼接 */
-.view-button + .view-button {
-  margin-left: -1px; /* 轻微重叠避免出现白缝 */
-}
-
-/* 左侧按钮：左边圆角，右边直角 */
-.view-switch .view-button:first-child {
-  border-top-left-radius: 4px;
-  border-bottom-left-radius: 4px;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-/* 右侧按钮：右边圆角，左边直角 */
-.view-switch .view-button:last-child {
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-}
-
-/* 选中的按钮：保持原来的蓝底白字 */
-.view-button.active {
-  background: #007bff;
-  color: #fff;
-}
-
-/* 字号 + / - 按钮 && 简 / 繁 按钮：和吉他/歌词一样大 */
-.font-button,
-.lang-button {
-  background: none;
+.icon-plusminus-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
   cursor: pointer;
-  font-size: 24px; /* 放大 1.5 倍 */
-  font-weight: 700;
 }
 
-/* 让 “-” 按钮稍微长一点，视觉上不要太短 */
-#btn-font-minus {
-  padding-left: 10px;
-  padding-right: 10px;
+.mode-toggle {
+  display: inline-flex;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--btn-gray);
 }
 
-/* 歌词显示区域样式 */
-.lyrics-container {
-  margin-top: 12px;
-  line-height: 1.7;
-  font-size: 18px;
-}
-
-.lyrics-title {
-  margin: 4px 0 12px;
-  text-align: center;
-  font-size: 16px;
+.mode-btn {
+  min-width: 70px;
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  font-size: 15px;
   font-weight: 600;
+  cursor: pointer;
+  color: var(--btn-gray-text);
+}
+
+.mode-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.script-toggle-btn {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--primary);
+}
+
+/* 乐谱 & 歌词显示区域 */
+.content-card {
+  margin-top: 4px;
+  background: var(--bg-card);
+  border-radius: 24px;
+  padding: 12px 14px 20px;
+  box-shadow: var(--shadow-soft);
+}
+
+/* SVG 乐谱：等比缩放、居中 */
+.score-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.score-wrap img,
+.score-wrap object {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+/* 歌词排版 */
+.lyrics-root {
+  font-size: var(--lyrics-font-size);
+  line-height: 1.7;
 }
 
 .lyrics-section {
   display: flex;
+  align-items: flex-start;
   margin-bottom: 8px;
 }
 
 .lyrics-section-no {
-  width: 2.2em;
+  width: 20px;
   flex-shrink: 0;
   font-weight: 600;
-  padding-right: 4px;
+  margin-right: 6px;
 }
 
 .lyrics-lines {
@@ -486,17 +336,35 @@ body {
 }
 
 .lyrics-lines p {
-  margin: 0 0 4px 0;
+  margin: 0 0 4px;
 }
 
-.lyrics-error,
-.lyrics-loading {
-  margin-top: 12px;
-  text-align: center;
-  color: #666;
-  font-size: 14px;
+/* 简繁按钮在歌词模式高亮一点（可选） */
+.script-toggle-btn.active {
+  color: #b91c1c;
 }
-/* 单独控制 + 按钮大小 */
-#btn-font-plus {
-  font-size: 48px !important;  /* 比 24px 大一圈 */
+
+/* 响应式：平板/电脑上稍微放大一点字号 */
+@media (min-width: 768px) {
+  .page-inner {
+    padding: 24px 32px 40px;
+  }
+  .page-title {
+    font-size: 26px;
+  }
+  .topbar-title {
+    font-size: 22px;
+  }
+  .song-item {
+    font-size: 17px;
+  }
+  .lyrics-root {
+    font-size: 17px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-inner {
+    padding-top: 32px;
+  }
 }

@@ -1,130 +1,218 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8" />
   <title>召会诗歌吉他谱</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="page">
-    <header class="header">
-      <h1>召会诗歌吉他谱</h1>
-      <!-- <p class="subtitle">大本 / 小本 诗歌吉他谱 在线阅读</p> -->
-    </header>
+<div class="page">
+  <div class="page-inner">
+    <!-- 第 1 部分：固定标题 -->
+    <div class="page-title">召会诗歌吉他谱</div>
 
-    <section class="controls">
-      <div class="book-switch">
-        <button id="btn-book-c" class="book-button active" data-book="c">大本</button>
-        <button id="btn-book-ts" class="book-button" data-book="ts">小本</button>
+    <!-- 第 2 部分：搜索框 -->
+    <div class="card" id="search-card">
+      <div class="search-bar">
+        <div class="search-book-toggle">
+          <button class="search-book-btn active" data-book="c" id="btn-book-c">大本</button>
+          <div class="search-book-divider"></div>
+          <button class="search-book-btn" data-book="ts" id="btn-book-ts">小本</button>
+        </div>
+        <div class="search-input-wrap">
+          <input
+            id="search-input"
+            class="search-input"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            placeholder="输入编号，如31"
+          />
+          <button class="search-icon-btn" id="btn-search">
+            <span class="search-icon">🔍</span>
+          </button>
+        </div>
       </div>
-      <div class="search-area">
-        <input id="search-no" type="number" min="1" placeholder="输入编号，如 7 或 788">
-        <!-- 放大镜按钮 -->
-        <button id="search-btn" class="search-button" title="跳转到该编号">
-          🔍
-        </button>
-        <!-- <span class="hint">共约 1000 首 / 本</span> -->
-      </div>
-    </section>
+    </div>
 
-    <section>
-      <div id="song-list" class="song-list"></div>
-    </section>
+    <!-- 第 3 部分：列表 -->
+    <div class="list-card">
+      <ul class="song-list" id="song-list">
+        <!-- JS 渲染 -->
+      </ul>
+    </div>
 
-    <footer class="footer">
-      <p>本网站仅供诗歌吉他谱查阅使用。</p>
-    </footer>
+    <!-- 第 4 部分：声明 -->
+    <div class="footer-text">本网站仅供诗歌吉他谱查阅使用</div>
   </div>
+</div>
 
-  <script>
-    const HYMNBOOKS = {
-      c: { id: "c", label: "大本诗歌", prefix: "c", count: 1000 },
-      ts: { id: "ts", label: "小本诗歌", prefix: "ts", count: 1000 }
-    };
-
-    let currentBook = "c";
-
-    const listDiv = document.getElementById("song-list");
-    const searchInput = document.getElementById("search-no");
-    const btnBookC = document.getElementById("btn-book-c");
-    const btnBookTs = document.getElementById("btn-book-ts");
-    const searchBtn = document.getElementById("search-btn");
-
-    function pad4(n) {
-      return String(n).padStart(4, "0");
+<script>
+  const BOOKS = {
+    c: {
+      label: "大本诗歌",
+      folderText: "c_text",
+      codePrefix: "c"
+    },
+    ts: {
+      label: "小本诗歌",
+      folderText: "ts_text",
+      codePrefix: "ts"
     }
+  };
 
-    // 渲染列表（输入数字时用于过滤）
-    function renderList() {
-      const bookCfg = HYMNBOOKS[currentBook];
-      const filterNo = searchInput.value.trim();
-      listDiv.innerHTML = "";
+  // 最多尝试多少个区间：0=1-100, 1=101-200, ...
+  const MAX_RANGES = 20;
 
-      const wrapper = document.createElement("div");
-      wrapper.className = "song-list-inner";
+  const state = {
+    currentBook: "c",
+    // data[book] = 歌曲数组
+    data: { c: [], ts: [] },
+    // loadedRanges[book][rangeIndex] = 是否已经尝试过这个 json
+    loadedRanges: { c: {}, ts: {} }
+  };
 
-      for (let i = 1; i <= bookCfg.count; i++) {
-        if (filterNo && !String(i).includes(filterNo)) continue;
-        const a = document.createElement("a");
-        a.className = "song-item";
-        a.href = `song.html?book=${bookCfg.id}&no=${i}`;
-        a.textContent = `${bookCfg.label} 第 ${i} 首 (${bookCfg.prefix}${pad4(i)})`;
-        wrapper.appendChild(a);
+  function pad4(num) {
+    return String(num).padStart(4, "0");
+  }
+
+  function getRangeFilePath(bookKey, rangeIndex) {
+    const start = rangeIndex * 100 + 1;
+    const end = (rangeIndex + 1) * 100;
+    const folder = BOOKS[bookKey].folderText;
+    // 比如：assets/c_text/c_1_100.json
+    return `assets/${folder}/${bookKey}_${start}_${end}.json`;
+  }
+
+  async function loadRange(bookKey, rangeIndex) {
+    if (state.loadedRanges[bookKey][rangeIndex]) return true; // 已尝试过
+
+    const url = getRangeFilePath(bookKey, rangeIndex);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        // 404 或其他错误：认为没有更多数据，返回 false 让上层停止继续往后加载
+        state.loadedRanges[bookKey][rangeIndex] = true;
+        return false;
       }
-
-      if (!wrapper.childNodes.length) {
-        const empty = document.createElement("div");
-        empty.className = "empty-tip";
-        empty.textContent = "没有找到对应编号，可以尝试换个数字。";
-        listDiv.appendChild(empty);
-      } else {
-        listDiv.appendChild(wrapper);
+      const json = await res.json();
+      if (!Array.isArray(json) || json.length === 0) {
+        state.loadedRanges[bookKey][rangeIndex] = true;
+        return false;
       }
+      state.data[bookKey] = state.data[bookKey].concat(json);
+      state.loadedRanges[bookKey][rangeIndex] = true;
+      return true;
+    } catch (e) {
+      console.error("加载区间失败", bookKey, rangeIndex, e);
+      state.loadedRanges[bookKey][rangeIndex] = true;
+      return false;
     }
+  }
 
-    // 新增：根据输入编号，直接跳转
-    function jumpToSong() {
-      const bookCfg = HYMNBOOKS[currentBook];
-      const val = searchInput.value.trim();
-      if (!val) {
-        alert("请输入编号，例如 7 或 788");
-        return;
-      }
-      const no = parseInt(val, 10);
-      if (isNaN(no) || no < 1 || no > bookCfg.count) {
-        alert(`请输入 1 - ${bookCfg.count} 之间的编号`);
-        return;
-      }
-      // 直接跳转到对应乐谱
-      location.href = `song.html?book=${bookCfg.id}&no=${no}`;
+  // 首页需要把某册的所有 json 都读一遍，直到遇到第一个不存在的文件
+  async function loadAllRangesForBook(bookKey) {
+    state.data[bookKey] = [];
+    for (let i = 0; i < MAX_RANGES; i++) {
+      const ok = await loadRange(bookKey, i);
+      if (!ok) break;
     }
+    // 按 no 排序一下
+    state.data[bookKey].sort((a, b) => (a.no || 0) - (b.no || 0));
+  }
 
-    function switchBook(bookId) {
-      currentBook = bookId;
-      btnBookC.classList.toggle("active", bookId === "c");
-      btnBookTs.classList.toggle("active", bookId === "ts");
-      renderList();
+  function renderList(bookKey) {
+    const listEl = document.getElementById("song-list");
+    const songs = state.data[bookKey] || [];
+    listEl.innerHTML = "";
+
+    songs.forEach(song => {
+      const no = song.no;
+      if (!no) return;
+      const code = BOOKS[bookKey].codePrefix + pad4(no);
+
+      const li = document.createElement("li");
+      li.className = "song-item";
+      li.dataset.book = bookKey;
+      li.dataset.no = no;
+
+      const labelSpan = document.createElement("span");
+      labelSpan.className = "song-item-label";
+      labelSpan.textContent = `${BOOKS[bookKey].label} 第 ${no} 首`;
+
+      const codeSpan = document.createElement("span");
+      codeSpan.className = "song-item-code";
+      codeSpan.textContent = `(${code})`;
+
+      li.appendChild(labelSpan);
+      li.appendChild(codeSpan);
+
+      li.addEventListener("click", () => {
+        goToSong(bookKey, no);
+      });
+
+      listEl.appendChild(li);
+    });
+  }
+
+  function setActiveBook(bookKey) {
+    state.currentBook = bookKey;
+    document.getElementById("btn-book-c").classList.toggle("active", bookKey === "c");
+    document.getElementById("btn-book-ts").classList.toggle("active", bookKey === "ts");
+  }
+
+  function goToSong(book, no) {
+    window.location.href = `song.html?book=${encodeURIComponent(book)}&no=${encodeURIComponent(no)}`;
+  }
+
+  function handleSearch() {
+    const raw = document.getElementById("search-input").value.trim();
+    if (!raw) return;
+    const digitsMatch = raw.match(/(\d{1,4})$/);
+    if (!digitsMatch) {
+      alert("请输入正确的编号，如 31");
+      return;
     }
+    const no = parseInt(digitsMatch[1], 10);
+    if (!Number.isFinite(no)) {
+      alert("请输入正确的编号，如 31");
+      return;
+    }
+    const songs = state.data[state.currentBook] || [];
+    const exists = songs.some(s => s.no === no);
+    if (!exists) {
+      alert("当前册中找不到该编号。");
+      return;
+    }
+    goToSong(state.currentBook, no);
+  }
 
-    btnBookC.addEventListener("click", () => switchBook("c"));
-    btnBookTs.addEventListener("click", () => switchBook("ts"));
+  document.addEventListener("DOMContentLoaded", async () => {
+    // 绑定“大本 / 小本”
+    document.querySelectorAll(".search-book-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const book = btn.dataset.book;
+        if (state.currentBook === book) return;
+        setActiveBook(book);
+        await loadAllRangesForBook(book);
+        renderList(book);
+      });
+    });
 
-    // 输入时还是作为「过滤列表」
-    searchInput.addEventListener("input", renderList);
-
-    // 点击放大镜：跳转
-    searchBtn.addEventListener("click", jumpToSong);
-
-    // 回车键：也跳转
-    searchInput.addEventListener("keydown", (e) => {
+    document.getElementById("btn-search").addEventListener("click", handleSearch);
+    document.getElementById("search-input").addEventListener("keydown", e => {
       if (e.key === "Enter") {
-        jumpToSong();
+        e.preventDefault();
+        handleSearch();
       }
     });
 
-    // 初始渲染
-    renderList();
-  </script>
+    // 初始加载大本：自动把 c_1_100、c_101_200…… 读出来（遇到第一个缺失就停止）
+    await loadAllRangesForBook("c");
+    renderList("c");
+  });
+</script>
 </body>
 </html>

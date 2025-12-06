@@ -1,392 +1,423 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <title>诗歌吉他谱查看</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>诗歌</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- 简繁转换库：opencc-js（浏览器 UMD 完整版） -->
+  <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
 </head>
 <body>
-  <div class="page">
-        <header class="header-song">
-      <a href="index.html" class="back-arrow">←</a>
-      <div class="title-row">
-        <button id="btn-prev" class="nav-arrow">&lt;</button>
-        <h1 id="song-title">诗歌吉他谱</h1>
-        <button id="btn-next" class="nav-arrow">&gt;</button>
+<div class="page">
+  <div class="page-inner">
+
+    <!-- 第 1 部分：返回首页 / 上一首 / 标题 / 下一首 -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="topbar-button" id="btn-back" aria-label="返回首页">←</button>
       </div>
-    </header>
+      <button class="topbar-button" id="btn-prev" aria-label="上一首">&lt;</button>
+      <div class="topbar-title" id="song-title">诗歌</div>
+      <button class="topbar-button" id="btn-next" aria-label="下一首">&gt;</button>
+    </div>
 
-    <section class="controls">
-          <div class="book-switch">
-            <button id="btn-book-c" class="book-button active" data-book="c">大本</button>
-            <button id="btn-book-ts" class="book-button" data-book="ts">小本</button>
-          </div>
-          <div class="search-area">
-            <input id="search-no" type="number" min="1" placeholder="输入编号，如 7 或 788">
-            <button id="search-btn" class="search-button" title="跳转到该编号">🔍</button>
-          </div>
-        </section>
-        <section class="view-toolbar">
-          <div class="view-tools-left">
-            <button id="btn-font-plus" class="font-button">+</button>
-            <button id="btn-font-minus" class="font-button">—</button>
-          </div>
-          <div class="view-switch">
-            <button id="btn-view-guitar" class="view-button active">吉他</button>
-            <button id="btn-view-lyrics" class="view-button">歌词</button>
-          </div>
-          <div class="view-tools-right">
-            <button id="btn-lang-toggle" class="lang-button">繁</button>
-          </div>
-        </section>
-
-
-    <main>
-      <div id="score-container" class="score-container">
-        <!-- SVG 将插入到这里 -->
+    <!-- 第 2 部分：搜索框 -->
+    <div class="card">
+      <div class="search-bar">
+        <div class="search-book-toggle">
+          <button class="search-book-btn" data-book="c" id="btn-book-c">大本</button>
+          <div class="search-book-divider"></div>
+          <button class="search-book-btn" data-book="ts" id="btn-book-ts">小本</button>
+        </div>
+        <div class="search-input-wrap">
+          <input
+            id="search-input"
+            class="search-input"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            placeholder="输入编号，如31"
+          />
+          <button class="search-icon-btn" id="btn-search">
+            <span class="search-icon">🔍</span>
+          </button>
+        </div>
       </div>
-    </main>
+    </div>
 
-    <footer class="footer">
-      <p id="file-info" class="file-info"></p>
-    </footer>
+    <!-- 第 3 部分：+ / - / 吉他 / 歌词 / 简繁 -->
+    <div class="controls-row">
+      <div class="controls-left">
+        <button class="icon-plusminus-btn" id="btn-font-plus">+</button>
+        <button class="icon-plusminus-btn" id="btn-font-minus">−</button>
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="btn-mode-score">吉他</button>
+          <button class="mode-btn" id="btn-mode-lyrics">歌词</button>
+        </div>
+      </div>
+      <!-- 简繁切换按钮：一个字，默认显示“繁”（当前歌词为简体） -->
+      <button class="script-toggle-btn" id="btn-script">繁</button>
+    </div>
+
+    <!-- 第 4 部分：内容 -->
+    <div class="content-card">
+      <div id="score-view" class="score-wrap" aria-hidden="false">
+        <!-- SVG 乐谱 -->
+      </div>
+      <div id="lyrics-view" class="lyrics-root" style="display: none;" aria-hidden="true">
+        <!-- 歌词 -->
+      </div>
+    </div>
+
   </div>
-  <script>
-    // 与首页相同的册别配置
-    const HYMNBOOKS = {
-      c: { id: "c", label: "大本诗歌", prefix: "c", count: 1000, folder: "c" },
-      ts: { id: "ts", label: "小本诗歌", prefix: "ts", count: 1000, folder: "ts" }
-    };
+</div>
 
-    function getParams() {
-      const params = new URLSearchParams(location.search);
-      let book = params.get("book") || "c";
-      let no = parseInt(params.get("no") || "1", 10);
-      if (!(book in HYMNBOOKS)) book = "c";
-      const cfg = HYMNBOOKS[book];
-      if (isNaN(no) || no < 1) no = 1;
-      if (no > cfg.count) no = cfg.count;
-      return { book, no };
+<script>
+  const BOOKS = {
+    c: {
+      label: "大本诗歌",
+      folderText: "c_text",
+      svgPrefix: "assets/c/c",
+      codePrefix: "c"
+    },
+    ts: {
+      label: "小本诗歌",
+      folderText: "ts_text",
+      svgPrefix: "assets/ts/ts",
+      codePrefix: "ts"
     }
+  };
 
-    function pad4(n) {
-      return String(n).padStart(4, "0");
+  const MAX_RANGES = 20; // 最多支持 2000 首（够用了）
+
+  const state = {
+    currentBook: "c",
+    currentNo: 1,
+    // “显示模式”：score=吉他谱，lyrics=歌词
+    mode: "score",
+    // 歌词当前显示：simplified=简体, traditional=繁体
+    script: "simplified",
+    lyricsFontSize: 16,
+    data: { c: [], ts: [] },
+    loadedRanges: { c: {}, ts: {} }
+  };
+
+  let converterToTraditional = null; // 简 -> 繁
+  let converterToSimplified = null;  // 繁 -> 简
+
+  function setupConvertersIfNeeded() {
+    if (!window.OpenCC) return;
+    if (!converterToTraditional) {
+      // 简体（cn） -> 繁体（tw）
+      converterToTraditional = OpenCC.Converter({ from: "cn", to: "tw" });
     }
+    if (!converterToSimplified) {
+      // 繁体（tw） -> 简体（cn）
+      converterToSimplified = OpenCC.Converter({ from: "tw", to: "cn" });
+    }
+  }
 
-    // 当前选中的册（给搜索用）
-    let currentBook = "c";
-    let currentView = "guitar";
+  function convertTextByScript(text) {
+    setupConvertersIfNeeded();
+    if (state.script === "traditional" && converterToTraditional) {
+      return converterToTraditional(text);
+    }
+    if (state.script === "simplified" && converterToSimplified) {
+      return converterToSimplified(text); // 如果原 JSON 就是简体，这里基本等于原文
+    }
+    return text;
+  }
 
-    // 当前歌词显示语言：simplified = 简体, traditional = 繁体
-    let currentLang = "simplified";
-    // 缓存歌词 HTML，用于切换简繁和字号
-    let baseLyricsHtml = "";
-    // 当前歌词字号（像素）
-    let currentFontSize = 20;
+  function pad4(num) {
+    return String(num).padStart(4, "0");
+  }
 
-    function applyLyricsFontSize() {
-      const el = document.querySelector(".lyrics-container");
-      if (el) {
-        el.style.fontSize = currentFontSize + "px";
+  function parseQuery() {
+    const params = new URLSearchParams(window.location.search);
+    const book = params.get("book") || "c";
+    let no = parseInt(params.get("no") || "1", 10);
+    if (!Number.isFinite(no) || no < 1) no = 1;
+    state.currentBook = (book === "ts") ? "ts" : "c";
+    state.currentNo = no;
+  }
+
+  function getRangeIndex(no) {
+    return Math.floor((no - 1) / 100); // 1-100 -> 0, 101-200 -> 1 ...
+  }
+
+  function getRangeFilePath(bookKey, rangeIndex) {
+    const start = rangeIndex * 100 + 1;
+    const end = (rangeIndex + 1) * 100;
+    const folder = BOOKS[bookKey].folderText;
+    return `assets/${folder}/${bookKey}_${start}_${end}.json`;
+  }
+
+  async function loadRange(bookKey, rangeIndex) {
+    if (state.loadedRanges[bookKey][rangeIndex]) return true;
+    const url = getRangeFilePath(bookKey, rangeIndex);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        state.loadedRanges[bookKey][rangeIndex] = true;
+        return false;
       }
-    }
-
-    // 简单的简体 -> 繁体转换（常用高频字）
-    function toTraditional(text) {
-      const map = {
-        "赞": "讚",
-        "颂": "頌",
-        "灵": "靈",
-        "圣": "聖",
-        "乐": "樂",
-        "爱": "愛",
-        "国": "國",
-        "广": "廣",
-        "发": "發",
-        "声": "聲",
-        "复": "復",
-        "众": "眾",
-        "荣": "榮",
-        "义": "義",
-        "门": "門",
-        "时": "時",
-        "里": "裡",
-        "台": "臺",
-        "启": "啟",
-        "现": "現",
-        "会": "會",
-        "观": "觀",
-        "经": "經",
-        "话": "話"
-      };
-      return text.replace(/./g, ch => map[ch] || ch);
-    }
-
-    function renderLyrics() {
-      const container = document.getElementById("score-container");
-      if (!container || !baseLyricsHtml) return;
-      let html = baseLyricsHtml;
-      if (currentLang === "traditional") {
-        html = toTraditional(html);
+      const json = await res.json();
+      if (!Array.isArray(json) || json.length === 0) {
+        state.loadedRanges[bookKey][rangeIndex] = true;
+        return false;
       }
-      container.innerHTML = html;
-      applyLyricsFontSize();
+      state.data[bookKey] = state.data[bookKey].concat(json);
+      state.loadedRanges[bookKey][rangeIndex] = true;
+      return true;
+    } catch (e) {
+      console.error("加载区间失败", bookKey, rangeIndex, e);
+      state.loadedRanges[bookKey][rangeIndex] = true;
+      return false;
     }
+  }
 
-function applyBookUI(book) {
-      const btnBookC = document.getElementById("btn-book-c");
-      const btnBookTs = document.getElementById("btn-book-ts");
-      if (btnBookC && btnBookTs) {
-        btnBookC.classList.toggle("active", book === "c");
-        btnBookTs.classList.toggle("active", book === "ts");
-      }
-      currentBook = book;
+  async function ensureRangeForNo(bookKey, no) {
+    const rangeIndex = getRangeIndex(no);
+    return await loadRange(bookKey, rangeIndex);
+  }
+
+  function findLocalSong(bookKey, no) {
+    const songs = state.data[bookKey] || [];
+    return songs.find(s => s.no === no) || null;
+  }
+
+  async function getSong(bookKey, no) {
+    await ensureRangeForNo(bookKey, no);
+    return findLocalSong(bookKey, no);
+  }
+
+  function renderScore(bookKey, no) {
+    const container = document.getElementById("score-view");
+    container.innerHTML = "";
+    const folderPrefix = BOOKS[bookKey].svgPrefix;
+    const src = `${folderPrefix}${pad4(no)}_cn_g.svg`; // 如 assets/c/c0001_cn_g.svg
+    const img = document.createElement("img");
+    img.alt = `${BOOKS[bookKey].label} 第 ${no} 首 吉他谱`;
+    img.src = src;
+    container.appendChild(img);
+  }
+
+  function renderLyrics(song) {
+    const root = document.getElementById("lyrics-view");
+    root.innerHTML = "";
+    if (!song || !song.lyrics) return;
+
+    root.style.fontSize = state.lyricsFontSize + "px";
+
+    song.lyrics.forEach(section => {
+      const sec = document.createElement("div");
+      sec.className = "lyrics-section";
+
+      const noDiv = document.createElement("div");
+      noDiv.className = "lyrics-section-no";
+      noDiv.textContent = section.section_no || "";
+
+      const linesWrap = document.createElement("div");
+      linesWrap.className = "lyrics-lines";
+
+      (section.lines || []).forEach(lineText => {
+        const p = document.createElement("p");
+        p.textContent = convertTextByScript(lineText || "");
+        linesWrap.appendChild(p);
+      });
+
+      sec.appendChild(noDiv);
+      sec.appendChild(linesWrap);
+      root.appendChild(sec);
+    });
+  }
+
+  function updateTitle(song) {
+    const titleEl = document.getElementById("song-title");
+    if (song && song.title) {
+      titleEl.textContent = song.title;
+      document.title = song.title + " - 召会诗歌吉他谱";
+    } else {
+      titleEl.textContent = `${BOOKS[state.currentBook].label} 第 ${state.currentNo} 首`;
+      document.title = titleEl.textContent;
     }
+  }
 
-    
-    function showGuitar(book, no) {
-      const cfg = HYMNBOOKS[book];
-      const titleEl = document.getElementById("song-title");
-      const infoEl = document.getElementById("file-info");
-      const container = document.getElementById("score-container");
-      if (!titleEl || !container) return;
+  function setMode(mode) {
+    state.mode = mode;
+    const scoreView = document.getElementById("score-view");
+    const lyricsView = document.getElementById("lyrics-view");
 
-      const noStr = pad4(no);
-      const filename = `${cfg.prefix}${noStr}_cn_g.svg`;
-      const path = `assets/${cfg.folder}/${filename}`;
+    const btnScore = document.getElementById("btn-mode-score");
+    const btnLyrics = document.getElementById("btn-mode-lyrics");
 
-      titleEl.textContent = `${cfg.label} 第 ${no} 首`;
-      document.title = `${titleEl.textContent} - 召会诗歌吉他谱`;
-      if (infoEl) infoEl.textContent = "";
-
-      container.innerHTML = "";
-      const img = document.createElement("img");
-      img.src = path;
-      img.alt = titleEl.textContent;
-      img.className = "score-svg";
-      container.appendChild(img);
+    if (mode === "score") {
+      scoreView.style.display = "";
+      scoreView.setAttribute("aria-hidden", "false");
+      lyricsView.style.display = "none";
+      lyricsView.setAttribute("aria-hidden", "true");
+      btnScore.classList.add("active");
+      btnLyrics.classList.remove("active");
+    } else {
+      scoreView.style.display = "none";
+      scoreView.setAttribute("aria-hidden", "true");
+      lyricsView.style.display = "";
+      lyricsView.setAttribute("aria-hidden", "false");
+      btnScore.classList.remove("active");
+      btnLyrics.classList.add("active");
     }
+  }
 
-    
-    // 根据 JSON 中的 title 更新页面顶部标题
-    function updateTitleFromJson(book, no) {
-      const titleEl = document.getElementById("song-title");
-      if (!titleEl) return;
+  function syncBookButtons() {
+    document.getElementById("btn-book-c").classList.toggle("active", state.currentBook === "c");
+    document.getElementById("btn-book-ts").classList.toggle("active", state.currentBook === "ts");
+  }
 
-      const cfg = HYMNBOOKS[book];
-      const groupStart = Math.floor((no - 1) / 100) * 100 + 1;
-      const groupEnd = groupStart + 99;
-      const bookFolder = book === "c" ? "c_text" : "ts_text";
-      const jsonFile = `${book}_${groupStart}_${groupEnd}.json`;
-      const jsonPath = `assets/${bookFolder}/${jsonFile}`;
-
-      fetch(jsonPath)
-        .then((resp) => {
-          if (!resp.ok) throw new Error("网络错误");
-          return resp.json();
-        })
-        .then((list) => {
-          const song = list.find((item) => String(item.no) === String(no));
-          if (!song || !song.title) return;
-          const t = song.title;
-          titleEl.textContent = t;
-          document.title = `${t} - 召会诗歌吉他谱`;
-        })
-        .catch((err) => {
-          console.error("updateTitleFromJson error", err);
-          // 出错时保持原来的标题（大本诗歌 第 X 首）
-        });
+  function syncScriptButton() {
+    const btn = document.getElementById("btn-script");
+    // 当前歌词是简体 -> 按钮显示“繁”；当前歌词繁体 -> 按钮显示“简”
+    if (state.script === "simplified") {
+      btn.textContent = "繁";
+      btn.classList.remove("active");
+    } else {
+      btn.textContent = "简";
+      btn.classList.add("active");
     }
+  }
 
+  function updateURL() {
+    const url = new URL(window.location.href);
+    url.searchParams.set("book", state.currentBook);
+    url.searchParams.set("no", String(state.currentNo));
+    window.history.replaceState({}, "", url.toString());
+  }
 
-    function loadLyrics(book, no) {
-      const container = document.getElementById("score-container");
-      const infoEl = document.getElementById("file-info");
-      if (!container) return;
-
-      if (infoEl) infoEl.textContent = "";
-      container.innerHTML = '<p class="lyrics-loading">歌词加载中…</p>';
-
-      const groupStart = Math.floor((no - 1) / 100) * 100 + 1;
-      const groupEnd = groupStart + 99;
-      const bookFolder = book === "c" ? "c_text" : "ts_text";
-      const jsonFile = `${book}_${groupStart}_${groupEnd}.json`;
-      const jsonPath = `assets/${bookFolder}/${jsonFile}`;
-
-      fetch(jsonPath)
-        .then((resp) => {
-          if (!resp.ok) throw new Error("网络错误");
-          return resp.json();
-        })
-        .then((list) => {
-          const song = list.find((item) => String(item.no) === String(no));
-          if (!song || !Array.isArray(song.lyrics)) {
-            throw new Error("未找到该首歌词");
-          }
-
-          // 更新顶部标题为 JSON 中的 title
-          updateTitleFromJson(book, no);
-
-          let html = '<div class="lyrics-container">';
-          (song.lyrics || []).forEach((sec) => {
-            if (!sec || !Array.isArray(sec.lines)) return;
-            html += '<div class="lyrics-section">';
-            if (sec.section_no) {
-              html += `<div class="lyrics-section-no">${sec.section_no}</div>`;
-            }
-            html += '<div class="lyrics-lines">';
-            sec.lines.forEach((line) => {
-              html += `<p>${line}</p>`;
-            });
-            html += "</div></div>";
-          });
-          html += "</div>";
-
-          baseLyricsHtml = html;
-          renderLyrics();
-        })
-        .catch((err) => {
-          console.error(err);
-          container.innerHTML = '<p class="lyrics-error">没有找到歌词或加载失败。</p>';
-        });
+  async function loadAndRenderCurrentSong() {
+    const song = await getSong(state.currentBook, state.currentNo);
+    if (!song) {
+      alert("找不到这首诗歌的歌词数据。");
+      return;
     }
+    updateTitle(song);
+    renderScore(state.currentBook, state.currentNo);
+    renderLyrics(song);
+    setMode(state.mode); // 保持当前 吉他 / 歌词 模式
+    syncScriptButton();
+  }
 
-
-    function updatePage() {
-      const { book, no } = getParams();
-      applyBookUI(book);
-
-      const searchInput = document.getElementById("search-no");
-      if (searchInput) searchInput.value = no;
-
-      // 标题统一使用 JSON 里的 title
-      updateTitleFromJson(book, no);
-
-      if (currentView === "lyrics") {
-        loadLyrics(book, no);
-      } else {
-        showGuitar(book, no);
-      }
+  async function tryGoTo(delta) {
+    const newNo = state.currentNo + delta;
+    if (newNo <= 0) {
+      alert("已经是第一首了。");
+      return;
     }
-
-function gotoSong(book, no) {
-      const cfg = HYMNBOOKS[book];
-      if (no < 1) no = 1;
-      if (no > cfg.count) no = cfg.count;
-      location.search = `?book=${book}&no=${no}`;
+    const song = await getSong(state.currentBook, newNo);
+    if (!song) {
+      alert(delta > 0 ? "已经是最后一首了。" : "已经是第一首了。");
+      return;
     }
+    state.currentNo = newNo;
+    updateURL();
+    await loadAndRenderCurrentSong();
+  }
 
-    // 左右箭头上一首/下一首
+  function goToNumber(no) {
+    state.currentNo = no;
+    updateURL();
+    loadAndRenderCurrentSong();
+  }
+
+  function handleSearch() {
+    const raw = document.getElementById("search-input").value.trim();
+    if (!raw) return;
+    const digitsMatch = raw.match(/(\d{1,4})$/);
+    if (!digitsMatch) {
+      alert("请输入正确的编号，如 31");
+      return;
+    }
+    const no = parseInt(digitsMatch[1], 10);
+    if (!Number.isFinite(no)) {
+      alert("请输入正确的编号，如 31");
+      return;
+    }
+    goToNumber(no);
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    parseQuery();
+    syncBookButtons();
+    syncScriptButton(); // 默认：歌词简体，按钮显示“繁”
+
+    document.getElementById("btn-back").addEventListener("click", () => {
+      window.location.href = "index.html";
+    });
+
     document.getElementById("btn-prev").addEventListener("click", () => {
-      const { book, no } = getParams();
-      gotoSong(book, no - 1);
+      tryGoTo(-1);
     });
 
     document.getElementById("btn-next").addEventListener("click", () => {
-      const { book, no } = getParams();
-      gotoSong(book, no + 1);
+      tryGoTo(1);
     });
 
-    // 搜索栏逻辑（和首页保持一致的行为）
-    (function setupSearch() {
-      const btnBookC = document.getElementById("btn-book-c");
-      const btnBookTs = document.getElementById("btn-book-ts");
-      const searchInput = document.getElementById("search-no");
-      const searchBtn = document.getElementById("search-btn");
-
-      if (!searchInput || !searchBtn || !btnBookC || !btnBookTs) return;
-
-      btnBookC.addEventListener("click", () => {
-        applyBookUI("c");
+    // 大本 / 小本切换
+    document.querySelectorAll(".search-book-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const book = btn.dataset.book;
+        if (state.currentBook === book) return;
+        state.currentBook = book;
+        syncBookButtons();
+        // 同编号若不存在，会在 loadAndRenderCurrentSong 里提示
+        updateURL();
+        await loadAndRenderCurrentSong();
       });
+    });
 
-      btnBookTs.addEventListener("click", () => {
-        applyBookUI("ts");
-      });
-
-      function jumpToSong() {
-        const val = searchInput.value.trim();
-        if (!val) {
-          alert("请输入编号，例如 7 或 788");
-          return;
-        }
-        const no = parseInt(val, 10);
-        const cfg = HYMNBOOKS[currentBook];
-        if (isNaN(no) || no < 1 || no > cfg.count) {
-          alert(`请输入 1 - ${cfg.count} 之间的编号`);
-          return;
-        }
-        gotoSong(currentBook, no);
+    // 搜索
+    document.getElementById("btn-search").addEventListener("click", handleSearch);
+    document.getElementById("search-input").addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleSearch();
       }
+    });
 
-      searchBtn.addEventListener("click", jumpToSong);
-      searchInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          jumpToSong();
-        }
+    // 吉他 / 歌词模式
+    document.getElementById("btn-mode-score").addEventListener("click", () => {
+      setMode("score");
+    });
+    document.getElementById("btn-mode-lyrics").addEventListener("click", () => {
+      setMode("lyrics");
+    });
+
+    // 简繁按钮：一个位置，文字互换
+    document.getElementById("btn-script").addEventListener("click", () => {
+      state.script = (state.script === "simplified") ? "traditional" : "simplified";
+      syncScriptButton();
+      // 重新渲染歌词，让转换生效
+      getSong(state.currentBook, state.currentNo).then(song => {
+        if (song) renderLyrics(song);
       });
-    })();
+    });
 
-    // 视图切换（吉他 / 歌词）
-    (function setupViewSwitch() {
-      const btnViewGuitar = document.getElementById("btn-view-guitar");
-      const btnViewLyrics = document.getElementById("btn-view-lyrics");
-      if (!btnViewGuitar || !btnViewLyrics) return;
-
-      function applyView(view) {
-        currentView = view;
-        btnViewGuitar.classList.toggle("active", view === "guitar");
-        btnViewLyrics.classList.toggle("active", view === "lyrics");
-        updatePage();
-      }
-
-      btnViewGuitar.addEventListener("click", () => applyView("guitar"));
-      btnViewLyrics.addEventListener("click", () => applyView("lyrics"));
-    })();
-
-    // 字号 + / - 控制
-    (function setupFontControls() {
-      const btnPlus = document.getElementById("btn-font-plus");
-      const btnMinus = document.getElementById("btn-font-minus");
-      if (!btnPlus || !btnMinus) return;
-
-      btnPlus.addEventListener("click", () => {
-        currentFontSize += 2;
-        if (currentFontSize > 32) currentFontSize = 32;
-        applyLyricsFontSize();
+    // 字号 + / -
+    document.getElementById("btn-font-plus").addEventListener("click", () => {
+      state.lyricsFontSize = Math.min(state.lyricsFontSize + 1, 26);
+      getSong(state.currentBook, state.currentNo).then(song => {
+        if (song) renderLyrics(song);
       });
-
-      btnMinus.addEventListener("click", () => {
-        currentFontSize -= 2;
-        if (currentFontSize < 12) currentFontSize = 12;
-        applyLyricsFontSize();
+    });
+    document.getElementById("btn-font-minus").addEventListener("click", () => {
+      state.lyricsFontSize = Math.max(state.lyricsFontSize - 1, 12);
+      getSong(state.currentBook, state.currentNo).then(song => {
+        if (song) renderLyrics(song);
       });
-    })();
+    });
 
-    // 简 / 繁 切换（单按钮）
-    (function setupLangToggle() {
-      const btnLang = document.getElementById("btn-lang-toggle");
-      if (!btnLang) return;
-
-      function applyLang(lang) {
-        currentLang = lang;
-        btnLang.textContent = (lang === "simplified") ? "繁" : "简";
-        renderLyrics();
-      }
-
-      // 初始化：默认简体，按钮文案为“繁”
-      applyLang(currentLang);
-
-      btnLang.addEventListener("click", () => {
-        const next = currentLang === "simplified" ? "traditional" : "simplified";
-        applyLang(next);
-      });
-    })();
-
-
-// 初次加载当前页
-    updatePage();
-  </script>
+    await loadAndRenderCurrentSong();
+  });
+</script>
 </body>
 </html>
