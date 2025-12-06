@@ -101,11 +101,12 @@ body {
 
 /* 卡片容器：搜索框 & 列表 */
 .card {
-  background: var(--bg-card);
-  border-radius: 32px;
-  padding: 16px 18px;
-  box-shadow: var(--shadow-soft);
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
+
 
 /* 搜索条（首页 & 乐谱页共用） */
 .search-bar {
@@ -115,7 +116,9 @@ body {
   background: var(--bg-search);
   border-radius: 32px;
   padding: 10px 14px;
+  box-shadow: var(--shadow-soft);   /* 新增这一行，让灰色条有一点立体感 */
 }
+
 
 .search-book-toggle {
   display: flex;
