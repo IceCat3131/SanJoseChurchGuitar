@@ -3,7 +3,7 @@
 :root {
   --bg-page: #edf4fd;
   --bg-card: #ffffff;
-  --bg-search: #e9ebf2;
+  --bg-search: #c9d3e6;
   --primary: #2563eb;
   --primary-soft: #e0ecff;
   --text-main: #111827;
@@ -132,7 +132,7 @@ body {
   background: transparent;
   padding: 0;
   margin: 0;
-  font-size: 20px;
+  font-size: 22px;     /*大本小本字体大小更改*/
   font-weight: 600;
   cursor: pointer;
   color: var(--text-subtle);
@@ -175,6 +175,7 @@ body {
   padding: 4px 4px 4px 8px;
   cursor: pointer;
   flex-shrink: 0;
+   margin-right: 10px;   /* ← 放大镜按钮往左移动 10px */
 }
 
 .search-icon {
@@ -264,6 +265,7 @@ body {
   border-radius: 24px;
   overflow: hidden;
   background: var(--btn-gray);
+  margin-left: 20px;   /* ← 往右移动 20px（你可以调成 10 / 15 / 30） */
 }
 
 .mode-btn {
