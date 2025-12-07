@@ -157,22 +157,23 @@ body {
 }
 
 .search-input-wrap {
-   display: flex;
-  align-items: center;
-  min-width: 0;         /* 避免横向撑爆 flex */
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;   /* ⭐ 放大镜靠右 */
+  min-width: 0;
   
 }
 
 .search-input {
-  flex: 0 1 auto;      /* ❗ 不再抢满整条，只占它需要的空间 */
-  min-width: 40px;     /* 最小值（避免太窄）*/
-  max-width: 90px;     /* 最大范围（最关键）*/
-  width: auto;         
-  
+  flex: 0 1 auto;
+  min-width: 40px;
+  max-width: 90px;
+  width: auto;
+
   border: none;
   background: transparent;
-  font-size: 20px;     /* 你需要的字号 */
+  font-size: 20px;
   padding: 6px 4px;
   outline: none;
   text-align: center;
@@ -187,11 +188,11 @@ body {
 .search-icon-btn {
   border: none;
   background: transparent;
-  padding: 4px 4px 4px 8px;
+  padding: 4px 4px 4px 8px;  /* 仅此 padding 就足够让它保持合适间距 */
   cursor: pointer;
-  flex-shrink: 0;
-   margin-right: 10px;   /* ← 放大镜按钮往左移动 10px */
+  flex-shrink: 0;            /* 不被挤压 */
 }
+
 
 .search-icon {
     font-size: 24px;   /* 推荐值 24 或 26 */
