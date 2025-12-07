@@ -52,12 +52,12 @@
 <script>
   const BOOKS = {
     c: {
-      label: "大本诗歌",
+      label: "大本",
       folderText: "c_text",
       codePrefix: "c"
     },
     ts: {
-      label: "小本诗歌",
+      label: "小本",
       folderText: "ts_text",
       codePrefix: "ts"
     }
@@ -147,7 +147,8 @@
 
       const codeSpan = document.createElement("span");
       codeSpan.className = "song-item-code";
-      codeSpan.textContent = `(${code})`;
+      // 使用 JSON 中的歌名，如果没有 title，就显示空白
+      codeSpan.textContent = song.title ? song.title : "";
 
       li.appendChild(label);
       li.appendChild(codeSpan);
