@@ -169,7 +169,7 @@ body {
   min-width: 0;        /* ⭐ 关键：input 自己也要允许收缩 */
   border: none;
   background: transparent;
-  font-size: 20px;     /* 你想要的大一点字体 */
+  font-size: 14x;     /* 你想要的大一点字体 */
   padding: 6px 4px;
   outline: none;
   color: var(--text-main);
