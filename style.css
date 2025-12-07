@@ -450,3 +450,19 @@ flex: 1;
 .search-icon {
   font-size: 20px;
 }
+/* === 首页列表左右文字颜色控制 === */
+
+/* 左边：大本 第N首 */
+.song-left {
+  color: #1f2937;      /* 深灰色，显得更突出 */
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* 右边：歌名 */
+.song-right {
+  color: #4b5563;      /* 中灰色，层次柔和 */
+  font-size: 24px;
+  font-weight: 500;
+  text-align: right;
+}
