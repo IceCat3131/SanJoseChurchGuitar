@@ -223,6 +223,11 @@ body {
   cursor: pointer;
 }
 
+.song-item-title {
+  font-size: 20px;
+  font-weight: 600;
+    color: #2e2e2e;      /* 你也可以加颜色 */
+}
 
 .song-item-label {
   font-size: 20x;   /* 或 20px，看你想多大 */
