@@ -15,7 +15,7 @@
   --radius-xl: 32px;
   --shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.06);
   --transition-fast: 150ms ease-out;
-  --lyrics-font-size: 16px;
+  --lyrics-font-size: 24px;
 }
 
 *,
@@ -316,7 +316,13 @@ body {
   overflow-x: auto;
 }
 
-.score-wrap img,
+.score-wrap img {
+  max-width: 100%;
+  height: auto;
+    transform: scale(1.08);   /* ← 放大 8%，你可以调成 1.05 / 1.10 / 1.15 */
+  transform-origin: top center;
+}
+
 .score-wrap object {
   display: block;
   max-width: 100%;
