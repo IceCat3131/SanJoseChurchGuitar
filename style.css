@@ -157,22 +157,28 @@ body {
 }
 
 .search-input-wrap {
-  flex: 1;
-  display: flex;
+   display: flex;
   align-items: center;
+  min-width: 0;         /* 避免横向撑爆 flex */
+  flex: 1;
   
 }
 
 .search-input {
-  flex: 1;
+  flex: 0 1 auto;      /* ❗ 不再抢满整条，只占它需要的空间 */
+  min-width: 40px;     /* 最小值（避免太窄）*/
+  max-width: 90px;     /* 最大范围（最关键）*/
+  width: auto;         
+  
   border: none;
   background: transparent;
-  font-size: 16px;
+  font-size: 20px;     /* 你需要的字号 */
   padding: 6px 4px;
   outline: none;
-  text-align: center;   /* 文字居中 */
+  text-align: center;
   color: var(--text-main);
 }
+
 
 .search-input::placeholder {
   color: var(--text-subtle);
@@ -184,7 +190,7 @@ body {
   padding: 4px 4px 4px 8px;
   cursor: pointer;
   flex-shrink: 0;
-   margin-right: -10px;   /* ← 放大镜按钮往左移动 10px */
+   margin-right: 10px;   /* ← 放大镜按钮往左移动 10px */
 }
 
 .search-icon {
@@ -372,7 +378,18 @@ body {
 }
 
 /* 响应式：平板/电脑上稍微放大一点字号 */
+@media (max-width: 480px) {
+  .search-input {
+    max-width: 70px;   /* 手机更窄 */
+    font-size: 18px;
+  }
+}
+
 @media (min-width: 768px) {
+  .search-input {
+    max-width: 120px;  /* 平板或电脑更宽一点 */
+    font-size: 20px;
+  }
   .page-inner {
     padding: 24px 32px 40px;
   }
