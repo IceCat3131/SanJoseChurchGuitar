@@ -108,7 +108,7 @@
     mode: "score",
     // 歌词当前显示：simplified=简体, traditional=繁体
     script: "simplified",
-    lyricsFontSize: 16,
+    lyricsFontSize: 24,
     data: { c: [], ts: [] },
     loadedRanges: { c: {}, ts: {} }
   };
@@ -414,15 +414,17 @@
 
     // 字号 + / -
     document.getElementById("btn-font-plus").addEventListener("click", () => {
-      state.lyricsFontSize = Math.min(state.lyricsFontSize + 3, 40);
-      getSong(state.currentBook, state.currentNo).then(song => {
-        if (song) renderLyrics(song);
+  // 每次 +3，最大 32
+  state.lyricsFontSize = Math.min(state.lyricsFontSize + 3, 40);
+  getSong(state.currentBook, state.currentNo).then(song => {
+    if (song) renderLyrics(song);
       });
     });
-    document.getElementById("btn-font-minus").addEventListener("click", () => {
-      state.lyricsFontSize = Math.max(state.lyricsFontSize - 2, 30);
-      getSong(state.currentBook, state.currentNo).then(song => {
-        if (song) renderLyrics(song);
+   document.getElementById("btn-font-minus").addEventListener("click", () => {
+  // 每次 -3，最小 12 保持不变
+  state.lyricsFontSize = Math.max(state.lyricsFontSize - 3, 12);
+  getSong(state.currentBook, state.currentNo).then(song => {
+    if (song) renderLyrics(song);
       });
     });
 
