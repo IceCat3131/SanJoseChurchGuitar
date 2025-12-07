@@ -77,11 +77,18 @@ body {
   border: none;
   background: transparent;
   padding: 4px 6px;
-  font-size: 20px;
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
   color: var(--primary);
+   font-weight: 700;   /* ← 加粗箭头 */
 }
+.topbar-button .icon-home {
+  width: 22px;      /* ← 控制图标大小，可改成 20 / 24 */
+  height: 22px;
+  display: block;
+}
+
 
 .topbar-button.disabled {
   opacity: 0.3;
@@ -175,7 +182,7 @@ body {
   padding: 4px 4px 4px 8px;
   cursor: pointer;
   flex-shrink: 0;
-   margin-right: 10px;   /* ← 放大镜按钮往左移动 10px */
+   margin-right: -10px;   /* ← 放大镜按钮往左移动 10px */
 }
 
 .search-icon {
@@ -265,7 +272,7 @@ body {
   border-radius: 24px;
   overflow: hidden;
   background: var(--btn-gray);
-  margin-left: 20px;   /* ← 往右移动 20px（你可以调成 10 / 15 / 30） */
+  margin-left: 26px;   /* ← 往右移动 20px（你可以调成 10 / 15 / 30） */
 }
 
 .mode-btn {
