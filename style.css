@@ -182,8 +182,8 @@ body {
   padding: 4px 4px 4px 8px;
   cursor: pointer;
   flex-shrink: 0;
-   /* margin-right: px;   ← 放大镜按钮往左移动 10px */
-   margin-left: 10px;   /* ← 放大镜按钮往左移动 10px */
+   /* margin-right: 20px;   ← 放大镜按钮往左移动 10px */
+   margin-left: -20px;   /* ← 放大镜按钮往左移动 10px */
 }
 
 .search-icon {
@@ -206,8 +206,8 @@ body {
 }
 
 .song-item {
-  padding: 10px 24px;
-  font-size: 16px;
+  padding: 18px 24px;
+  font-size: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -320,7 +320,7 @@ body {
 .score-wrap img {
   max-width: 100%;
   height: auto;
-  transform: scale(1.2);   /* ← 乐谱放大 8%，你可以调成 1.05 / 1.10 / 1.15 */
+  transform: scale(1.1);   /* ← 乐谱放大 8%，你可以调成 1.05 / 1.10 / 1.15 */
   transform-origin: top center;
 }
 

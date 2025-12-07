@@ -148,7 +148,7 @@
 
       const codeSpan = document.createElement("span");
       codeSpan.className = "song-item-code";
-      codeSpan.textContent = `(${code})`;
+      codeSpan.textContent = song.title ? song.title : "";
 
       li.appendChild(label);
       li.appendChild(codeSpan);
