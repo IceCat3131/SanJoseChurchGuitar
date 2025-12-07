@@ -1,7 +1,7 @@
 
 /* 基本颜色与排版 */
 :root {
-  --bg-page: #f5f7fb;
+  --bg-page: #edf4fd;
   --bg-card: #ffffff;
   --bg-search: #e9ebf2;
   --primary: #2563eb;
@@ -115,7 +115,7 @@ body {
   gap: 10px;
   background: var(--bg-search);
   border-radius: 32px;
-  padding: 10px 14px;
+  padding: 16px 14px;
   box-shadow: var(--shadow-soft);   /* 新增这一行，让灰色条有一点立体感 */
 }
 
@@ -132,7 +132,7 @@ body {
   background: transparent;
   padding: 0;
   margin: 0;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
   cursor: pointer;
   color: var(--text-subtle);
@@ -250,7 +250,7 @@ body {
   border-radius: 50%;
   border: none;
   background: transparent;
-  font-size: 22px;
+  font-size: 44px;
   line-height: 1;
   display: flex;
   align-items: center;
@@ -271,7 +271,7 @@ body {
   padding: 6px 16px;
   border: none;
   background: transparent;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   cursor: pointer;
   color: var(--btn-gray-text);
@@ -286,7 +286,7 @@ body {
   margin-left: auto;
   border: none;
   background: transparent;
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 600;
   cursor: pointer;
   color: var(--primary);
