@@ -166,7 +166,7 @@ body {
   flex: 1;
   border: none;
   background: transparent;
-  font-size: 16px;
+  font-size: 24px;
   padding: 6px 4px;
   outline: none;
   color: var(--text-main);
@@ -208,7 +208,7 @@ body {
   padding: 0;
 }
 
-.song-item {
+ .song-item {                               /* 列表文字控制 */
   padding: 18px 24px;
   font-size: 20px;
   display: flex;
@@ -216,6 +216,10 @@ body {
   justify-content: space-between;
   cursor: pointer;
 }
+.song-item-title {
+  color: #353535;  /* 蓝色示例 */
+}
+
 
 .song-item-label {
   white-space: nowrap;
