@@ -170,6 +170,7 @@ body {
   padding: 6px 4px;
   outline: none;
   color: var(--text-main);
+    text-align: center; /* ← 搜索框文字从中间输入新加 */
 }
 
 .search-input::placeholder {
@@ -183,11 +184,13 @@ body {
   cursor: pointer;
   flex-shrink: 0;
    /* margin-right: 20px;   ← 放大镜按钮往左移动 10px */
-   margin-left: -20px;   /* ← 放大镜按钮往左移动 10px */
+   margin-left: -24px;   /* ← 放大镜按钮往左移动 10px */
 }
 
 .search-icon {
-  font-size: 20px;
+    font-size: 24px;   /* 放大镜大小推荐值 24 或 26 */
+  width: 24px;
+  height: 24px;
 }
 
 /* 首页：列表卡片 */
@@ -207,7 +210,7 @@ body {
 
 .song-item {
   padding: 18px 24px;
-  font-size: 24px;
+  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -219,7 +222,7 @@ body {
 }
 
 .song-item-code {
-  font-size: 14px;
+  font-size: 24px;
   color: var(--text-subtle);
 }
 
