@@ -160,28 +160,30 @@ body {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: flex-end;   /* ⭐ 放大镜靠右 */
+  justify-content: center;   /* ⭐ 输入框放在中间最自然的位置 */
   min-width: 0;
   
 }
 
 .search-input {
-  flex: 0 1 auto;
-  min-width: 40px;
-  max-width: 90px;
-  width: auto;
+  flex: 0 1 auto;     /* 不吃满空间，但可自适应 */
+  width: 4em;         /* ⭐ 自动根据字体大小扩展，适合输入2~3位数字 */
+  max-width: 120px;   /* 限制最大宽度 */
+  min-width: 60px;    /* 防止太窄 */
 
   border: none;
   background: transparent;
   font-size: 20px;
   padding: 6px 4px;
   outline: none;
-  text-align: center;
+  text-align: center; /* 光标居中 */
   color: var(--text-main);
 }
 
 
 .search-input::placeholder {
+  text-align: center;
+  font-size: 20px;
   color: var(--text-subtle);
 }
 
