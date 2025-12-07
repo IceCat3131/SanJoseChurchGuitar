@@ -214,7 +214,7 @@ flex: 1;
 
 .song-item {
   padding: 10px 24px;
-  font-size: 16px;
+  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -226,7 +226,7 @@ flex: 1;
 }
 
 .song-item-code {
-  font-size: 14px;
+  font-size: 24px;
   color: var(--text-subtle);
 }
 
@@ -382,7 +382,7 @@ flex: 1;
     font-size: 22px;
   }
   .song-item {
-    font-size: 17px;
+    font-size: 20px;
   }
   .lyrics-root {
     font-size: 17px;
