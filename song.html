@@ -420,7 +420,7 @@
       });
     });
     document.getElementById("btn-font-minus").addEventListener("click", () => {
-      state.lyricsFontSize = Math.max(state.lyricsFontSize - 3, 40);
+      state.lyricsFontSize = Math.max(state.lyricsFontSize - 2, 30);
       getSong(state.currentBook, state.currentNo).then(song => {
         if (song) renderLyrics(song);
       });

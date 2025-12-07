@@ -117,13 +117,13 @@ body {
 
 /* 搜索条（首页 & 乐谱页共用） */
 .search-bar {
+  position: relative;                 /* ⭐ 为绝对定位的放大镜提供参照 */
   display: flex;
   align-items: center;
-  gap: 10px;
   background: var(--bg-search);
   border-radius: 32px;
-  padding: 16px 14px;
-  box-shadow: var(--shadow-soft);   /* 新增这一行，让灰色条有一点立体感 */
+  padding: 12px 14px;
+  box-shadow: var(--shadow-soft);
 }
 
 
@@ -157,36 +157,44 @@ body {
 }
 
 .search-input-wrap {
-  flex: 1;
+ flex: 1;
   display: flex;
   align-items: center;
+  min-width: 0;
 }
 
 .search-input {
-  flex: 1;
+flex: 1;
   border: none;
   background: transparent;
-  font-size: 16px;
-  padding: 6px 4px;
+  font-size: 20px;
+  padding: 6px 40px 6px 4px;          /* ⭐ 右边 padding 预留出放大镜的空间 */
   outline: none;
+  text-align: left;                   /* ⭐ 光标 & 文本从左边开始 */
   color: var(--text-main);
 }
 
 .search-input::placeholder {
+  text-align: left;                   /* ⭐ 提示字也从左显示 */
+  font-size: 20px;
   color: var(--text-subtle);
 }
 
 .search-icon-btn {
+  position: absolute;                 /* ⭐ 不再参与 flex 排布 */
+  right: 14px;                        /* 靠最右边一点点内缩 */
+  top: 50%;
+  transform: translateY(-50%);
   border: none;
   background: transparent;
-  padding: 4px 4px 4px 8px;
+  padding: 0;
   cursor: pointer;
-  flex-shrink: 0;
-   margin-right: -10px;   /* ← 放大镜按钮往左移动 10px */
 }
 
 .search-icon {
-  font-size: 20px;
+   font-size: 20px;
+  width: 20px;
+  height: 20px;
 }
 
 /* 首页：列表卡片 */
