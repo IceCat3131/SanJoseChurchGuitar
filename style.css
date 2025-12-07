@@ -182,7 +182,8 @@ body {
   padding: 4px 4px 4px 8px;
   cursor: pointer;
   flex-shrink: 0;
-   margin-right: -10px;   /* ← 放大镜按钮往左移动 10px */
+   /* margin-right: px;   ← 放大镜按钮往左移动 10px */
+   margin-left: 10px;   /* ← 放大镜按钮往左移动 10px */
 }
 
 .search-icon {
@@ -319,7 +320,7 @@ body {
 .score-wrap img {
   max-width: 100%;
   height: auto;
-    transform: scale(1.08);   /* ← 放大 8%，你可以调成 1.05 / 1.10 / 1.15 */
+  transform: scale(1.2);   /* ← 乐谱放大 8%，你可以调成 1.05 / 1.10 / 1.15 */
   transform-origin: top center;
 }
 
