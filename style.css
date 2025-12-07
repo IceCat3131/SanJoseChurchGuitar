@@ -190,7 +190,7 @@ body {
   padding: 4px 4px 4px 8px;
   cursor: pointer;
   flex-shrink: 0;
-   margin-right: 30px;   /* ← 放大镜按钮往左移动 10px */
+   margin-right: 10px;   /* ← 放大镜按钮往左移动 10px */
 }
 
 .search-icon {
