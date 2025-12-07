@@ -157,23 +157,19 @@ body {
 }
 
 .search-input-wrap {
+  flex: 1;
   display: flex;
   align-items: center;
-  flex: 1;
-  min-width: 0;        /* ⭐ 关键：允许这一块往里收，不把右边挤飞 */
 }
-
 
 .search-input {
   flex: 1;
-  min-width: 0;        /* ⭐ 关键：input 自己也要允许收缩 */
   border: none;
   background: transparent;
-  font-size: 14x;     /* 你想要的大一点字体 */
+  font-size: 16px;
   padding: 6px 4px;
   outline: none;
   color: var(--text-main);
-  text-align: center;  /* 如果要居中输入保留，不要居中就删掉 */
 }
 
 .search-input::placeholder {
@@ -186,15 +182,12 @@ body {
   padding: 4px 4px 4px 8px;
   cursor: pointer;
   flex-shrink: 0;
- /*  margin-right: 0px;    ← 放大镜按钮往左移动 10px */
-   /* margin-left: -24px;   ← 放大镜按钮往左移动 10px */
+   margin-right: -10px;   /* ← 放大镜按钮往左移动 10px */
 }
 
-/* .search-icon {
-    font-size: 24px;   /* 放大镜大小推荐值 24 或 26 */
-  /* width: 24px; */
-  /* height: 24px; */
-/* } */ */
+.search-icon {
+  font-size: 20px;
+}
 
 /* 首页：列表卡片 */
 .list-card {
@@ -211,25 +204,21 @@ body {
   padding: 0;
 }
 
- .song-item {                               /* 列表文字控制 */
-  padding: 18px 24px;
-  font-size: 20px;
+.song-item {
+  padding: 10px 24px;
+  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
 }
-.song-item-title {
-  color: #353535;  /* 蓝色示例 */
-}
-
 
 .song-item-label {
   white-space: nowrap;
 }
 
 .song-item-code {
-  font-size: 24px;
+  font-size: 14px;
   color: var(--text-subtle);
 }
 
@@ -330,7 +319,7 @@ body {
 .score-wrap img {
   max-width: 100%;
   height: auto;
-  transform: scale(1.1);   /* ← 乐谱放大 8%，你可以调成 1.05 / 1.10 / 1.15 */
+    transform: scale(1.08);   /* ← 放大 8%，你可以调成 1.05 / 1.10 / 1.15 */
   transform-origin: top center;
 }
 

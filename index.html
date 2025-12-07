@@ -49,29 +49,29 @@
   </div>
 </div>
 
-
- <script>
+<script>
   const BOOKS = {
     c: {
-      label: "大本",
+      label: "大本诗歌",
       folderText: "c_text",
       codePrefix: "c"
     },
     ts: {
-      label: "小本",
+      label: "小本诗歌",
       folderText: "ts_text",
       codePrefix: "ts"
     }
   };
 
+  // 最多尝试多少个区间：0=1-100, 1=101-200, ...
   const MAX_RANGES = 20;
 
   const state = {
     currentBook: "c",
+    // data[book] = 歌曲数组
     data: { c: [], ts: [] },
-    loadedRanges: { c: {}, ts: {} },
-    loaded: { c: false, ts: false },    // 每册是否加载过
-    loading: false                      // 正在加载时禁止连点
+    // loadedRanges[book][rangeIndex] = 是否已经尝试过这个 json
+    loadedRanges: { c: {}, ts: {} }
   };
 
   function pad4(num) {
@@ -82,16 +82,18 @@
     const start = rangeIndex * 100 + 1;
     const end = (rangeIndex + 1) * 100;
     const folder = BOOKS[bookKey].folderText;
+    // 比如：assets/c_text/c_1_100.json
     return `assets/${folder}/${bookKey}_${start}_${end}.json`;
   }
 
   async function loadRange(bookKey, rangeIndex) {
-    if (state.loadedRanges[bookKey][rangeIndex]) return true;
+    if (state.loadedRanges[bookKey][rangeIndex]) return true; // 已尝试过
 
     const url = getRangeFilePath(bookKey, rangeIndex);
     try {
       const res = await fetch(url);
       if (!res.ok) {
+        // 404 或其他错误：认为没有更多数据，返回 false 让上层停止继续往后加载
         state.loadedRanges[bookKey][rangeIndex] = true;
         return false;
       }
@@ -100,31 +102,25 @@
         state.loadedRanges[bookKey][rangeIndex] = true;
         return false;
       }
-
       state.data[bookKey] = state.data[bookKey].concat(json);
       state.loadedRanges[bookKey][rangeIndex] = true;
       return true;
-
     } catch (e) {
-      console.error("加载失败:", bookKey, rangeIndex, e);
+      console.error("加载区间失败", bookKey, rangeIndex, e);
       state.loadedRanges[bookKey][rangeIndex] = true;
       return false;
     }
   }
 
+  // 首页需要把某册的所有 json 都读一遍，直到遇到第一个不存在的文件
   async function loadAllRangesForBook(bookKey) {
-    if (state.loaded[bookKey]) return;     // 已经加载过，不重复加载
-
-    state.loading = true;
-
+    state.data[bookKey] = [];
     for (let i = 0; i < MAX_RANGES; i++) {
       const ok = await loadRange(bookKey, i);
       if (!ok) break;
     }
-
+    // 按 no 排序一下
     state.data[bookKey].sort((a, b) => (a.no || 0) - (b.no || 0));
-    state.loaded[bookKey] = true;
-    state.loading = false;
   }
 
   function renderList(bookKey) {
@@ -133,8 +129,8 @@
     listEl.innerHTML = "";
 
     songs.forEach(song => {
-      if (!song.no) return;
       const no = song.no;
+      if (!no) return;
       const code = BOOKS[bookKey].codePrefix + pad4(no);
 
       const li = document.createElement("li");
@@ -142,15 +138,15 @@
       li.dataset.book = bookKey;
       li.dataset.no = no;
 
-      const label = document.createElement("span");
-      label.className = "song-item-label";
-      label.textContent = `${BOOKS[bookKey].label} 第 ${no} 首`;
+      const labelSpan = document.createElement("span");
+      labelSpan.className = "song-item-label";
+      labelSpan.textContent = `${BOOKS[bookKey].label} 第 ${no} 首`;
 
       const codeSpan = document.createElement("span");
       codeSpan.className = "song-item-code";
-      codeSpan.textContent = song.title ? song.title : "";
+      codeSpan.textContent = `(${code})`;
 
-      li.appendChild(label);
+      li.appendChild(labelSpan);
       li.appendChild(codeSpan);
 
       li.addEventListener("click", () => {
@@ -168,54 +164,43 @@
   }
 
   function goToSong(book, no) {
-    window.location.href = `song.html?book=${book}&no=${no}`;
+    window.location.href = `song.html?book=${encodeURIComponent(book)}&no=${encodeURIComponent(no)}`;
   }
 
   function handleSearch() {
     const raw = document.getElementById("search-input").value.trim();
     if (!raw) return;
-
-    const match = raw.match(/(\d{1,4})$/);
-    if (!match) {
-      alert("请输入正确编号，如：31");
+    const digitsMatch = raw.match(/(\d{1,4})$/);
+    if (!digitsMatch) {
+      alert("请输入正确的编号，如 31");
       return;
     }
-
-    const no = parseInt(match[1], 10);
-    const exists = state.data[state.currentBook].some(s => s.no === no);
+    const no = parseInt(digitsMatch[1], 10);
+    if (!Number.isFinite(no)) {
+      alert("请输入正确的编号，如 31");
+      return;
+    }
+    const songs = state.data[state.currentBook] || [];
+    const exists = songs.some(s => s.no === no);
     if (!exists) {
-      alert("该编号不在当前册中");
+      alert("当前册中找不到该编号。");
       return;
     }
-
     goToSong(state.currentBook, no);
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
-
-    // 切换大本/小本
+    // 绑定“大本 / 小本”
     document.querySelectorAll(".search-book-btn").forEach(btn => {
       btn.addEventListener("click", async () => {
         const book = btn.dataset.book;
-
         if (state.currentBook === book) return;
-        if (state.loading) return;     // 正在加载禁止连点
-
         setActiveBook(book);
-
-        const listEl = document.getElementById("song-list");
-
-        // 没加载过该册 → 显示“加载中”
-        if (!state.loaded[book]) {
-          listEl.innerHTML = '<li class="song-item"><span class="song-item-label">加载中，请稍候...</span></li>';
-          await loadAllRangesForBook(book);
-        }
-
+        await loadAllRangesForBook(book);
         renderList(book);
       });
     });
 
-    // 搜索按钮
     document.getElementById("btn-search").addEventListener("click", handleSearch);
     document.getElementById("search-input").addEventListener("keydown", e => {
       if (e.key === "Enter") {
@@ -224,14 +209,10 @@
       }
     });
 
-    // 初始加载大本
+    // 初始加载大本：自动把 c_1_100、c_101_200…… 读出来（遇到第一个缺失就停止）
     await loadAllRangesForBook("c");
     renderList("c");
-
-    // 后台预加载小本（提高切换速度）
-    loadAllRangesForBook("ts");
   });
 </script>
-
 </body>
 </html>
