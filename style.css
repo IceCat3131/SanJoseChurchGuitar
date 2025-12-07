@@ -160,46 +160,33 @@ body {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;   /* ⭐ 输入框放在中间最自然的位置 */
-  min-width: 0;
-  
 }
 
 .search-input {
-  flex: 0 1 auto;     /* 不吃满空间，但可自适应 */
-  width: 4em;         /* ⭐ 自动根据字体大小扩展，适合输入2~3位数字 */
-  max-width: 120px;   /* 限制最大宽度 */
-  min-width: 60px;    /* 防止太窄 */
-
+  flex: 1;
   border: none;
   background: transparent;
-  font-size: 20px;
+  font-size: 16px;
   padding: 6px 4px;
   outline: none;
-  text-align: center; /* 光标居中 */
   color: var(--text-main);
 }
 
-
 .search-input::placeholder {
-  text-align: center;
-  font-size: 20px;
   color: var(--text-subtle);
 }
 
 .search-icon-btn {
   border: none;
   background: transparent;
-  padding: 4px 4px 4px 8px;  /* 仅此 padding 就足够让它保持合适间距 */
+  padding: 4px 4px 4px 8px;
   cursor: pointer;
-  flex-shrink: 0;            /* 不被挤压 */
+  flex-shrink: 0;
+   margin-right: -10px;   /* ← 放大镜按钮往左移动 10px */
 }
 
-
 .search-icon {
-    font-size: 24px;   /* 推荐值 24 或 26 */
-  width: 24px;
-  height: 24px;
+  font-size: 20px;
 }
 
 /* 首页：列表卡片 */
@@ -218,7 +205,7 @@ body {
 }
 
 .song-item {
-  padding: 20px 24px;
+  padding: 10px 24px;
   font-size: 16px;
   display: flex;
   align-items: center;
@@ -226,22 +213,12 @@ body {
   cursor: pointer;
 }
 
-.song-item-title {
-  font-size: 20px;
-  font-weight: 600;
-    color: #2e2e2e;      /* 你也可以加颜色 */
-}
-
 .song-item-label {
-  font-size: 20x;   /* 或 20px，看你想多大 */
-    color: #2e2e2e;   /* ← 新增，改你想要的颜色 */
   white-space: nowrap;
 }
 
 .song-item-code {
-  font-size: 24px;
-   color: #666;   /* 让歌名更醒目，可以从 999 调成 666 */
-  font-weight: 600;  /* 增加一点粗度，更像标题 */
+  font-size: 14px;
   color: var(--text-subtle);
 }
 
@@ -386,18 +363,7 @@ body {
 }
 
 /* 响应式：平板/电脑上稍微放大一点字号 */
-@media (max-width: 480px) {
-  .search-input {
-    max-width: 70px;   /* 手机更窄 */
-    font-size: 18px;
-  }
-}
-
 @media (min-width: 768px) {
-  .search-input {
-    max-width: 120px;  /* 平板或电脑更宽一点 */
-    font-size: 20px;
-  }
   .page-inner {
     padding: 24px 32px 40px;
   }
@@ -419,4 +385,60 @@ body {
   .page-inner {
     padding-top: 32px;
   }
+}
+
+/* ==== 搜索框最终稳定版本（覆盖上面的旧样式） ==== */
+
+/* 搜索条（首页 & 乐谱页） */
+.search-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-search);
+  border-radius: 32px;
+  padding: 16px 14px;
+  box-shadow: var(--shadow-soft);
+}
+
+/* 中间输入区 */
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+}
+
+/* 输入框本体（左对齐、宽度 5em） */
+.search-input {
+  flex: 0 1 auto;
+  width: 5em;
+  min-width: 60px;
+  max-width: 150px;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  padding: 6px 4px;
+  outline: none;
+  text-align: left;
+  color: var(--text-main);
+}
+
+.search-input::placeholder {
+  text-align: left;
+  font-size: 20px;
+  color: var(--text-subtle);
+}
+
+/* 放大镜按钮（永远靠最右） */
+.search-icon-btn {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  padding: 4px 4px 4px 8px;
+  cursor: pointer;
+}
+
+.search-icon {
+  font-size: 20px;
 }
