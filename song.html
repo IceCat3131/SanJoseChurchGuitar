@@ -356,6 +356,7 @@
 
   document.addEventListener("DOMContentLoaded", async () => {
     parseQuery();
+    document.getElementById("search-input").value = state.currentNo;  // ★ 显示当前编号
     syncBookButtons();
     syncScriptButton(); // 默认：歌词简体，按钮显示“繁”
 
@@ -413,13 +414,13 @@
 
     // 字号 + / -
     document.getElementById("btn-font-plus").addEventListener("click", () => {
-      state.lyricsFontSize = Math.min(state.lyricsFontSize + 1, 26);
+      state.lyricsFontSize = Math.min(state.lyricsFontSize + 3, 40);
       getSong(state.currentBook, state.currentNo).then(song => {
         if (song) renderLyrics(song);
       });
     });
     document.getElementById("btn-font-minus").addEventListener("click", () => {
-      state.lyricsFontSize = Math.max(state.lyricsFontSize - 1, 12);
+      state.lyricsFontSize = Math.max(state.lyricsFontSize - 3, 40);
       getSong(state.currentBook, state.currentNo).then(song => {
         if (song) renderLyrics(song);
       });
