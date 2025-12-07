@@ -160,6 +160,7 @@ body {
   flex: 1;
   display: flex;
   align-items: center;
+  
 }
 
 .search-input {
@@ -169,6 +170,7 @@ body {
   font-size: 16px;
   padding: 6px 4px;
   outline: none;
+  text-align: center;   /* 文字居中 */
   color: var(--text-main);
 }
 
@@ -218,6 +220,7 @@ body {
 
 .song-item-label {
   font-size: 20x;   /* 或 20px，看你想多大 */
+    color: #2e2e2e;   /* ← 新增，改你想要的颜色 */
   white-space: nowrap;
 }
 
