@@ -187,11 +187,11 @@ body {
    /* margin-left: -24px;   ← 放大镜按钮往左移动 10px */
 }
 
-.search-icon {
+/* .search-icon {
     font-size: 24px;   /* 放大镜大小推荐值 24 或 26 */
-  width: 24px;
-  height: 24px;
-}
+  /* width: 24px; */
+  /* height: 24px; */
+/* } */ */
 
 /* 首页：列表卡片 */
 .list-card {
