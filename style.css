@@ -186,7 +186,9 @@ body {
 }
 
 .search-icon {
-  font-size: 20px;
+    font-size: 24px;   /* 推荐值 24 或 26 */
+  width: 24px;
+  height: 24px;
 }
 
 /* 首页：列表卡片 */
@@ -205,7 +207,7 @@ body {
 }
 
 .song-item {
-  padding: 10px 24px;
+  padding: 20px 24px;
   font-size: 16px;
   display: flex;
   align-items: center;
@@ -213,12 +215,16 @@ body {
   cursor: pointer;
 }
 
+
 .song-item-label {
+  font-size: 20x;   /* 或 20px，看你想多大 */
   white-space: nowrap;
 }
 
 .song-item-code {
-  font-size: 14px;
+  font-size: 24px;
+   color: #666;   /* 让歌名更醒目，可以从 999 调成 666 */
+  font-weight: 600;  /* 增加一点粗度，更像标题 */
   color: var(--text-subtle);
 }
 
