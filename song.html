@@ -413,14 +413,20 @@
     });
 
     // 字号 + / -
-    document.getElementById("btn-font-plus").addEventListener("click", () => {
-      state.lyricsFontSize = Math.min(state.lyricsFontSize + 1, 26);
+        document.getElementById("btn-font-plus").addEventListener("click", (e) => {
+  e.preventDefault();   // ★ 禁止触发页面缩放
+  e.stopPropagation();
+  
+      state.lyricsFontSize = Math.min(state.lyricsFontSize + 2, 26);
       getSong(state.currentBook, state.currentNo).then(song => {
         if (song) renderLyrics(song);
       });
     });
-    document.getElementById("btn-font-minus").addEventListener("click", () => {
-      state.lyricsFontSize = Math.max(state.lyricsFontSize - 1, 12);
+         document.getElementById("btn-font-plus").addEventListener("click", (e) => {
+  e.preventDefault();   // ★ 禁止触发页面缩放
+  e.stopPropagation();
+  
+      state.lyricsFontSize = Math.max(state.lyricsFontSize - 2, 12);
       getSong(state.currentBook, state.currentNo).then(song => {
         if (song) renderLyrics(song);
       });
