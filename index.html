@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>GTZ 看谱 (A4 分页)</title>
+  <link rel="stylesheet" href="./styles.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@coderline/alphatab@latest/dist/alphaTab.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">GTZ 看谱</div>
+    <div class="search">
+      <input id="q" placeholder="搜索：例如 C_0001 或 C_0001.gtz" autocomplete="off"/>
+      <button id="btnSearch">打开</button>
+    </div>
+    <div class="controls">
+      <button id="btnPrev" title="上一曲">⟨</button>
+      <button id="btnPlay" title="播放/暂停">▶︎</button>
+      <button id="btnNext" title="下一曲">⟩</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <div class="sidebar-title">曲目</div>
+        <div class="sidebar-sub">静态库 /songs/index.json</div>
+      </div>
+      <div id="list" class="list"></div>
+      <div class="hint">
+        把你的 .gtz 放到 <code>songs/</code>，并更新 <code>songs/index.json</code>。
+      </div>
+    </aside>
+
+    <section class="viewer">
+      <div class="viewer-head">
+        <div class="meta">
+          <div id="songTitle" class="song-title">未加载</div>
+          <div id="songFile" class="song-file"></div>
+        </div>
+
+        <div class="sliders">
+          <label class="slider">
+            <span>歌词字号</span>
+            <input id="fontSize" type="range" min="12" max="48" step="1" value="24"/>
+            <span id="fontSizeVal" class="val">24</span>
+          </label>
+
+          <label class="slider">
+            <span>段落间距</span>
+            <input id="spacing" type="range" min="50" max="400" step="1" value="100"/>
+            <span id="spacingVal" class="val">1.00×</span>
+          </label>
+
+          <label class="slider">
+            <span>缩放</span>
+            <input id="zoom" type="range" min="60" max="140" step="1" value="100"/>
+            <span id="zoomVal" class="val">100%</span>
+          </label>
+        </div>
+      </div>
+
+      <div id="pages" class="pages"></div>
+
+      <div id="measureHost" class="measure-host"></div>
+      <div id="playerHost" class="player-host"></div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
