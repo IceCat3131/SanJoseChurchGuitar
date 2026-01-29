@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>召会诗歌吉他谱</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="page">
+  <div class="page-inner">
+    <!-- 第 1 部分：固定标题 -->
+    <div class="page-title">召会诗歌吉他谱</div>
+
+    <!-- 第 2 部分：搜索框 -->
+    <div class="card" id="search-card">
+      <div class="search-bar">
+        <div class="search-book-toggle">
+          <button class="search-book-btn active" data-book="c" id="btn-book-c">大本</button>
+          <div class="search-book-divider"></div>
+          <button class="search-book-btn" data-book="ts" id="btn-book-ts">小本</button>
+        </div>
+        <div class="search-input-wrap">
+          <input
+            id="search-input"
+            class="search-input"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            placeholder="输入编号，如31"
+          />
+          <button class="search-icon-btn" id="btn-search">
+            <span class="search-icon">🔍</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 第 3 部分：列表 -->
+    <div class="list-card">
+      <ul class="song-list" id="song-list">
+        <!-- JS 渲染 -->
+      </ul>
+    </div>
+
+    <!-- 第 4 部分：声明 -->
+    <div class="footer-text">本网站仅供诗歌吉他谱查阅使用</div>
+  </div>
+</div>
+
+<script>
+  const BOOKS = {
+    c: {
+      label: "大本",
+      folderText: "c_text",
+      codePrefix: "c"
+    },
+    ts: {
+      label: "小本",
+      folderText: "ts_text",
+      codePrefix: "ts"
+    }
+  };
+
+  const MAX_RANGES = 20;
+
+  const state = {
+    currentBook: "c",
+    data: { c: [], ts: [] },
+    loadedRanges: { c: {}, ts: {} },
+    loaded: { c: false, ts: false },    // 每册是否加载过
+    loading: false                      // 正在加载时禁止连点
+  };
+
+  function pad4(num) {
+    return String(num).padStart(4, "0");
+  }
+
+  function getRangeFilePath(bookKey, rangeIndex) {
+    const start = rangeIndex * 100 + 1;
+    const end = (rangeIndex + 1) * 100;
+    const folder = BOOKS[bookKey].folderText;
+    return `assets/${folder}/${bookKey}_${start}_${end}.json`;
+  }
+
+  async function loadRange(bookKey, rangeIndex) {
+    if (state.loadedRanges[bookKey][rangeIndex]) return true;
+
+    const url = getRangeFilePath(bookKey, rangeIndex);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        state.loadedRanges[bookKey][rangeIndex] = true;
+        return false;
+      }
+      const json = await res.json();
+      if (!Array.isArray(json) || json.length === 0) {
+        state.loadedRanges[bookKey][rangeIndex] = true;
+        return false;
+      }
+
+      state.data[bookKey] = state.data[bookKey].concat(json);
+      state.loadedRanges[bookKey][rangeIndex] = true;
+      return true;
+
+    } catch (e) {
+      console.error("加载失败:", bookKey, rangeIndex, e);
+      state.loadedRanges[bookKey][rangeIndex] = true;
+      return false;
+    }
+  }
+
+  async function loadAllRangesForBook(bookKey) {
+    if (state.loaded[bookKey]) return;     // 已经加载过，不重复加载
+
+    state.loading = true;
+
+    for (let i = 0; i < MAX_RANGES; i++) {
+      const ok = await loadRange(bookKey, i);
+      if (!ok) break;
+    }
+
+    state.data[bookKey].sort((a, b) => (a.no || 0) - (b.no || 0));
+    state.loaded[bookKey] = true;
+    state.loading = false;
+  }
+
+  function renderList(bookKey) {
+    const listEl = document.getElementById("song-list");
+    const songs = state.data[bookKey] || [];
+    listEl.innerHTML = "";
+
+    songs.forEach(song => {
+      if (!song.no) return;
+      const no = song.no;
+      const code = BOOKS[bookKey].codePrefix + pad4(no);
+
+      const li = document.createElement("li");
+      li.className = "song-item";
+      li.dataset.book = bookKey;
+      li.dataset.no = no;
+
+      const label = document.createElement("span");
+      label.className = "song-item-label";
+      label.textContent = `${BOOKS[bookKey].label} 第 ${no} 首`;
+
+      const codeSpan = document.createElement("span");
+      codeSpan.className = "song-item-code";
+      // 使用 JSON 中的歌名，如果没有 title，就显示空白
+      codeSpan.textContent = song.title ? song.title : "";
+
+      li.appendChild(label);
+      li.appendChild(codeSpan);
+
+      li.addEventListener("click", () => {
+        goToSong(bookKey, no);
+      });
+
+      listEl.appendChild(li);
+    });
+  }
+
+  function setActiveBook(bookKey) {
+    state.currentBook = bookKey;
+    document.getElementById("btn-book-c").classList.toggle("active", bookKey === "c");
+    document.getElementById("btn-book-ts").classList.toggle("active", bookKey === "ts");
+  }
+
+  function goToSong(book, no) {
+    window.location.href = `song.html?book=${book}&no=${no}`;
+  }
+
+  function handleSearch() {
+    const raw = document.getElementById("search-input").value.trim();
+    if (!raw) return;
+
+    const match = raw.match(/(\d{1,4})$/);
+    if (!match) {
+      alert("请输入正确编号，如：31");
+      return;
+    }
+
+    const no = parseInt(match[1], 10);
+    const exists = state.data[state.currentBook].some(s => s.no === no);
+    if (!exists) {
+      alert("该编号不在当前册中");
+      return;
+    }
+
+    goToSong(state.currentBook, no);
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+
+    // 切换大本/小本
+    document.querySelectorAll(".search-book-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const book = btn.dataset.book;
+
+        if (state.currentBook === book) return;
+        if (state.loading) return;     // 正在加载禁止连点
+
+        setActiveBook(book);
+
+        const listEl = document.getElementById("song-list");
+
+        // 没加载过该册 → 显示“加载中”
+        if (!state.loaded[book]) {
+          listEl.innerHTML = '<li class="song-item"><span class="song-item-label">加载中，请稍候...</span></li>';
+          await loadAllRangesForBook(book);
+        }
+
+        renderList(book);
+      });
+    });
+
+    // 搜索按钮
+    document.getElementById("btn-search").addEventListener("click", handleSearch);
+    document.getElementById("search-input").addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleSearch();
+      }
+    });
+
+    // 初始加载大本
+    await loadAllRangesForBook("c");
+    renderList("c");
+
+    // 后台预加载小本（提高切换速度）
+    loadAllRangesForBook("ts");
+  });
+</script>
+
+</body>
+</html>
