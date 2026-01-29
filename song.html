@@ -6,7 +6,7 @@
   <title>诗歌</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@coderline/alphatab@latest/dist/alphaTab.js"></script>
+  <script src="assets/alphatab/alphaTab.js"></script>
   <!-- 简繁转换库：opencc-js（浏览器 UMD 完整版） -->
   <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
 </head>
@@ -66,13 +66,11 @@
         <button class="player-btn" id="btn-player-next" aria-label="下一首">⏭</button>
       </div>
       <div class="player-mid">
-        <div class="player-progress-wrap">
-          <input class="player-progress" id="player-progress" type="range" min="0" max="1000" value="0" />
-          <div class="player-time" id="player-time">00:00 / 00:00</div>
-        </div>
+        <div class="player-time" id="player-time">00:00 / 00:00</div>
+        <input class="player-progress" id="player-progress" type="range" min="0" max="1000" value="0" />
       </div>
       <div class="player-right">
-        <div class="player-indicator" id="player-indicator">音源加载中…</div>
+        <div class="player-indicator" id="player-indicator"><span id="player-status">音源未加载</span></div>
       </div>
     </div>
 
@@ -87,28 +85,10 @@
         </div>
       </div>
       <!-- 简繁切换按钮：一个字，默认显示“繁”（当前歌词为简体） -->
-      <div class="controls-right">
-        <button class="script-toggle-btn" id="btn-script">繁</button>
-        <button class="script-toggle-btn" id="btn-track">轨</button>
-      </div>
+      <button class="script-toggle-btn" id="btn-script">繁</button>
     </div>
 
-    <!-- 轨道开关面板 -->
-    <div class="track-panel" id="track-panel" style="display:none;">
-      <div class="track-panel-inner">
-        <div class="track-panel-header">
-          <span>轨道</span>
-          <div class="track-panel-actions">
-            <button class="track-mini-btn" id="track-all">全选</button>
-            <button class="track-mini-btn" id="track-none">全不选</button>
-            <button class="track-mini-btn" id="track-close">关闭</button>
-          </div>
-        </div>
-        <div class="track-panel-list" id="track-list"></div>
-      </div>
-    </div>
-
-<!-- 第 4 部分：内容 -->
+    <!-- 第 4 部分：内容 -->
     <div class="content-card">
       <div id="score-view" class="score-wrap" aria-hidden="false">
         <div id="alphaTab" class="at-viewport"></div>
@@ -180,7 +160,12 @@
   }
 
   
-  // ===== alphaTab + .gtz 加载 =====
+  
+  function setPlayerStatus(text) {
+    const el = document.getElementById("player-status");
+    if (el) el.textContent = text || "";
+  }
+// ===== alphaTab + .gtz 加载 =====
   function base64ToUint8Array(b64) {
     const binary = atob(b64);
     const len = binary.length;
@@ -198,12 +183,12 @@
     const res = await fetch(gtzUrl);
     if (!res.ok) throw new Error(`HTTP ${res.status} ${gtzUrl}`);
     const txt = await res.text();
-    let gtz = null;
-    try { gtz = JSON.parse(txt); } catch(e){ throw new Error("gtz JSON 解析失败: " + e.message); }
+    let gtz;
+    try { gtz = JSON.parse(txt); } catch(e) { throw new Error('gtz 不是合法 JSON: ' + e.message); }
     if (!gtz || !gtz.gpBase64) throw new Error("gtz 格式错误：缺少 gpBase64");
     const bytes = base64ToUint8Array(gtz.gpBase64);
-    __gtzState = (gtz && gtz.state) ? gtz.state : null;
     api.load(bytes);
+    setPlayerStatus('谱面已加载');
   }
 
   function msToMMSS(ms) {
@@ -214,18 +199,7 @@
   }
 
   let __playerUi = null;
-  let __gtzState = null;
-  let __trackState = { selected: [] };
-    function updateProgressFill(progressEl) {
-    if (!progressEl) return;
-    const min = parseInt(progressEl.min || "0", 10) || 0;
-    const max = parseInt(progressEl.max || "1000", 10) || 1000;
-    const val = parseInt(progressEl.value || "0", 10) || 0;
-    const pct = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
-    progressEl.style.background = `linear-gradient(to right, var(--primary) 0%, var(--primary) ${pct}%, #d6d9e6 ${pct}%, #d6d9e6 100%)`;
-  }
-
-function setupPlayerBar(api) {
+  function setupPlayerBar(api) {
     if (__playerUi) return;
     const btnPrev = document.getElementById("btn-player-prev");
     const btnPlay = document.getElementById("btn-player-play");
@@ -244,7 +218,7 @@ function setupPlayerBar(api) {
     // SoundFont 加载指示
     api.soundFontLoad.on((e) => {
       const pct = Math.floor((e.loaded / e.total) * 100);
-      indicatorEl.textContent = `音源加载中… ${pct}%`;
+      indicatorEl.textContent = `<span id="player-status">音源未加载</span> ${pct}%`;
       indicatorEl.style.display = "block";
     });
     api.playerReady.on(() => {
@@ -271,7 +245,6 @@ function setupPlayerBar(api) {
         const max = Math.max(1, args.endTime);
         const v = Math.floor((args.currentTime / max) * 1000);
         progressEl.value = String(isFinite(v) ? v : 0);
-        updateProgressFill(progressEl);
       }
       timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
     });
@@ -279,7 +252,6 @@ function setupPlayerBar(api) {
     // 拖动进度条进行 seek（通过 api.timePosition）
     progressEl.addEventListener("input", () => {
       __playerUi.isSeeking = true;
-      updateProgressFill(progressEl);
       const v = parseInt(progressEl.value, 10);
       // 这里拿不到 endTime，只能读最近一次 UI 上的总时长
       const text = timeEl.textContent || "00:00 / 00:00";
@@ -295,7 +267,6 @@ function setupPlayerBar(api) {
       const target = Math.floor(total * (v / 1000));
       try { api.timePosition = target; } catch(e) {}
       __playerUi.isSeeking = false;
-      updateProgressFill(progressEl);
     });
 
     // 初始禁用，直到 playerReady
@@ -318,7 +289,7 @@ function setupPlayerBar(api) {
     const timeEl = document.getElementById("player-time");
     const progressEl = document.getElementById("player-progress");
     if (timeEl) timeEl.textContent = `${msToMMSS(current)} / ${msToMMSS(total)}`;
-    if (progressEl && !__playerUi?.isSeeking) { progressEl.value = "0"; updateProgressFill(progressEl); }
+    if (progressEl) progressEl.value = "0";
     const btnPlay = document.getElementById("btn-player-play");
     if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
   }
@@ -404,34 +375,11 @@ function pad4(num) {
           // alphaTab 官方教程示例音源（SoundFont2）
           soundFont: 'https://cdn.jsdelivr.net/npm/@coderline/alphatab@latest/dist/soundfont/sonivox.sf2',
           // 播放时滚动这个元素
-          scrollElement: container,
-          enableCursor: true
+          scrollElement: container
         }
       };
 
       window.__atApi = new alphaTab.AlphaTabApi(atEl, settings);
-
-      // 事件：scoreLoaded 后应用 GTZ 导出的显示状态（歌词字号/间距/缩放/多轨）
-      const __api = window.__atApi;
-      try {
-        __api.scoreLoaded?.on?.(() => {
-          const st = __gtzState || null;
-          if (st) {
-            if (st.fontSizePx) applyLyricsFontSize(st.fontSizePx);
-            if (st.spacingFactor) applyLyricsLineSpacingFactor(st.spacingFactor);
-            if (st.zoom) applyZoomPercent(st.zoom);
-            // 多轨：优先使用 gtz 保存的 visibleTrackIndices，否则显示全部
-            if (Array.isArray(st.visibleTrackIndices) && st.visibleTrackIndices.length) {
-              applyTracks(st.visibleTrackIndices);
-            } else {
-              applyTracks(null);
-            }
-          } else {
-            applyTracks(null);
-          }
-          buildTrackPanel();
-        });
-      } catch(e) { console.warn('scoreLoaded hook failed', e); }
 
       // 播放条绑定
       setupPlayerBar(window.__atApi);
@@ -443,6 +391,7 @@ function pad4(num) {
 
     loadGtzIntoAlphaTab(window.__atApi, gtzUrl).catch(err => {
       console.error("加载 gtz 失败:", err);
+      setPlayerStatus('加载失败: ' + (err && err.message ? err.message : err));
       // fallback: 如果没有 gtz，就尝试旧的 svg（便于过渡）
       try {
         container.innerHTML = "";
@@ -656,27 +605,6 @@ function pad4(num) {
       });
     });
 
-    
-    // 轨道按钮：打开/关闭轨道面板
-    const btnTrack = document.getElementById("btn-track");
-    if (btnTrack) {
-      btnTrack.addEventListener("click", () => {
-        const panel = document.getElementById("track-panel");
-        const isOpen = panel && panel.style.display !== "none";
-        if (isOpen) closeTrackPanel(); else openTrackPanel();
-      });
-    }
-    document.getElementById("track-close")?.addEventListener("click", closeTrackPanel);
-    document.getElementById("track-all")?.addEventListener("click", () => {
-      if (!window.__atApi?.score) return;
-      applyTracks(window.__atApi.score.tracks.map((_,i)=>i));
-      buildTrackPanel();
-    });
-    document.getElementById("track-none")?.addEventListener("click", () => {
-      applyTracks([]);
-      buildTrackPanel();
-    });
-
     // 字号 + / -
     document.getElementById("btn-font-plus").addEventListener("click", () => {
   // 每次 +3，最大 32
@@ -695,112 +623,6 @@ function pad4(num) {
 
     await loadAndRenderCurrentSong();
   });
-
-  function applyLyricsFontSize(px) {
-    if (!api) return;
-    try {
-      const settings = api.settings;
-      const resources = settings?.display?.resources;
-      if (resources && !resources.elementFonts) resources.elementFonts = new Map();
-      const elementFonts = resources?.elementFonts;
-      const FontCtor = window.alphaTab?.model?.Font;
-      const ne = window.alphaTab?.NotationElement;
-      if (elementFonts && typeof elementFonts.set === 'function' && FontCtor && ne && ne.EffectLyrics != null) {
-        const fontObj = new FontCtor('Microsoft YaHei', px, window.alphaTab.model.FontStyle.Plain, window.alphaTab.model.FontWeight.Regular);
-        try { fontObj.families = ['Microsoft YaHei','Arial','sans-serif']; } catch(_){}
-        elementFonts.set(ne.EffectLyrics, fontObj);
-        if (typeof api.updateSettings === 'function') api.updateSettings();
-        if (typeof api.render === 'function') api.render();
-        return;
-      }
-    } catch(e){ console.warn('applyLyricsFontSize failed', e); }
-    // fallback: css variable
-    document.documentElement.style.setProperty('--gtz-lyric-font-size', (px||16) + 'px');
-  }
-
-  function applyLyricsLineSpacingFactor(factor) {
-    if (!api) return;
-    const padding = Math.max(0, Math.round((factor - 1) * 12));
-    try {
-      const settings = api.settings;
-      if (settings?.display && 'lyricLinesPaddingBetween' in settings.display) {
-        settings.display.lyricLinesPaddingBetween = padding;
-        if (typeof api.updateSettings === 'function') api.updateSettings();
-        if (typeof api.render === 'function') api.render();
-        return;
-      }
-    } catch(e){ console.warn('applyLyricsLineSpacingFactor failed', e); }
-    document.documentElement.style.setProperty('--gtz-lyric-extra-gap', padding + 'px');
-  }
-
-  function applyZoomPercent(zoom) {
-    if (!api) return;
-    const scale = Math.max(0.2, Math.min(2.0, (zoom||100)/100));
-    try{
-      const settings = api.settings;
-      if (settings?.display && 'scale' in settings.display) {
-        settings.display.scale = scale;
-        if (typeof api.updateSettings === 'function') api.updateSettings();
-        if (typeof api.render === 'function') api.render();
-      }
-    }catch(e){}
-  }
-
-  function applyTracks(indices) {
-    if (!api || !api.score) return;
-    const total = api.score.tracks ? api.score.tracks.length : 0;
-    const clean = (Array.isArray(indices) && indices.length) ? indices.filter(i=>i>=0 && i<total) : [...Array(total).keys()];
-    __trackState.selected = clean;
-    // Try common alphaTab setting names
-    try {
-      const settings = api.settings;
-      if (settings?.core) {
-        if ('tracks' in settings.core) settings.core.tracks = clean;
-        else settings.core.tracks = clean;
-      }
-      if (typeof api.updateSettings === 'function') api.updateSettings();
-      if (typeof api.render === 'function') api.render();
-    } catch(e){ console.warn('applyTracks failed', e); }
-  }
-
-  function buildTrackPanel() {
-    const panel = document.getElementById('track-panel');
-    const list = document.getElementById('track-list');
-    if (!api || !api.score || !list) return;
-    list.innerHTML = '';
-    const tracks = api.score.tracks || [];
-    const selected = new Set(__trackState.selected && __trackState.selected.length ? __trackState.selected : tracks.map((_,i)=>i));
-    tracks.forEach((t, idx) => {
-      const row = document.createElement('label');
-      row.className = 'track-row';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = selected.has(idx);
-      cb.addEventListener('change', () => {
-        const cur = new Set(__trackState.selected);
-        if (cb.checked) cur.add(idx); else cur.delete(idx);
-        applyTracks(Array.from(cur).sort((a,b)=>a-b));
-      });
-      const name = document.createElement('span');
-      name.className = 'track-name';
-      name.textContent = t.name || ('Track ' + (idx+1));
-      row.appendChild(cb); row.appendChild(name);
-      list.appendChild(row);
-    });
-  }
-
-  function openTrackPanel() {
-    const panel = document.getElementById('track-panel');
-    if (!panel) return;
-    panel.style.display = 'block';
-    buildTrackPanel();
-  }
-  function closeTrackPanel() {
-    const panel = document.getElementById('track-panel');
-    if (!panel) return;
-    panel.style.display = 'none';
-  }
-
 </script>
 </body>
 </html>
