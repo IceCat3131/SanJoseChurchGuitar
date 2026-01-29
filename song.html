@@ -265,11 +265,88 @@
       if (!settings.display) settings.display = {};
       // 这里以 1.0 为基准缩放（你导出的 zoom=100 表示不缩放）
       settings.display.scale = (zoom / 100);
+      __exportBaseScale = settings.display.scale || 1.0;
       api.updateSettings();
     } catch (e) {}
   }
 
-  // ===== 多轨道同页显示 + 轨道开关 =====
+  
+  // ===== 响应式：控制每行小节数（barsPerRow）与横竖屏 =====
+  // 目标：
+  // - 手机竖屏：>=2 小节/行
+  // - 手机横屏：>=3 小节/行
+  // - iPad/电脑：>=5 小节/行（宽屏可到 6）
+  let __exportBaseScale = 1.0; // 来自 .gtz.state.zoom
+  let __lastBarsPerRow = null;
+  let __lastResponsiveScale = null;
+
+  function computeBarsPerRow(width, isLandscape) {
+    // width: alphaTab 容器可用宽度
+    if (width <= 0 || !isFinite(width)) return -1;
+    if (width < 520) return isLandscape ? 3 : 2;        // 手机
+    if (width < 740) return isLandscape ? 4 : 3;        // 大屏手机/小平板
+    if (width < 1100) return 5;                         // iPad/笔记本
+    return 6;                                           // 大屏桌面
+  }
+
+  function computeResponsiveScale(width, isLandscape) {
+    // 为了保证“每行小节数”能达到目标，小屏适当缩放
+    if (width < 520) return isLandscape ? 0.88 : 0.92;
+    if (width < 740) return isLandscape ? 0.90 : 0.94;
+    if (width < 1100) return 0.96;
+    return 1.0;
+  }
+
+  function applyResponsiveLayout(api) {
+    if (!api) return;
+    const el = document.getElementById('score-view') || document.getElementById('alphaTab') || document.body;
+    const w = (el && el.clientWidth) ? el.clientWidth : window.innerWidth;
+    const isLandscape = window.matchMedia && window.matchMedia('(orientation: landscape)').matches;
+
+    const bars = computeBarsPerRow(w, isLandscape);
+    const mul = computeResponsiveScale(w, isLandscape);
+
+    try {
+      const settings = api.settings;
+      if (!settings.display) settings.display = {};
+
+      // 强制 Page 布局，barsPerRow 才会生效
+      if (window.alphaTab?.LayoutMode) {
+        settings.display.layoutMode = window.alphaTab.LayoutMode.Page;
+      }
+
+      // 使用系统自动布局（避免小屏变成 1 小节/行）
+      if (window.alphaTab?.SystemsLayoutMode) {
+        settings.display.systemsLayoutMode = window.alphaTab.SystemsLayoutMode.Automatic;
+      }
+
+      // 设置每行小节数
+      settings.display.barsPerRow = bars;
+
+      // 缩放：导出基准 * 响应式乘子
+      const responsiveScale = (__exportBaseScale || 1.0) * mul;
+      settings.display.scale = responsiveScale;
+
+      // 仅当有变化才更新，减少闪烁
+      if (__lastBarsPerRow !== bars || Math.abs((__lastResponsiveScale||0) - responsiveScale) > 0.001) {
+        __lastBarsPerRow = bars;
+        __lastResponsiveScale = responsiveScale;
+        api.updateSettings();
+        // alphaTab 会自动响应 resize，但 barsPerRow/scale 变化最好强制 render
+        try { api.render(); } catch(e) {}
+      }
+    } catch (e) {
+      console.warn('applyResponsiveLayout failed', e);
+    }
+  }
+
+  let __resizeTimer = null;
+  function scheduleResponsiveLayout(api) {
+    if (__resizeTimer) clearTimeout(__resizeTimer);
+    __resizeTimer = setTimeout(() => applyResponsiveLayout(api), 120);
+  }
+
+// ===== 多轨道同页显示 + 轨道开关 =====
   let __currentScore = null;
   let __visibleTrackIndices = null;
 
@@ -309,6 +386,8 @@
         if (cb.checked) now.add(i); else now.delete(i);
         __visibleTrackIndices = Array.from(now).sort((a,b)=>a-b);
         renderVisibleTracks(window.__atApi);
+        // 同步应用“每行小节数”与缩放
+        scheduleResponsiveLayout(window.__atApi);
       });
 
       const name = document.createElement('div');
@@ -550,6 +629,11 @@ function pad4(num) {
 
       // 轨道开关按钮（只影响多轨显示）
       setupTracksButton();
+
+      // 响应式：根据屏幕宽度/横竖屏调整每行小节数
+      applyResponsiveLayout(window.__atApi);
+      window.addEventListener('resize', () => scheduleResponsiveLayout(window.__atApi));
+      window.addEventListener('orientationchange', () => scheduleResponsiveLayout(window.__atApi));
 
       // 载入谱面后：还原歌词字号/行距/缩放/多轨
       window.__atApi.scoreLoaded.on((e) => {
