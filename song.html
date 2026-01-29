@@ -66,8 +66,8 @@
         <button class="player-btn" id="btn-player-next" aria-label="下一首">⏭</button>
       </div>
       <div class="player-mid">
-        <div class="player-time" id="player-time">00:00 / 00:00</div>
         <input class="player-progress" id="player-progress" type="range" min="0" max="1000" value="0" />
+        <div class="player-time" id="player-time">00:00 / 00:00</div>
       </div>
       <div class="player-right">
         <div class="player-indicator" id="player-indicator">音源加载中…</div>
@@ -84,6 +84,8 @@
           <button class="mode-btn" id="btn-mode-lyrics">歌词</button>
         </div>
       </div>
+      <!-- 轨道开关：一个字“轨” -->
+      <button class="script-toggle-btn" id="btn-tracks" aria-label="轨道开关">轨</button>
       <!-- 简繁切换按钮：一个字，默认显示“繁”（当前歌词为简体） -->
       <button class="script-toggle-btn" id="btn-script">繁</button>
     </div>
@@ -181,6 +183,142 @@
     if (!gtz || !gtz.gpBase64) throw new Error("gtz 格式错误：缺少 gpBase64");
     const bytes = base64ToUint8Array(gtz.gpBase64);
     api.load(bytes);
+  }
+
+
+  // -------- 多轨道：默认显示全部轨道 + 轨道开关 --------
+  function setupTracks(api){
+    const btnTracks = document.getElementById("btn-tracks");
+    const panel = document.getElementById("track-panel");
+    const listEl = document.getElementById("track-list");
+    const btnClose = document.getElementById("btn-track-close");
+    const btnAll = document.getElementById("btn-track-all");
+    const btnNone = document.getElementById("btn-track-none");
+
+    if (!btnTracks || !panel || !listEl) return;
+
+    function openPanel(){ panel.style.display = "block"; }
+    function closePanel(){ panel.style.display = "none"; }
+
+    btnTracks.addEventListener("click", () => {
+      if (panel.style.display === "block") closePanel(); else openPanel();
+    });
+    btnClose?.addEventListener("click", closePanel);
+
+    // 点击遮罩关闭：这里用简单的“点面板外关闭”
+    document.addEventListener("click", (e) => {
+      if (panel.style.display !== "block") return;
+      const t = e.target;
+      if (t === btnTracks) return;
+      if (panel.contains(t)) return;
+      closePanel();
+    });
+
+    function getTrackIndexes(){
+      const tracks = (api.score && api.score.tracks) ? api.score.tracks : [];
+      return tracks.map((t, i) => (typeof t.index === "number" ? t.index : i));
+    }
+
+    function applyTracks(indexes){
+      try{
+        // alphaTab Web：通过 settings.core.tracks 控制显示轨道
+        api.settings.core = api.settings.core || {};
+        api.settings.core.tracks = indexes;
+        api.updateSettings();
+      }catch(err){
+        // 兼容：如果 updateSettings 不存在，就尝试直接 render
+        try{ api.render(); }catch(e){}
+      }
+    }
+
+    function rebuildPanel(){
+      const tracks = (api.score && api.score.tracks) ? api.score.tracks : [];
+      const allIdx = getTrackIndexes();
+      // 如果没有轨道信息，就先清空
+      listEl.innerHTML = "";
+      tracks.forEach((t, i) => {
+        const idx = (typeof t.index === "number" ? t.index : i);
+        const name = (t.name || t.trackName || `Track ${idx+1}`);
+        const row = document.createElement("label");
+        row.innerHTML = `<input type="checkbox" data-track="${idx}" checked /> <span>${escapeHtml(name)}</span>`;
+        listEl.appendChild(row);
+      });
+
+      // 默认：全部选中显示
+      applyTracks(allIdx);
+
+      // 绑定 change
+      listEl.querySelectorAll("input[type=checkbox]").forEach(cb => {
+        cb.addEventListener("change", () => {
+          const selected = Array.from(listEl.querySelectorAll("input[type=checkbox]"))
+            .filter(x => x.checked)
+            .map(x => parseInt(x.getAttribute("data-track"), 10))
+            .filter(n => !Number.isNaN(n));
+          // 至少保留 1 条，避免空白
+          applyTracks(selected.length ? selected : [allIdx[0] ?? 0]);
+        });
+      });
+
+      btnAll?.addEventListener("click", () => {
+        listEl.querySelectorAll("input[type=checkbox]").forEach(x => x.checked = true);
+        applyTracks(allIdx);
+      });
+      btnNone?.addEventListener("click", () => {
+        const cbs = Array.from(listEl.querySelectorAll("input[type=checkbox]"));
+        cbs.forEach(x => x.checked = false);
+        if (cbs[0]) cbs[0].checked = true;
+        applyTracks([parseInt(cbs[0].getAttribute("data-track"),10) || 0]);
+      });
+    }
+
+    // 在每次加载新谱后重建轨道面板
+    api.scoreLoaded.on(() => {
+      rebuildPanel();
+    });
+  }
+
+  // -------- GTZ 歌词显示补偿：字体/字间距 + 段落行距（通过调整 y） --------
+  function setupLyricTuning(api){
+    const extraRowGap = 6; // 每一行歌词额外增加的间距（像素）
+    // renderFinished 在每次渲染 SVG 后触发：我们对 SVG 里歌词 text 做轻量修正
+    api.renderFinished.on(() => {
+      try{
+        const container = document.getElementById("score-container");
+        const svg = container ? container.querySelector("svg") : null;
+        if (!svg) return;
+
+        // 找到“看起来像歌词”的 text
+        const texts = Array.from(svg.querySelectorAll('text[class*="lyric"], text[class*="Lyric"], text.at-lyrics, .at-lyrics text'));
+        if (!texts.length) return;
+
+        // 收集行（按 y 分组）
+        const rowsMap = new Map(); // yKey -> [el...]
+        texts.forEach(el => {
+          const yAttr = el.getAttribute("y");
+          if (!yAttr) return;
+          const y = parseFloat(yAttr);
+          if (!Number.isFinite(y)) return;
+          const yKey = Math.round(y); // 容错
+          if (!rowsMap.has(yKey)) rowsMap.set(yKey, []);
+          rowsMap.get(yKey).push(el);
+
+          // 记录原始 y，避免重复叠加
+          if (!el.getAttribute("data-orig-y")) el.setAttribute("data-orig-y", yAttr);
+        });
+
+        const rowKeys = Array.from(rowsMap.keys()).sort((a,b)=>a-b);
+        rowKeys.forEach((yKey, idx) => {
+          const delta = idx * extraRowGap;
+          rowsMap.get(yKey).forEach(el => {
+            const orig = parseFloat(el.getAttribute("data-orig-y"));
+            if (!Number.isFinite(orig)) return;
+            el.setAttribute("y", String(orig + delta));
+          });
+        });
+      }catch(e){
+        // 静默失败：不影响主渲染
+      }
+    });
   }
 
   function msToMMSS(ms) {
@@ -375,6 +513,12 @@ function pad4(num) {
 
       // 播放条绑定
       setupPlayerBar(window.__atApi);
+
+      // 多轨道：默认全部轨道显示 + 轨道开关 UI
+      setupTracks(window.__atApi);
+
+      // GTZ 歌词显示：字体与段落间距补偿（避免 gtz 未带出设置时太小/太挤）
+      setupLyricTuning(window.__atApi);
     }
 
     // 加载 .gtz (JSON) -> 解 base64 -> load 到 alphaTab
@@ -615,5 +759,19 @@ function pad4(num) {
     await loadAndRenderCurrentSong();
   });
 </script>
+
+  <!-- 轨道开关面板 -->
+  <div class="track-panel" id="track-panel" role="dialog" aria-modal="true" aria-label="轨道开关">
+    <div class="track-title">
+      <div style="font-weight:700;">轨道</div>
+      <button class="player-btn" id="btn-track-close" style="padding:6px 10px; border-radius:12px;">关闭</button>
+    </div>
+    <div class="track-list" id="track-list"></div>
+    <div class="track-actions">
+      <button class="player-btn" id="btn-track-all" style="padding:8px 10px;">全选</button>
+      <button class="player-btn" id="btn-track-none" style="padding:8px 10px;">全不选</button>
+    </div>
+  </div>
+
 </body>
 </html>

@@ -223,6 +223,7 @@ flex: 1;
 
 .song-item-label {
   white-space: nowrap;
+  display: none;
 }
 
 .song-item-code {
@@ -475,6 +476,7 @@ flex: 1;
   display:flex;
   align-items:center;
   gap: 12px;
+  flex-wrap: nowrap;
 }
 
 .player-left, .player-right{
@@ -487,8 +489,10 @@ flex: 1;
   flex:1;
   min-width: 0;
   display:flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: nowrap;
 }
 
 .player-btn{
@@ -516,10 +520,14 @@ flex: 1;
 .player-time{
   font-size: 13px;
   color: var(--text-subtle);
-  text-align: center;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  text-align: right;
 }
 
 .player-progress{
+  flex: 1 1 auto;
+  min-width: 120px;
   width: 100%;
 }
 
@@ -548,4 +556,71 @@ flex: 1;
 #alphaTab.at-viewport{
   width: 100%;
   min-height: 60vh;
+}
+
+
+/* --- GTZ Player Bar: keep everything on one line (phone/tablet) --- */
+@media (max-width: 900px){
+  .player-bar{ gap: 10px; padding: 10px 12px; }
+  .player-btn{ padding: 9px 10px; font-size: 15px; border-radius: 12px; }
+  .player-mid{ gap: 8px; }
+  .player-progress{ min-width: 90px; }
+}
+@media (max-width: 420px){
+  .player-btn{ padding: 8px 9px; font-size: 14px; }
+  .player-progress{ min-width: 70px; }
+  .player-time{ font-size: 12px; }
+}
+
+/* --- AlphaTab lyrics visual override for GTZ (font + spacing) --- */
+#score-container svg text[class*="lyric"],
+#score-container svg text[class*="Lyric"],
+#score-container svg .at-lyrics,
+#score-container svg text.at-lyrics{
+  font-size: 14px !important;
+  letter-spacing: 0.6px;
+}
+
+/* --- Track switch panel --- */
+.track-panel{
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 120px;
+  width: min(520px, calc(100vw - 32px));
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+  z-index: 9999;
+  display: none;
+}
+.track-panel .track-title{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.track-panel .track-list{
+  max-height: min(50vh, 360px);
+  overflow:auto;
+  padding: 6px 2px;
+}
+.track-panel label{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 12px;
+}
+.track-panel label:hover{
+  background: var(--bg-soft);
+}
+.track-panel .track-actions{
+  display:flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 10px;
 }
