@@ -59,13 +59,26 @@
 
     
     <!-- 播放条（放在搜索栏下方） -->
-    <div class="player-bar card" id="player-bar">
-      <div class="player-left">
-        <button class="player-btn" id="btn-player-prev" aria-label="上一首">⏮</button>
-        <button class="player-btn player-btn-primary" id="btn-player-play" aria-label="播放/暂停">▶</button>
-        <button class="player-btn" id="btn-player-next" aria-label="下一首">⏭</button>
+    <div class="player-bar" id="player-bar">
+      <button class="pbtn pbtn-prev" id="btn-player-prev" aria-label="上一首">
+        <span class="picon">⏮</span>
+      </button>
+      <button class="pbtn pbtn-play" id="btn-player-play" aria-label="播放/暂停">
+        ▶
+      </button>
+      <button class="pbtn pbtn-next" id="btn-player-next" aria-label="下一首">
+        <span class="picon">⏭</span>
+      </button>
+
+      <div class="pprogress-wrap" id="pprogress-wrap" aria-label="播放进度">
+        <input class="pprogress" id="player-progress" type="range" min="0" max="1000" value="0" />
+        <div class="ptime" id="player-time">00:00</div>
       </div>
-      <div class="player-mid">
+
+      <div class="pstatus" id="player-indicator" aria-label="音源状态">音源未加载</div>
+    </div>
+
+<div class="player-mid">
         <input class="player-progress" id="player-progress" type="range" min="0" max="1000" value="0" />
         <div class="player-time" id="player-time">00:00 / 00:00</div>
       </div>
@@ -104,6 +117,7 @@
 </div>
 
 <script>
+
   const BOOKS = {
     c: {
       label: "大本诗歌",
@@ -173,13 +187,19 @@
 
   async function loadGtzIntoAlphaTab(api, gtzUrl) {
     // 切歌时先停止，避免上一首残留
-    try { api.stop(); } catch(e) {}
+    try { api.stop && api.stop(); } catch(e) {}
     // 清空进度
     setPlayerUI({ current: 0, total: 0, playing: false });
 
-    const res = await fetch(gtzUrl);
+    const res = await fetch(gtzUrl, { cache: "no-cache" });
     if (!res.ok) throw new Error(`HTTP ${res.status} ${gtzUrl}`);
-    const gtz = await res.json();
+
+    // GitHub Pages 可能给 .gtz 设为 application/octet-stream，res.json 依然可用，
+    // 但为了最大兼容性：优先 text -> JSON.parse
+    const raw = await res.text();
+    let gtz;
+    try { gtz = JSON.parse(raw); } catch(e) { throw new Error("gtz 不是有效 JSON"); }
+
     if (!gtz || !gtz.gpBase64) throw new Error("gtz 格式错误：缺少 gpBase64");
     const bytes = base64ToUint8Array(gtz.gpBase64);
     api.load(bytes);
@@ -272,9 +292,7 @@
     }
 
     // 在每次加载新谱后重建轨道面板
-    api.scoreLoaded.on(() => {
-      rebuildPanel();
-    });
+    try{ api.scoreLoaded && api.scoreLoaded.on && api.scoreLoaded.on(() => { rebuildPanel(); }); }catch(e){}
   }
 
   // -------- GTZ 歌词显示补偿：字体/字间距 + 段落行距（通过调整 y） --------
@@ -338,74 +356,117 @@
     const progressEl = document.getElementById("player-progress");
     const indicatorEl = document.getElementById("player-indicator");
 
-    __playerUi = { btnPrev, btnPlay, btnNext, timeEl, progressEl, indicatorEl, isSeeking: false };
+    __playerUi = { btnPrev, btnPlay, btnNext, timeEl, progressEl, indicatorEl, isSeeking: false, totalMs: 0 };
 
     // 复用页面已有上一首/下一首逻辑（按钮在顶部）
-    btnPrev.addEventListener("click", () => document.getElementById("btn-prev")?.click());
-    btnNext.addEventListener("click", () => document.getElementById("btn-next")?.click());
-    btnPlay.addEventListener("click", () => api.playPause());
+    btnPrev?.addEventListener("click", () => document.getElementById("btn-prev")?.click());
+    btnNext?.addEventListener("click", () => document.getElementById("btn-next")?.click());
 
-    // SoundFont 加载指示
-    api.soundFontLoad.on((e) => {
-      const pct = Math.floor((e.loaded / e.total) * 100);
-      indicatorEl.textContent = `音源加载中… ${pct}%`;
-      indicatorEl.style.display = "block";
-    });
-    api.playerReady.on(() => {
-      indicatorEl.style.display = "none";
-      btnPlay.disabled = false;
-      btnPrev.disabled = false;
-      btnNext.disabled = false;
+    // 播放/暂停：用户点击时再提示“音源加载”
+    btnPlay?.addEventListener("click", async () => {
+      try {
+        indicatorEl.textContent = "音源加载中…";
+        indicatorEl.style.display = "block";
+        await api.playPause();
+      } catch (e) {
+        indicatorEl.textContent = "播放失败";
+        console.error(e);
+      }
     });
 
-    // 播放状态变化：切换 ▶ / ⏸
-    api.playerStateChanged.on((args) => {
-      const playing = (args.state === alphaTab.synth.PlayerState.Playing);
-      btnPlay.textContent = playing ? "⏸" : "▶";
-    });
+    // ---- 事件（不同版本可能没有，全部做防御）----
+    try {
+      api.soundFontLoad && api.soundFontLoad.on && api.soundFontLoad.on((e) => {
+        const pct = (e && e.total) ? Math.floor((e.loaded / e.total) * 100) : 0;
+        indicatorEl.textContent = `音源加载中… ${pct}%`;
+        indicatorEl.style.display = "block";
+      });
+    } catch(e){}
+
+    try {
+      api.playerReady && api.playerReady.on && api.playerReady.on(() => {
+        indicatorEl.style.display = "none";
+        indicatorEl.textContent = "";
+      });
+    } catch(e){}
+
+    try {
+      api.playerStateChanged && api.playerStateChanged.on && api.playerStateChanged.on((args) => {
+        const st = args && args.state;
+        const playing = (alphaTab && alphaTab.synth && alphaTab.synth.PlayerState)
+          ? (st === alphaTab.synth.PlayerState.Playing)
+          : (String(st).toLowerCase().includes("playing"));
+        btnPlay.textContent = playing ? "⏸" : "▶";
+      });
+    } catch(e){}
 
     // 进度刷新
     let previousSec = -1;
-    api.playerPositionChanged.on((args) => {
-      const currentSec = Math.floor(args.currentTime / 1000);
-      if (currentSec === previousSec) return;
-      previousSec = currentSec;
+    try {
+      api.playerPositionChanged && api.playerPositionChanged.on && api.playerPositionChanged.on((args) => {
+        const cur = args?.currentTime ?? 0;
+        const end = args?.endTime ?? 0;
+        __playerUi.totalMs = end;
+        const currentSec = Math.floor(cur / 1000);
+        if (currentSec === previousSec) return;
+        previousSec = currentSec;
 
-      if (!__playerUi.isSeeking) {
-        const max = Math.max(1, args.endTime);
-        const v = Math.floor((args.currentTime / max) * 1000);
-        progressEl.value = String(isFinite(v) ? v : 0);
-      }
-      timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
-    });
+        if (!__playerUi.isSeeking) {
+          const max = Math.max(1, end);
+          const v = Math.floor((cur / max) * 1000);
+          progressEl.value = String(isFinite(v) ? v : 0);
+          updateProgressVisual(progressEl);
+        }
+        timeEl.textContent = `${msToMMSS(cur)} / ${msToMMSS(end)}`;
+      });
+    } catch(e){}
 
-    // 拖动进度条进行 seek（通过 api.timePosition）
-    progressEl.addEventListener("input", () => {
+    // 拖动进度条：圆点=thumb，拖动即 seek
+    progressEl?.addEventListener("input", () => {
       __playerUi.isSeeking = true;
+      updateProgressVisual(progressEl);
+
       const v = parseInt(progressEl.value, 10);
-      // 这里拿不到 endTime，只能读最近一次 UI 上的总时长
-      const text = timeEl.textContent || "00:00 / 00:00";
-      const total = parseTimeFromText(text.split("/")[1] || "00:00");
+      const total = __playerUi.totalMs || parseTimeFromText((timeEl.textContent || "00:00 / 00:00").split("/")[1] || "00:00");
       const target = Math.floor(total * (v / 1000));
       timeEl.textContent = `${msToMMSS(target)} / ${msToMMSS(total)}`;
     });
 
-    progressEl.addEventListener("change", () => {
+    progressEl?.addEventListener("change", () => {
       const v = parseInt(progressEl.value, 10);
-      const text = timeEl.textContent || "00:00 / 00:00";
-      const total = parseTimeFromText(text.split("/")[1] || "00:00");
+      const total = __playerUi.totalMs || parseTimeFromText((timeEl.textContent || "00:00 / 00:00").split("/")[1] || "00:00");
       const target = Math.floor(total * (v / 1000));
       try { api.timePosition = target; } catch(e) {}
       __playerUi.isSeeking = false;
     });
 
-    // 初始禁用，直到 playerReady
-    btnPlay.disabled = true;
-    btnPrev.disabled = true;
-    btnNext.disabled = true;
+    // 谱面加载完成（不依赖音源）
+    try{
+      api.scoreLoaded && api.scoreLoaded.on && api.scoreLoaded.on(() => {
+        indicatorEl.textContent = "就绪";
+        indicatorEl.style.display = "block";
+      });
+    }catch(e){}
+
+    // 初始 UI
+    btnPlay.textContent = "▶";
+    indicatorEl.textContent = "音源未加载";
+    indicatorEl.style.display = "block";
+    updateProgressVisual(progressEl);
   }
 
-  function parseTimeFromText(t) {
+  
+  function updateProgressVisual(rangeEl){
+    if (!rangeEl) return;
+    const min = parseFloat(rangeEl.min || "0");
+    const max = parseFloat(rangeEl.max || "1000");
+    const val = parseFloat(rangeEl.value || "0");
+    const pct = (max>min) ? ((val-min)/(max-min))*100 : 0;
+    // 用 background-size 模拟“已播放蓝色/未播放灰色”
+    rangeEl.style.backgroundSize = `${pct}% 100%`;
+  }
+
+function parseTimeFromText(t) {
     // t like " 03:12" or "03:12"
     const s = (t || "").trim();
     const m = s.match(/^(\d+):(\d{2})$/);
@@ -419,7 +480,7 @@
     const timeEl = document.getElementById("player-time");
     const progressEl = document.getElementById("player-progress");
     if (timeEl) timeEl.textContent = `${msToMMSS(current)} / ${msToMMSS(total)}`;
-    if (progressEl) progressEl.value = "0";
+    if (progressEl) { progressEl.value = "0"; updateProgressVisual(progressEl); }
     const btnPlay = document.getElementById("btn-player-play");
     if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
   }
@@ -758,6 +819,7 @@ function pad4(num) {
 
     await loadAndRenderCurrentSong();
   });
+
 </script>
 
   <!-- 轨道开关面板 -->
