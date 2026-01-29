@@ -549,3 +549,63 @@ flex: 1;
   width: 100%;
   min-height: 60vh;
 }
+
+
+/* ===== 轨道开关面板（最小侵入） ===== */
+.tracks-panel.hidden { display: none; }
+.tracks-panel{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.15);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 90px 12px 12px;
+}
+.tracks-panel-inner{
+  width: min(320px, calc(100vw - 24px));
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+  padding: 12px;
+}
+.tracks-panel-title{
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.tracks-panel-actions{
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.tracks-panel-actions button{
+  flex: 1;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #f4f6fb;
+  font-size: 13px;
+}
+.tracks-list{
+  max-height: 50vh;
+  overflow: auto;
+  padding-right: 2px;
+}
+.track-item{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  border-radius: 10px;
+}
+.track-item:hover{ background: #f6f8ff; }
+.track-item input{ width: 18px; height: 18px; }
+.track-item .track-name{ font-size: 14px; }
+
+/* ===== 播放光标（长竖线） ===== */
+/* alphaTab 内置 cursor 的 class/id 不同版本可能不同，尽量覆盖 */
+.at-cursor, .at-cursor-line, #at-cursor, #cursor, .cursor {
+  stroke-width: 2 !important;
+}
