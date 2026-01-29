@@ -223,7 +223,6 @@ flex: 1;
 
 .song-item-label {
   white-space: nowrap;
-  display: none;
 }
 
 .song-item-code {
@@ -470,125 +469,111 @@ flex: 1;
 
 
 /* ===== 播放条 ===== */
-/* ===== 播放条（按你示意图：一个底色框，所有元素在框内） ===== */
 .player-bar{
-  margin-top: 14px;
-  background: #cfd7ea; /* 接近你图1的底色 */
-  border-radius: 18px;
-  padding: 10px 12px;
+  margin-top: 16px;
+  padding: 10px 14px;
+  display:flex;
+  align-items:center;
+  gap: 12px;
+}
+
+.player-left, .player-right{
   display:flex;
   align-items:center;
   gap: 10px;
-  flex-wrap: nowrap;          /* 关键：永不换行 */
-  overflow: hidden;
 }
 
-.pbtn{
-  border: none;
-  background: #eef2fb;
-  color: #5b6476;
-  width: 44px;
-  height: 36px;
-  border-radius: 14px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  flex: 0 0 auto;
-}
-.pbtn:active{ transform: scale(0.98); }
-
-.pbtn-play{
-  background: #2f6ff7;
-  color: #fff;
-  font-size: 18px;
-  width: 52px;
-  height: 40px;
-  border-radius: 16px;
-}
-
-.pprogress-wrap{
-  position: relative;
-  flex: 1 1 auto;
+.player-mid{
+  flex:1;
   min-width: 0;
-  height: 22px;
   display:flex;
-  align-items:center;
-  justify-content:center;
+  flex-direction: column;
+  gap: 0;
 }
 
-/* 进度条：灰底 + 蓝色已播放（用 background-size 控制） */
-.pprogress{
-  -webkit-appearance: none;
-  appearance: none;
+.player-progress-wrap{
+  position: relative;
   width: 100%;
-  height: 10px;
-  border-radius: 999px;
-  background: linear-gradient(#2f6ff7, #2f6ff7) 0/0% 100% no-repeat, #d8d8d8;
-  outline: none;
 }
-.pprogress::-webkit-slider-runnable-track{
-  height: 10px;
-  border-radius: 999px;
+
+.player-btn{
+  border: 1px solid var(--border-soft);
+  background: #fff;
+  color: var(--text-main);
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 16px;
+  cursor:pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+.player-btn:active{ transform: scale(0.98); }
+.player-btn:disabled{
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.player-btn-primary{
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.player-time{
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 13px;
+  color: var(--text-subtle);
+  text-align: center;
+  pointer-events: none;
   background: transparent;
 }
-.pprogress::-webkit-slider-thumb{
+
+.player-progress{
+  width: 100%;
+  height: 10px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 999px;
+  background: #d6d9e6;
+}
+.player-progress::-webkit-slider-thumb{
   -webkit-appearance: none;
   appearance: none;
   width: 18px;
   height: 18px;
   border-radius: 50%;
   background: #ffffff;
-  border: 3px solid #2f6ff7;
-  margin-top: -4px; /* 让 thumb 垂直居中在 10px track 上 */
+  border: 2px solid var(--primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
   cursor: pointer;
 }
-.pprogress::-moz-range-track{
-  height: 10px;
-  border-radius: 999px;
-  background: #d8d8d8;
-}
-.pprogress::-moz-range-progress{
-  height: 10px;
-  border-radius: 999px;
-  background: #2f6ff7;
-}
-.pprogress::-moz-range-thumb{
+.player-progress::-moz-range-thumb{
   width: 18px;
   height: 18px;
   border-radius: 50%;
   background: #ffffff;
-  border: 3px solid #2f6ff7;
+  border: 2px solid var(--primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
   cursor: pointer;
 }
+.player-progress::-moz-range-track{
+  height: 10px;
+  border-radius: 999px;
+  background: #d6d9e6;
+}
 
-/* 时间码：压在进度条中间 */
-.ptime{
-  position:absolute;
-  left: 50%;
-  transform: translateX(-50%);
+.player-indicator{
   font-size: 12px;
-  color: #5b6476;
-  pointer-events: none;
+  color: var(--text-subtle);
   white-space: nowrap;
 }
 
-/* 音源状态：放在最右侧，但仍然在同一框内 */
-.pstatus{
-  font-size: 12px;
-  color: #5b6476;
-  white-space: nowrap;
-  flex: 0 0 auto;
-  max-width: 30%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 小屏：只缩小按钮，不换行 */
 @media (max-width: 520px){
-  .pbtn{ width: 40px; height: 34px; border-radius: 12px; }
-  .pbtn-play{ width: 48px; height: 38px; border-radius: 14px; }
-  .pstatus{ max-width: 26%; }
+  .player-bar{ flex-wrap: nowrap; }
+  .player-btn{ padding: 8px 10px; font-size: 14px; }
+  .player-time{ font-size: 12px; }
 }
 
 /* alphaTab 容器（替代 svg 图片） */
@@ -601,68 +586,25 @@ flex: 1;
 }
 
 
-/* --- GTZ Player Bar: keep everything on one line (phone/tablet) --- */
-@media (max-width: 900px){
-  .player-bar{ gap: 10px; padding: 10px 12px; }
-  .player-btn{ padding: 9px 10px; font-size: 15px; border-radius: 12px; }
-  .player-mid{ gap: 8px; }
-  .player-progress{ min-width: 90px; }
-}
-@media (max-width: 420px){
-  .player-btn{ padding: 8px 9px; font-size: 14px; }
-  .player-progress{ min-width: 70px; }
-  .player-time{ font-size: 12px; }
-}
+.controls-row{ justify-content: space-between; }
+.controls-right{ display:flex; align-items:center; gap:10px; }
 
-/* --- AlphaTab lyrics visual override for GTZ (font + spacing) --- */
-#score-container svg text[class*="lyric"],
-#score-container svg text[class*="Lyric"],
-#score-container svg .at-lyrics,
-#score-container svg text.at-lyrics{
-  font-size: 14px !important;
-  letter-spacing: 0.6px;
-}
+.track-panel{ position: relative; margin-top: 8px; }
+.track-panel-inner{ background: #fff; border: 1px solid var(--border-soft); border-radius: 16px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+.track-panel-header{ display:flex; align-items:center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.track-panel-actions{ display:flex; gap: 8px; }
+.track-mini-btn{ border: 1px solid var(--border-soft); background: #fff; border-radius: 10px; padding: 6px 10px; font-size: 12px; color: var(--text-main); }
+.track-panel-list{ display:flex; flex-direction: column; gap: 6px; max-height: 220px; overflow:auto; padding-right: 4px; }
+.track-row{ display:flex; align-items:center; gap: 8px; font-size: 14px; color: var(--text-main); }
+.track-row input{ width: 16px; height: 16px; }
+.track-name{ flex:1; }
 
-/* --- Track switch panel --- */
-.track-panel{
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  top: 120px;
-  width: min(520px, calc(100vw - 32px));
-  background: #fff;
-  border: 1px solid var(--border-soft);
-  border-radius: 18px;
-  padding: 14px;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.12);
-  z-index: 9999;
-  display: none;
-}
-.track-panel .track-title{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-.track-panel .track-list{
-  max-height: min(50vh, 360px);
-  overflow:auto;
-  padding: 6px 2px;
-}
-.track-panel label{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  padding: 10px 10px;
-  border-radius: 12px;
-}
-.track-panel label:hover{
-  background: var(--bg-soft);
-}
-.track-panel .track-actions{
-  display:flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 10px;
-}
+
+/* GTZ 导出歌词显示补偿（当 alphaTab elementFonts 不可用时） */
+:root{ --gtz-lyric-font-size: 16px; --gtz-lyric-extra-gap: 0px; }
+#alphaTab svg text{ }
+#alphaTab svg text.at-lyrics, #alphaTab svg text.at-lyric, #alphaTab svg text.lyrics{ font-size: var(--gtz-lyric-font-size); }
+
+/* 播放光标（尽量做成“长竖线”） */
+#alphaTab .at-cursor, #alphaTab .at-cursor-beat, #alphaTab .at-cursor-bar{ opacity: 1 !important; }
+#alphaTab .at-cursor line, #alphaTab .at-cursor-beat line, #alphaTab .at-cursor-bar line{ stroke-width: 2px; stroke: var(--primary); }
