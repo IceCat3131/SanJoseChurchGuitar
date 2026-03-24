@@ -484,9 +484,7 @@
   function isTabBarBounds(barBounds) {
     const staff = barBounds?.bar?.staff;
     if (!staff) return false;
-    if (!staff.showTablature) return false;
-    if (staff.showStandardNotation) return false;
-    return true;
+    return !!staff.showTablature;
   }
 
   function getDisplayedFretForCapo(note) {
@@ -520,23 +518,29 @@
             for (const noteBounds of notes) {
               const note = noteBounds?.note;
               const displayFret = getDisplayedFretForCapo(note);
-              const box = noteBounds?.noteHeadBounds;
+              const box = noteBounds?.noteHeadBounds || noteBounds;
               if (displayFret === null || !box) continue;
+
+              const bw = box.w ?? box.width ?? 16;
+              const bh = box.h ?? box.height ?? 16;
+              const bx = box.x ?? 0;
+              const by = box.y ?? 0;
+
               const el = document.createElement('div');
               el.className = 'tab-capo-overlay-note';
               el.textContent = String(displayFret);
               el.style.position = 'absolute';
-              el.style.left = `${box.x}px`;
-              el.style.top = `${box.y}px`;
-              el.style.width = `${box.w}px`;
-              el.style.height = `${box.h}px`;
+              el.style.left = `${bx}px`;
+              el.style.top = `${by}px`;
+              el.style.width = `${bw}px`;
+              el.style.height = `${bh}px`;
               el.style.display = 'flex';
               el.style.alignItems = 'center';
               el.style.justifyContent = 'center';
               el.style.background = '#fff';
               el.style.color = '#111';
               el.style.fontWeight = '700';
-              el.style.fontSize = `${Math.max(12, Math.round(box.h * 0.95))}px`;
+              el.style.fontSize = `${Math.max(12, Math.round(bh * 0.95))}px`;
               el.style.lineHeight = '1';
               el.style.borderRadius = '2px';
               el.style.boxSizing = 'border-box';
