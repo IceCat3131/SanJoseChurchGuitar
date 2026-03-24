@@ -520,12 +520,10 @@
               const displayFret = getDisplayedFretForCapo(note);
               const box = noteBounds?.noteHeadBounds || noteBounds;
               if (displayFret === null || !box) continue;
-
               const bw = box.w ?? box.width ?? 16;
               const bh = box.h ?? box.height ?? 16;
-              const bx = box.x ?? 0;
-              const by = box.y ?? 0;
-
+              const bx = box.x ?? box.left ?? 0;
+              const by = box.y ?? box.top ?? 0;
               const el = document.createElement('div');
               el.className = 'tab-capo-overlay-note';
               el.textContent = String(displayFret);
@@ -538,7 +536,7 @@
               el.style.alignItems = 'center';
               el.style.justifyContent = 'center';
               el.style.background = '#fff';
-              el.style.color = '#111';
+              el.style.color = '#d00';
               el.style.fontWeight = '700';
               el.style.fontSize = `${Math.max(12, Math.round(bh * 0.95))}px`;
               el.style.lineHeight = '1';
