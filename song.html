@@ -301,15 +301,45 @@
     return transposePitchName(original, semitones, preferFlats);
   }
 
+  function getAllTracks(api) {
+    const tracks = api?.score?.tracks || __currentScore?.tracks || [];
+    return Array.isArray(tracks) ? tracks : [];
+  }
+
+  function getSelectedTrackIndices(api) {
+    const tracks = getAllTracks(api);
+    if (!tracks.length) return [];
+    if (Array.isArray(__visibleTrackIndices)) return __visibleTrackIndices.slice();
+    return tracks.map((_, i) => i);
+  }
+
+  function applyPlaybackTrackVisibility(api) {
+    if (!api) return;
+    const tracks = getAllTracks(api);
+    if (!tracks.length || typeof api.changeTrackMute !== 'function') return;
+
+    const selected = new Set(getSelectedTrackIndices(api));
+    const hasExplicitSelection = Array.isArray(__visibleTrackIndices);
+    const useAll = !hasExplicitSelection;
+
+    tracks.forEach((track, i) => {
+      const muted = useAll ? false : !selected.has(i);
+      try { api.changeTrackMute([track], muted); } catch (e) {}
+    });
+  }
+
   function applyScoreTransposition(api) {
     if (!api || !api.settings) return;
-    const score = api.score || window.__currentScore || null;
-    const trackCount = score?.tracks?.length || 0;
+    const tracks = getAllTracks(api);
+    const trackCount = tracks.length;
     const semitones = getEffectiveTranspose();
     try {
       if (!api.settings.notation) api.settings.notation = {};
       api.settings.notation.transpositionPitches = trackCount > 0 ? Array(trackCount).fill(semitones) : [semitones];
       api.updateSettings();
+      if (typeof api.changeTrackTranspositionPitch === 'function' && tracks.length) {
+        try { api.changeTrackTranspositionPitch(tracks, semitones); } catch (e) { console.warn('live transpose failed', e); }
+      }
       try { api.render(); } catch (e) {}
     } catch (e) {
       console.warn('applyScoreTransposition failed', e);
@@ -612,6 +642,7 @@
       console.warn('renderScore failed, fallback render', e);
       try { api.render(); } catch(e2) {}
     }
+    applyPlaybackTrackVisibility(api);
   }
 
   function buildTracksPanel(score) {
@@ -904,6 +935,8 @@ function pad4(num) {
         enableCursor(window.__atApi);
 
         renderVisibleTracks(window.__atApi);
+        applyScoreTransposition(window.__atApi);
+        applyPlaybackTrackVisibility(window.__atApi);
       });
 
 
