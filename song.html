@@ -106,10 +106,8 @@
         <button class="mini-adjust-btn" id="btn-transpose-plus">+</button>
       </div>
       <div class="adjust-group">
-        <span class="adjust-label">Capo</span>
-        <button class="mini-adjust-btn" id="btn-capo-minus">−</button>
+        <span class="adjust-label">原始Capo</span>
         <span class="adjust-value" id="capo-value">0</span>
-        <button class="mini-adjust-btn" id="btn-capo-plus">+</button>
       </div>
     </div>
 
@@ -189,8 +187,7 @@
     scoreSpacingFactor: 2.0,
     pureLyricsFontSize: 24,
     playbackSpeedPercent: 100,
-    transposeSemitones: 0,
-    capoOverride: null
+    transposeSemitones: 0
   };
 
   let viewerPrefs = loadViewerPrefs();
@@ -227,6 +224,9 @@
       const raw = localStorage.getItem('sjcg.viewerPrefs.v1');
       if (!raw) return { ...DEFAULT_VIEWER_PREFS };
       const obj = JSON.parse(raw);
+      if (obj && Object.prototype.hasOwnProperty.call(obj, 'capoOverride')) {
+        try { delete obj.capoOverride; } catch (e) {}
+      }
       return { ...DEFAULT_VIEWER_PREFS, ...obj };
     } catch (e) {
       return { ...DEFAULT_VIEWER_PREFS };
@@ -237,23 +237,22 @@
     try { localStorage.setItem('sjcg.viewerPrefs.v1', JSON.stringify(viewerPrefs)); } catch (e) {}
   }
 
-  function normalizeCapoOverride(value) {
-    if (value === null || value === undefined || value === '') return null;
-    const n = parseInt(value, 10);
-    if (!Number.isFinite(n)) return null;
-    return Math.max(0, Math.min(12, n));
+  function getSongCapo() {
+    const metaCapo = parseInt(window.__gtzMeta?.capo, 10);
+    return Number.isFinite(metaCapo) ? Math.max(0, Math.min(12, metaCapo)) : 0;
   }
 
   function getEffectiveCapo() {
-    const override = normalizeCapoOverride(viewerPrefs.capoOverride);
-    if (override !== null) return override;
-    const metaCapo = parseInt(window.__gtzMeta?.capo, 10);
-    return Number.isFinite(metaCapo) ? Math.max(0, metaCapo) : 0;
+    return getSongCapo();
+  }
+
+  function getUserTranspose() {
+    const n = parseInt(viewerPrefs.transposeSemitones, 10);
+    return Number.isFinite(n) ? Math.max(-11, Math.min(11, n)) : 0;
   }
 
   function getEffectiveTranspose() {
-    const n = parseInt(viewerPrefs.transposeSemitones, 10);
-    return Number.isFinite(n) ? Math.max(-11, Math.min(11, n)) : 0;
+    return getSongCapo() + getUserTranspose();
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -319,7 +318,7 @@
   function rewriteRenderedChordTexts() {
     const root = document.getElementById('alphaTab');
     if (!root) return;
-    const semitones = getEffectiveTranspose();
+    const semitones = getUserTranspose();
     const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
     const nodes = root.querySelectorAll('text, tspan');
     nodes.forEach((el) => {
@@ -359,7 +358,7 @@
   function computeDisplayedKeyName(meta) {
     const m = meta || {};
     const original = m.key_name || '--';
-    const semitones = getEffectiveTranspose();
+    const semitones = getUserTranspose();
     if (!original || original === '--' || semitones === 0) return original;
     const preferFlats = prefersFlatsFromKeyName(original);
     return transposePitchName(original, semitones, preferFlats);
@@ -439,7 +438,7 @@
     if (d) d.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
     if (e) e.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
     if (f) {
-      const t = getEffectiveTranspose();
+      const t = getUserTranspose();
       f.textContent = t > 0 ? `+${t}` : String(t);
     }
     if (g) g.textContent = String(getEffectiveCapo());
@@ -599,14 +598,6 @@
       saveViewerPrefs(); refreshAdjustUI(); updateMetaRow(); applyViewerPrefsToScore();
     });
 
-    document.getElementById('btn-capo-plus')?.addEventListener('click', () => {
-      viewerPrefs.capoOverride = Math.min(getEffectiveCapo() + 1, 12);
-      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow();
-    });
-    document.getElementById('btn-capo-minus')?.addEventListener('click', () => {
-      viewerPrefs.capoOverride = Math.max(getEffectiveCapo() - 1, 0);
-      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow();
-    });
   }
 
   
