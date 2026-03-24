@@ -99,6 +99,16 @@
         <input id="tempo-slider" class="tempo-slider" type="range" min="50" max="150" value="100" step="5" />
         <span class="adjust-value" id="tempo-slider-value">100%</span>
       </div>
+      <div class="adjust-group">
+        <span class="adjust-label">转调</span>
+        <button class="mini-adjust-btn" id="btn-transpose-minus">−</button>
+        <span class="adjust-value" id="transpose-value">0</span>
+        <button class="mini-adjust-btn" id="btn-transpose-plus">+</button>
+      </div>
+      <div class="adjust-group">
+        <span class="adjust-label">原始Capo</span>
+        <span class="adjust-value" id="capo-value">0</span>
+      </div>
     </div>
 
     <!-- 第 3 部分：+ / - / 吉他 / 歌词 / 简繁 -->
@@ -113,6 +123,7 @@
       </div>
       <!-- 简繁切换按钮：一个字，默认显示“繁”（当前歌词为简体） -->
       <button class="script-toggle-btn" id="btn-script">繁</button>
+      <button class="script-toggle-btn" id="btn-staff-mode">简</button>
       <button class="script-toggle-btn" id="btn-tracks">轨</button>
       <div id="tracks-panel" class="tracks-panel hidden" role="dialog" aria-label="轨道开关">
         <div class="tracks-panel-inner">
@@ -176,7 +187,9 @@
     scoreFontSizePx: 30,
     scoreSpacingFactor: 2.0,
     pureLyricsFontSize: 24,
-    playbackSpeedPercent: 100
+    playbackSpeedPercent: 100,
+    transposeSemitones: 0,
+    staffMode: 'standard'
   };
 
   let viewerPrefs = loadViewerPrefs();
@@ -213,6 +226,9 @@
       const raw = localStorage.getItem('sjcg.viewerPrefs.v1');
       if (!raw) return { ...DEFAULT_VIEWER_PREFS };
       const obj = JSON.parse(raw);
+      if (obj && Object.prototype.hasOwnProperty.call(obj, 'capoOverride')) {
+        try { delete obj.capoOverride; } catch (e) {}
+      }
       return { ...DEFAULT_VIEWER_PREFS, ...obj };
     } catch (e) {
       return { ...DEFAULT_VIEWER_PREFS };
@@ -223,6 +239,180 @@
     try { localStorage.setItem('sjcg.viewerPrefs.v1', JSON.stringify(viewerPrefs)); } catch (e) {}
   }
 
+  function getSongCapo() {
+    const metaCapo = parseInt(window.__gtzMeta?.capo, 10);
+    return Number.isFinite(metaCapo) ? Math.max(0, Math.min(12, metaCapo)) : 0;
+  }
+
+  function getEffectiveCapo() {
+    return getSongCapo();
+  }
+
+  function getUserTranspose() {
+    const n = parseInt(viewerPrefs.transposeSemitones, 10);
+    return Number.isFinite(n) ? Math.max(-11, Math.min(11, n)) : 0;
+  }
+
+  function getEffectiveTranspose() {
+    return getSongCapo() + getUserTranspose();
+  }
+
+  const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const NOTE_INDEX_FLAT  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  const NOTE_TO_INDEX = {
+    C: 0, 'B#': 0,
+    'C#': 1, Db: 1,
+    D: 2,
+    'D#': 3, Eb: 3,
+    E: 4, Fb: 4,
+    F: 5, 'E#': 5,
+    'F#': 6, Gb: 6,
+    G: 7,
+    'G#': 8, Ab: 8,
+    A: 9,
+    'A#': 10, Bb: 10,
+    B: 11, Cb: 11
+  };
+
+  function prefersFlatsFromKeyName(keyName) {
+    if (!keyName) return true;
+    return String(keyName).includes('b') || /^F(?:$|m)/i.test(String(keyName));
+  }
+
+  function transposePitchName(name, semitones, preferFlats) {
+    if (!name || !Number.isFinite(semitones)) return name || '--';
+    const normalized = String(name).trim();
+    const m = normalized.match(/^([A-G](?:#|b)?)(.*)$/);
+    if (!m) return normalized;
+    const root = m[1];
+    const suffix = m[2] || '';
+    const idx = NOTE_TO_INDEX[root];
+    if (idx == null) return normalized;
+    const next = (idx + semitones % 12 + 12) % 12;
+    const names = preferFlats ? NOTE_INDEX_FLAT : NOTE_INDEX_SHARP;
+    return names[next] + suffix;
+  }
+
+
+  function transposeChordSymbol(symbol, semitones, preferFlats) {
+    const raw = String(symbol || '').trim();
+    if (!raw || !Number.isFinite(semitones) || semitones === 0) return raw;
+    const m = raw.match(/^([A-G](?:#|b)?)([^/]*?)(?:\/([A-G](?:#|b)?))?$/);
+    if (!m) return raw;
+    const root = m[1];
+    const quality = m[2] || '';
+    const bass = m[3] || '';
+    if (NOTE_TO_INDEX[root] == null) return raw;
+    if (bass && NOTE_TO_INDEX[bass] == null) return raw;
+    const nextRoot = transposePitchName(root, semitones, preferFlats);
+    const nextBass = bass ? transposePitchName(bass, semitones, preferFlats) : '';
+    return nextRoot + quality + (nextBass ? '/' + nextBass : '');
+  }
+
+  function looksLikeChordSymbol(text) {
+    const s = String(text || '').trim();
+    if (!s || s.length > 20) return false;
+    if (!/^[A-G](?:#|b)?/.test(s)) return false;
+    if (/[^A-Ga-g0-9#b\/()\-+susmajdimaugaddnoø°△mM ]/.test(s)) return false;
+    return /^(?:[A-G](?:#|b)?)(?:m|maj|min|sus|dim|aug|add|[0-9]|\(|\/|$)/i.test(s);
+  }
+
+  function rewriteRenderedChordTexts() {
+    const root = document.getElementById('alphaTab');
+    if (!root) return;
+    const semitones = getUserTranspose();
+    const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
+    const nodes = root.querySelectorAll('text, tspan');
+    nodes.forEach((el) => {
+      if (el.children && el.children.length) return;
+      const current = (el.textContent || '').trim();
+      if (!current) return;
+      const original = el.getAttribute('data-orig-chord') || current;
+      if (!looksLikeChordSymbol(original)) return;
+      if (!el.getAttribute('data-orig-chord')) {
+        el.setAttribute('data-orig-chord', original);
+      }
+      const next = semitones === 0 ? original : transposeChordSymbol(original, semitones, preferFlats);
+      if (next && next !== current) {
+        el.textContent = next;
+      }
+    });
+  }
+
+  let __chordObserver = null;
+  let __chordRewriteTimer = null;
+  function scheduleChordRewrite(delay = 80) {
+    try { if (__chordRewriteTimer) clearTimeout(__chordRewriteTimer); } catch (e) {}
+    __chordRewriteTimer = setTimeout(() => {
+      rewriteRenderedChordTexts();
+    }, delay);
+  }
+
+  function ensureChordObserver() {
+    const root = document.getElementById('alphaTab');
+    if (!root || __chordObserver) return;
+    __chordObserver = new MutationObserver(() => {
+      scheduleChordRewrite(30);
+    });
+    __chordObserver.observe(root, { childList: true, subtree: true, characterData: false });
+  }
+
+  function computeDisplayedKeyName(meta) {
+    const m = meta || {};
+    const original = m.key_name || '--';
+    const semitones = getUserTranspose();
+    if (!original || original === '--' || semitones === 0) return original;
+    const preferFlats = prefersFlatsFromKeyName(original);
+    return transposePitchName(original, semitones, preferFlats);
+  }
+
+  function getAllTracks(api) {
+    const tracks = api?.score?.tracks || __currentScore?.tracks || [];
+    return Array.isArray(tracks) ? tracks : [];
+  }
+
+  function getSelectedTrackIndices(api) {
+    const tracks = getAllTracks(api);
+    if (!tracks.length) return [];
+    if (Array.isArray(__visibleTrackIndices)) return __visibleTrackIndices.slice();
+    return tracks.map((_, i) => i);
+  }
+
+  function applyPlaybackTrackVisibility(api) {
+    if (!api) return;
+    const tracks = getAllTracks(api);
+    if (!tracks.length || typeof api.changeTrackMute !== 'function') return;
+
+    const selected = new Set(getSelectedTrackIndices(api));
+    const hasExplicitSelection = Array.isArray(__visibleTrackIndices);
+    const useAll = !hasExplicitSelection;
+
+    tracks.forEach((track, i) => {
+      const muted = useAll ? false : !selected.has(i);
+      try { api.changeTrackMute([track], muted); } catch (e) {}
+    });
+  }
+
+  function applyScoreTransposition(api) {
+    if (!api || !api.settings) return;
+    const tracks = getAllTracks(api);
+    const trackCount = tracks.length;
+    const semitones = getEffectiveTranspose();
+    try {
+      if (!api.settings.notation) api.settings.notation = {};
+      api.settings.notation.transpositionPitches = trackCount > 0 ? Array(trackCount).fill(semitones) : [semitones];
+      api.updateSettings();
+      if (typeof api.changeTrackTranspositionPitch === 'function' && tracks.length) {
+        try { api.changeTrackTranspositionPitch(tracks, semitones); } catch (e) { console.warn('live transpose failed', e); }
+      }
+      try { api.render(); } catch (e) {}
+      scheduleChordRewrite(120);
+      scheduleTabCapoOverlay(140);
+    } catch (e) {
+      console.warn('applyScoreTransposition failed', e);
+    }
+  }
+
   function updateMetaRow(meta) {
     __currentMeta = meta || __currentMeta || {};
     const m = __currentMeta || {};
@@ -231,8 +421,8 @@
     const capoEl = document.getElementById('meta-capo');
     const speedEl = document.getElementById('meta-speed');
     if (tempoEl) tempoEl.textContent = (m.tempo != null && m.tempo !== '') ? String(m.tempo) : '--';
-    if (keyEl) keyEl.textContent = m.key_name || '--';
-    if (capoEl) capoEl.textContent = (m.capo != null && m.capo !== '') ? String(m.capo) : '0';
+    if (keyEl) keyEl.textContent = computeDisplayedKeyName(m);
+    if (capoEl) capoEl.textContent = String(getEffectiveCapo());
     if (speedEl) speedEl.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
   }
 
@@ -242,33 +432,60 @@
     const c = document.getElementById('tempo-slider');
     const d = document.getElementById('tempo-slider-value');
     const e = document.getElementById('meta-speed');
+    const f = document.getElementById('transpose-value');
+    const g = document.getElementById('capo-value');
     if (a) a.textContent = String(viewerPrefs.scoreFontSizePx);
     if (b) b.textContent = `${viewerPrefs.scoreSpacingFactor.toFixed(1)}x`;
     if (c) c.value = String(viewerPrefs.playbackSpeedPercent);
     if (d) d.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
     if (e) e.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
+    if (f) {
+      const t = getUserTranspose();
+      f.textContent = t > 0 ? `+${t}` : String(t);
+    }
+    if (g) g.textContent = String(getEffectiveCapo());
+    syncStaffModeButton();
   }
 
+  function getStaffMode() {
+    return viewerPrefs.staffMode === 'numbered' ? 'numbered' : 'standard';
+  }
 
-  function applyStaffModeToScore(api) {
-    if (!api || !api.score || !Array.isArray(api.score.tracks)) return;
-    const numbered = viewerPrefs.staffMode === 'numbered';
-    try {
-      for (const track of api.score.tracks) {
-        if (!track || !Array.isArray(track.staves)) continue;
-        for (const staff of track.staves) {
-          if (!staff) continue;
-          if ('showStandardNotation' in staff) staff.showStandardNotation = !numbered;
-          if ('showNumbered' in staff) {
-            staff.showNumbered = numbered;
-          } else {
-            // best effort for older alphaTab builds
-            staff.showNumbered = numbered;
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('applyStaffModeToScore failed', e);
+  function syncStaffModeButton() {
+    const btn = document.getElementById('btn-staff-mode');
+    if (!btn) return;
+    const numbered = getStaffMode() === 'numbered';
+    btn.textContent = numbered ? '五' : '简';
+    btn.classList.toggle('active', numbered);
+    btn.setAttribute('aria-label', numbered ? '切换为五线谱' : '切换为简谱');
+    btn.title = numbered ? '切换为五线谱' : '切换为简谱';
+  }
+
+  function applyStaffModeToScore(score) {
+    if (!score || !Array.isArray(score.tracks)) return;
+    const mode = getStaffMode();
+    const numbered = mode === 'numbered';
+    score.tracks.forEach(track => {
+      (track.staves || []).forEach(staff => {
+        try {
+          staff.showNumbered = numbered;
+          staff.showStandardNotation = !numbered;
+        } catch (e) {}
+      });
+    });
+  }
+
+  function toggleStaffMode() {
+    viewerPrefs.staffMode = getStaffMode() === 'numbered' ? 'standard' : 'numbered';
+    saveViewerPrefs();
+    syncStaffModeButton();
+    if (__currentScore && window.__atApi) {
+      applyStaffModeToScore(__currentScore);
+      renderVisibleTracks(window.__atApi);
+      scheduleResponsiveLayout(window.__atApi);
+      applyPlaybackTrackVisibility(window.__atApi);
+      applyScoreTransposition(window.__atApi);
+      scheduleChordRewrite(120);
     }
   }
 
@@ -276,8 +493,113 @@
     if (!window.__atApi) return;
     applyLyricsFont(window.__atApi, viewerPrefs.scoreFontSizePx);
     applyLyricSpacing(window.__atApi, viewerPrefs.scoreSpacingFactor);
+    applyScoreTransposition(window.__atApi);
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
+    scheduleTabCapoOverlay(120);
   }
+
+
+  let __tabCapoOverlayTimer = null;
+
+  function ensureTabCapoOverlayRoot() {
+    const host = document.getElementById('alphaTab');
+    if (!host) return null;
+    host.style.position = host.style.position || 'relative';
+    let root = host.querySelector('.tab-capo-overlay-root');
+    if (!root) {
+      root = document.createElement('div');
+      root.className = 'tab-capo-overlay-root';
+      root.style.position = 'absolute';
+      root.style.left = '0';
+      root.style.top = '0';
+      root.style.right = '0';
+      root.style.bottom = '0';
+      root.style.pointerEvents = 'none';
+      root.style.zIndex = '20';
+      host.appendChild(root);
+    }
+    return root;
+  }
+
+  function clearTabCapoOverlay() {
+    const root = document.querySelector('#alphaTab .tab-capo-overlay-root');
+    if (root) root.innerHTML = '';
+  }
+
+  function isTabBarBounds(barBounds) {
+    const staff = barBounds?.bar?.staff;
+    if (!staff) return false;
+    if (!staff.showTablature) return false;
+    if (staff.showStandardNotation) return false;
+    return true;
+  }
+
+  function getDisplayedFretForCapo(note) {
+    if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
+    const capo = getEffectiveCapo();
+    if (!capo) return null;
+    const displayed = note.fret - capo;
+    if (!Number.isFinite(displayed) || displayed < 0) return null;
+    return displayed;
+  }
+
+  function renderTabCapoOverlay() {
+    const api = window.__atApi;
+    const root = ensureTabCapoOverlayRoot();
+    if (!api || !root) return;
+    root.innerHTML = '';
+
+    const capo = getEffectiveCapo();
+    const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
+    if (!capo || !lookup || !Array.isArray(lookup.staffSystems)) return;
+
+    for (const system of lookup.staffSystems) {
+      const masterBars = Array.isArray(system?.bars) ? system.bars : [];
+      for (const masterBar of masterBars) {
+        const barBoundsList = Array.isArray(masterBar?.bars) ? masterBar.bars : [];
+        for (const barBounds of barBoundsList) {
+          if (!isTabBarBounds(barBounds)) continue;
+          const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
+          for (const beatBounds of beats) {
+            const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
+            for (const noteBounds of notes) {
+              const note = noteBounds?.note;
+              const displayFret = getDisplayedFretForCapo(note);
+              const box = noteBounds?.noteHeadBounds;
+              if (displayFret === null || !box) continue;
+              const el = document.createElement('div');
+              el.className = 'tab-capo-overlay-note';
+              el.textContent = String(displayFret);
+              el.style.position = 'absolute';
+              el.style.left = `${box.x}px`;
+              el.style.top = `${box.y}px`;
+              el.style.width = `${box.w}px`;
+              el.style.height = `${box.h}px`;
+              el.style.display = 'flex';
+              el.style.alignItems = 'center';
+              el.style.justifyContent = 'center';
+              el.style.background = '#fff';
+              el.style.color = '#111';
+              el.style.fontWeight = '700';
+              el.style.fontSize = `${Math.max(12, Math.round(box.h * 0.95))}px`;
+              el.style.lineHeight = '1';
+              el.style.borderRadius = '2px';
+              el.style.boxSizing = 'border-box';
+              root.appendChild(el);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function scheduleTabCapoOverlay(delay = 60) {
+    try { if (__tabCapoOverlayTimer) clearTimeout(__tabCapoOverlayTimer); } catch (e) {}
+    __tabCapoOverlayTimer = setTimeout(() => {
+      try { renderTabCapoOverlay(); } catch (e) { console.warn('renderTabCapoOverlay failed', e); }
+    }, delay);
+  }
+
 
   function applyViewerPrefsToLyricsPage() {
     state.lyricsFontSize = viewerPrefs.pureLyricsFontSize;
@@ -305,11 +627,22 @@
     document.getElementById('tempo-slider')?.addEventListener('input', (ev) => {
       viewerPrefs.playbackSpeedPercent = parseInt(ev.target.value, 10) || 100;
       refreshAdjustUI();
+      updateMetaRow();
       try { if (window.__atApi) window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
     });
     document.getElementById('tempo-slider')?.addEventListener('change', () => {
       saveViewerPrefs();
     });
+
+    document.getElementById('btn-transpose-plus')?.addEventListener('click', () => {
+      viewerPrefs.transposeSemitones = Math.min(getUserTranspose() + 1, 11);
+      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow(); applyViewerPrefsToScore();
+    });
+    document.getElementById('btn-transpose-minus')?.addEventListener('click', () => {
+      viewerPrefs.transposeSemitones = Math.max(getUserTranspose() - 1, -11);
+      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow(); applyViewerPrefsToScore();
+    });
+
   }
 
   
@@ -504,6 +837,7 @@
 
   function renderVisibleTracks(api) {
     if (!api || !__currentScore) return;
+    applyStaffModeToScore(__currentScore);
     let idxs = Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : [];
     if (!idxs.length) {
       // 默认：全选
@@ -515,6 +849,7 @@
       console.warn('renderScore failed, fallback render', e);
       try { api.render(); } catch(e2) {}
     }
+    applyPlaybackTrackVisibility(api);
   }
 
   function buildTracksPanel(score) {
@@ -764,6 +1099,9 @@ function pad4(num) {
     // 首次初始化 alphaTab API
     if (!window.__atApi) {
       const settings = {
+        core: {
+          includeNoteBounds: true
+        },
         // 文件由我们手动 load(ArrayBuffer) 提供，因此这里不设置 file
         display: {
           scale: 1.0
@@ -790,6 +1128,7 @@ function pad4(num) {
       // 载入谱面后：还原歌词字号/行距/缩放/多轨
       window.__atApi.scoreLoaded.on((e) => {
         __currentScore = e.score || window.__atApi.score;
+        applyStaffModeToScore(__currentScore);
         const st = window.__gtzState || {};
         __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
 
@@ -807,8 +1146,14 @@ function pad4(num) {
         enableCursor(window.__atApi);
 
         renderVisibleTracks(window.__atApi);
+        applyScoreTransposition(window.__atApi);
+        applyPlaybackTrackVisibility(window.__atApi);
+        scheduleTabCapoOverlay(180);
       });
 
+      window.__atApi.renderFinished.on(() => {
+        scheduleTabCapoOverlay(40);
+      });
 
       // 播放条绑定
       setupPlayerBar(window.__atApi);
@@ -982,6 +1327,7 @@ function pad4(num) {
     document.getElementById("search-input").value = state.currentNo;  // ★ 显示当前编号
     syncBookButtons();
     syncScriptButton(); // 默认：歌词简体，按钮显示“繁”
+    syncStaffModeButton();
 
     document.getElementById("btn-back").addEventListener("click", () => {
       window.location.href = "index.html";
@@ -1033,6 +1379,10 @@ function pad4(num) {
       getSong(state.currentBook, state.currentNo).then(song => {
         if (song) renderLyrics(song);
       });
+    });
+
+    document.getElementById("btn-staff-mode")?.addEventListener("click", () => {
+      toggleStaffMode();
     });
 
     bindViewerControls();
