@@ -292,6 +292,70 @@
     return names[next] + suffix;
   }
 
+
+  function transposeChordSymbol(symbol, semitones, preferFlats) {
+    const raw = String(symbol || '').trim();
+    if (!raw || !Number.isFinite(semitones) || semitones === 0) return raw;
+    const m = raw.match(/^([A-G](?:#|b)?)([^/]*?)(?:\/([A-G](?:#|b)?))?$/);
+    if (!m) return raw;
+    const root = m[1];
+    const quality = m[2] || '';
+    const bass = m[3] || '';
+    if (NOTE_TO_INDEX[root] == null) return raw;
+    if (bass && NOTE_TO_INDEX[bass] == null) return raw;
+    const nextRoot = transposePitchName(root, semitones, preferFlats);
+    const nextBass = bass ? transposePitchName(bass, semitones, preferFlats) : '';
+    return nextRoot + quality + (nextBass ? '/' + nextBass : '');
+  }
+
+  function looksLikeChordSymbol(text) {
+    const s = String(text || '').trim();
+    if (!s || s.length > 20) return false;
+    if (!/^[A-G](?:#|b)?/.test(s)) return false;
+    if (/[^A-Ga-g0-9#b\/()\-+susmajdimaugaddnoø°△mM ]/.test(s)) return false;
+    return /^(?:[A-G](?:#|b)?)(?:m|maj|min|sus|dim|aug|add|[0-9]|\(|\/|$)/i.test(s);
+  }
+
+  function rewriteRenderedChordTexts() {
+    const root = document.getElementById('alphaTab');
+    if (!root) return;
+    const semitones = getEffectiveTranspose();
+    const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
+    const nodes = root.querySelectorAll('text, tspan');
+    nodes.forEach((el) => {
+      if (el.children && el.children.length) return;
+      const current = (el.textContent || '').trim();
+      if (!current) return;
+      const original = el.getAttribute('data-orig-chord') || current;
+      if (!looksLikeChordSymbol(original)) return;
+      if (!el.getAttribute('data-orig-chord')) {
+        el.setAttribute('data-orig-chord', original);
+      }
+      const next = semitones === 0 ? original : transposeChordSymbol(original, semitones, preferFlats);
+      if (next && next !== current) {
+        el.textContent = next;
+      }
+    });
+  }
+
+  let __chordObserver = null;
+  let __chordRewriteTimer = null;
+  function scheduleChordRewrite(delay = 80) {
+    try { if (__chordRewriteTimer) clearTimeout(__chordRewriteTimer); } catch (e) {}
+    __chordRewriteTimer = setTimeout(() => {
+      rewriteRenderedChordTexts();
+    }, delay);
+  }
+
+  function ensureChordObserver() {
+    const root = document.getElementById('alphaTab');
+    if (!root || __chordObserver) return;
+    __chordObserver = new MutationObserver(() => {
+      scheduleChordRewrite(30);
+    });
+    __chordObserver.observe(root, { childList: true, subtree: true, characterData: false });
+  }
+
   function computeDisplayedKeyName(meta) {
     const m = meta || {};
     const original = m.key_name || '--';
@@ -341,6 +405,7 @@
         try { api.changeTrackTranspositionPitch(tracks, semitones); } catch (e) { console.warn('live transpose failed', e); }
       }
       try { api.render(); } catch (e) {}
+      scheduleChordRewrite(120);
     } catch (e) {
       console.warn('applyScoreTransposition failed', e);
     }
