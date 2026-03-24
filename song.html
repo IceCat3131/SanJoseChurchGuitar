@@ -74,6 +74,33 @@
       </div>
     </div>
 
+    <div class="meta-row card" id="meta-row">
+      <div class="meta-pill">速度 <span id="meta-tempo">--</span></div>
+      <div class="meta-pill">调 <span id="meta-key">--</span></div>
+      <div class="meta-pill">Capo <span id="meta-capo">0</span></div>
+      <div class="meta-pill">播放 <span id="meta-speed">100%</span></div>
+    </div>
+
+    <div class="adjust-row card">
+      <div class="adjust-group">
+        <span class="adjust-label">谱词字号</span>
+        <button class="mini-adjust-btn" id="btn-score-font-minus">−</button>
+        <span class="adjust-value" id="score-font-value">30</span>
+        <button class="mini-adjust-btn" id="btn-score-font-plus">+</button>
+      </div>
+      <div class="adjust-group">
+        <span class="adjust-label">谱词距</span>
+        <button class="mini-adjust-btn" id="btn-spacing-minus">−</button>
+        <span class="adjust-value" id="spacing-value">2.0x</span>
+        <button class="mini-adjust-btn" id="btn-spacing-plus">+</button>
+      </div>
+      <div class="adjust-group adjust-group-slider">
+        <span class="adjust-label">速度</span>
+        <input id="tempo-slider" class="tempo-slider" type="range" min="50" max="150" value="100" step="5" />
+        <span class="adjust-value" id="tempo-slider-value">100%</span>
+      </div>
+    </div>
+
     <!-- 第 3 部分：+ / - / 吉他 / 歌词 / 简繁 -->
     <div class="controls-row">
       <div class="controls-left">
@@ -145,6 +172,16 @@
     loadedRanges: { c: {}, ts: {} }
   };
 
+  const DEFAULT_VIEWER_PREFS = {
+    scoreFontSizePx: 30,
+    scoreSpacingFactor: 2.0,
+    pureLyricsFontSize: 24,
+    playbackSpeedPercent: 100
+  };
+
+  let viewerPrefs = loadViewerPrefs();
+  let __currentMeta = null;
+
   let converterToTraditional = null; // 简 -> 繁
   let converterToSimplified = null;  // 繁 -> 简
 
@@ -171,6 +208,87 @@
     return text;
   }
 
+  function loadViewerPrefs() {
+    try {
+      const raw = localStorage.getItem('sjcg.viewerPrefs.v1');
+      if (!raw) return { ...DEFAULT_VIEWER_PREFS };
+      const obj = JSON.parse(raw);
+      return { ...DEFAULT_VIEWER_PREFS, ...obj };
+    } catch (e) {
+      return { ...DEFAULT_VIEWER_PREFS };
+    }
+  }
+
+  function saveViewerPrefs() {
+    try { localStorage.setItem('sjcg.viewerPrefs.v1', JSON.stringify(viewerPrefs)); } catch (e) {}
+  }
+
+  function updateMetaRow(meta) {
+    __currentMeta = meta || __currentMeta || {};
+    const m = __currentMeta || {};
+    const tempoEl = document.getElementById('meta-tempo');
+    const keyEl = document.getElementById('meta-key');
+    const capoEl = document.getElementById('meta-capo');
+    const speedEl = document.getElementById('meta-speed');
+    if (tempoEl) tempoEl.textContent = (m.tempo != null && m.tempo !== '') ? String(m.tempo) : '--';
+    if (keyEl) keyEl.textContent = m.key_name || '--';
+    if (capoEl) capoEl.textContent = (m.capo != null && m.capo !== '') ? String(m.capo) : '0';
+    if (speedEl) speedEl.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
+  }
+
+  function refreshAdjustUI() {
+    const a = document.getElementById('score-font-value');
+    const b = document.getElementById('spacing-value');
+    const c = document.getElementById('tempo-slider');
+    const d = document.getElementById('tempo-slider-value');
+    const e = document.getElementById('meta-speed');
+    if (a) a.textContent = String(viewerPrefs.scoreFontSizePx);
+    if (b) b.textContent = `${viewerPrefs.scoreSpacingFactor.toFixed(1)}x`;
+    if (c) c.value = String(viewerPrefs.playbackSpeedPercent);
+    if (d) d.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
+    if (e) e.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
+  }
+
+  function applyViewerPrefsToScore() {
+    if (!window.__atApi) return;
+    applyLyricsFont(window.__atApi, viewerPrefs.scoreFontSizePx);
+    applyLyricSpacing(window.__atApi, viewerPrefs.scoreSpacingFactor);
+    try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
+  }
+
+  function applyViewerPrefsToLyricsPage() {
+    state.lyricsFontSize = viewerPrefs.pureLyricsFontSize;
+    const root = document.getElementById('lyrics-view');
+    if (root) root.style.fontSize = state.lyricsFontSize + 'px';
+  }
+
+  function bindViewerControls() {
+    document.getElementById('btn-score-font-plus')?.addEventListener('click', () => {
+      viewerPrefs.scoreFontSizePx = Math.min(viewerPrefs.scoreFontSizePx + 2, 52);
+      saveViewerPrefs(); refreshAdjustUI(); applyViewerPrefsToScore();
+    });
+    document.getElementById('btn-score-font-minus')?.addEventListener('click', () => {
+      viewerPrefs.scoreFontSizePx = Math.max(viewerPrefs.scoreFontSizePx - 2, 14);
+      saveViewerPrefs(); refreshAdjustUI(); applyViewerPrefsToScore();
+    });
+    document.getElementById('btn-spacing-plus')?.addEventListener('click', () => {
+      viewerPrefs.scoreSpacingFactor = Math.min(Math.round((viewerPrefs.scoreSpacingFactor + 0.1) * 10) / 10, 3.5);
+      saveViewerPrefs(); refreshAdjustUI(); applyViewerPrefsToScore();
+    });
+    document.getElementById('btn-spacing-minus')?.addEventListener('click', () => {
+      viewerPrefs.scoreSpacingFactor = Math.max(Math.round((viewerPrefs.scoreSpacingFactor - 0.1) * 10) / 10, 1.0);
+      saveViewerPrefs(); refreshAdjustUI(); applyViewerPrefsToScore();
+    });
+    document.getElementById('tempo-slider')?.addEventListener('input', (ev) => {
+      viewerPrefs.playbackSpeedPercent = parseInt(ev.target.value, 10) || 100;
+      refreshAdjustUI();
+      try { if (window.__atApi) window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
+    });
+    document.getElementById('tempo-slider')?.addEventListener('change', () => {
+      saveViewerPrefs();
+    });
+  }
+
   
   
   function setPlayerStatus(text) {
@@ -187,9 +305,7 @@
   }
 
   async function loadGtzIntoAlphaTab(api, gtzUrl) {
-    // 切歌时先停止，避免上一首残留
     try { api.stop(); } catch(e) {}
-    // 清空进度
     setPlayerUI({ current: 0, total: 0, playing: false });
 
     const res = await fetch(gtzUrl);
@@ -197,23 +313,23 @@
     const txt = await res.text();
     let gtz;
     try { gtz = JSON.parse(txt); } catch(e) { throw new Error('gtz 不是合法 JSON: ' + e.message); }
-    if (!gtz || typeof gtz !== 'object') throw new Error('gtz 格式错误：不是对象');
 
-    // 兼容旧版（gpBase64）与新版（score.data / scoreBase64）
     let scoreB64 = null;
-    if (gtz.gpBase64) {
-      scoreB64 = gtz.gpBase64;
-    } else if (gtz.score && gtz.score.data) {
-      scoreB64 = gtz.score.data;
-    } else if (gtz.scoreBase64) {
-      scoreB64 = gtz.scoreBase64;
-    }
-    if (!scoreB64) throw new Error('gtz 格式错误：缺少谱面数据（gpBase64 / score.data / scoreBase64）');
+    if (gtz?.gpBase64) scoreB64 = gtz.gpBase64;
+    else if (gtz?.score?.data) scoreB64 = gtz.score.data;
+    else if (gtz?.scoreBase64) scoreB64 = gtz.scoreBase64;
+    if (!scoreB64) throw new Error('gtz 格式错误：缺少谱面数据');
 
-    // 保存导出时的显示状态（歌词字号/行距/可见轨道/缩放）
-    window.__gtzState = gtz.state || gtz.viewerState || null;
-    window.__gtzMeta = gtz.meta || null;
-    window.__gtzPackage = gtz;
+    const st = gtz?.state || null;
+    const vs = gtz?.viewerState || null;
+    window.__gtzState = {
+      fontSizePx: st?.fontSizePx ?? vs?.fontSizePx ?? DEFAULT_VIEWER_PREFS.scoreFontSizePx,
+      spacingFactor: st?.spacingFactor ?? vs?.spacingFactor ?? DEFAULT_VIEWER_PREFS.scoreSpacingFactor,
+      zoom: st?.zoom ?? (vs?.zoom != null ? Math.round(vs.zoom * 100) : 100),
+      visibleTrackIndices: st?.visibleTrackIndices ?? vs?.visibleTrackIndices ?? null
+    };
+    window.__gtzMeta = gtz?.meta || null;
+    updateMetaRow(window.__gtzMeta || null);
 
     const bytes = base64ToUint8Array(scoreB64);
     api.load(bytes);
@@ -651,18 +767,22 @@ function pad4(num) {
       // 载入谱面后：还原歌词字号/行距/缩放/多轨
       window.__atApi.scoreLoaded.on((e) => {
         __currentScore = e.score || window.__atApi.score;
-        // 读取 .gtz.state
         const st = window.__gtzState || {};
-        // 默认：显示所有轨道；如果 gtz.state 指定可见轨道就按它
         __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
 
-        applyLyricsFont(window.__atApi, st.fontSizePx);
-        applyLyricSpacing(window.__atApi, st.spacingFactor);
+        if (!viewerPrefs.__initializedFromSong) {
+          viewerPrefs.scoreFontSizePx = st.fontSizePx || viewerPrefs.scoreFontSizePx;
+          viewerPrefs.scoreSpacingFactor = st.spacingFactor || viewerPrefs.scoreSpacingFactor;
+          viewerPrefs.__initializedFromSong = true;
+          saveViewerPrefs();
+        }
         applyZoom(window.__atApi, st.zoom);
+        applyViewerPrefsToScore();
+        refreshAdjustUI();
+        updateMetaRow(window.__gtzMeta || null);
 
         enableCursor(window.__atApi);
 
-        // 用 renderScore 强制“同页多轨”
         renderVisibleTracks(window.__atApi);
       });
 
@@ -697,6 +817,7 @@ function pad4(num) {
     root.innerHTML = "";
     if (!song || !song.lyrics) return;
 
+    state.lyricsFontSize = viewerPrefs.pureLyricsFontSize;
     root.style.fontSize = state.lyricsFontSize + "px";
 
     song.lyrics.forEach(section => {
@@ -891,20 +1012,36 @@ function pad4(num) {
       });
     });
 
-    // 字号 + / -
+    bindViewerControls();
+    refreshAdjustUI();
+    applyViewerPrefsToLyricsPage();
+
+    // 字号 + / - ：歌词页调纯歌词字号；乐谱页调谱内歌词字号
     document.getElementById("btn-font-plus").addEventListener("click", () => {
-  // 每次 +3，最大 32
-  state.lyricsFontSize = Math.min(state.lyricsFontSize + 3, 40);
-  getSong(state.currentBook, state.currentNo).then(song => {
-    if (song) renderLyrics(song);
-      });
+      if (state.mode === 'lyrics') {
+        viewerPrefs.pureLyricsFontSize = Math.min(viewerPrefs.pureLyricsFontSize + 3, 48);
+        saveViewerPrefs();
+        applyViewerPrefsToLyricsPage();
+        getSong(state.currentBook, state.currentNo).then(song => { if (song) renderLyrics(song); });
+      } else {
+        viewerPrefs.scoreFontSizePx = Math.min(viewerPrefs.scoreFontSizePx + 2, 52);
+        saveViewerPrefs();
+        refreshAdjustUI();
+        applyViewerPrefsToScore();
+      }
     });
-   document.getElementById("btn-font-minus").addEventListener("click", () => {
-  // 每次 -3，最小 12 保持不变
-  state.lyricsFontSize = Math.max(state.lyricsFontSize - 3, 12);
-  getSong(state.currentBook, state.currentNo).then(song => {
-    if (song) renderLyrics(song);
-      });
+    document.getElementById("btn-font-minus").addEventListener("click", () => {
+      if (state.mode === 'lyrics') {
+        viewerPrefs.pureLyricsFontSize = Math.max(viewerPrefs.pureLyricsFontSize - 3, 12);
+        saveViewerPrefs();
+        applyViewerPrefsToLyricsPage();
+        getSong(state.currentBook, state.currentNo).then(song => { if (song) renderLyrics(song); });
+      } else {
+        viewerPrefs.scoreFontSizePx = Math.max(viewerPrefs.scoreFontSizePx - 2, 14);
+        saveViewerPrefs();
+        refreshAdjustUI();
+        applyViewerPrefsToScore();
+      }
     });
 
     await loadAndRenderCurrentSong();

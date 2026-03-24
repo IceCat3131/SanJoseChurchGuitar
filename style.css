@@ -609,3 +609,21 @@ flex: 1;
 .at-cursor, .at-cursor-line, #at-cursor, #cursor, .cursor {
   stroke-width: 2 !important;
 }
+
+
+/* ==== viewer controls patch ==== */
+.meta-row, .adjust-row {
+  display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px;
+}
+.meta-pill {
+  background: rgba(37,99,235,0.08); color: var(--primary); border-radius: 999px; padding: 8px 12px; font-size: 15px; font-weight: 600;
+}
+.adjust-group {
+  display:flex; align-items:center; gap:8px; background: rgba(255,255,255,0.65); border-radius: 999px; padding: 8px 12px; box-shadow: var(--shadow-soft);
+}
+.adjust-group-slider { flex: 1 1 260px; }
+.adjust-label { font-size: 14px; color: var(--text-subtle); font-weight: 600; }
+.adjust-value { min-width: 48px; text-align:center; font-weight:700; color: var(--primary); }
+.mini-adjust-btn { width: 28px; height: 28px; border:none; border-radius:50%; background: var(--primary-soft); color: var(--primary); font-size: 20px; font-weight:700; cursor:pointer; line-height:1; }
+.tempo-slider { flex:1; min-width: 120px; }
+@media (max-width: 640px) { .meta-row, .adjust-row { gap:8px; } .meta-pill, .adjust-group { width:auto; } .adjust-group-slider { flex-basis: 100%; } }
