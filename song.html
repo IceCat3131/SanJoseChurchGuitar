@@ -197,12 +197,25 @@
     const txt = await res.text();
     let gtz;
     try { gtz = JSON.parse(txt); } catch(e) { throw new Error('gtz 不是合法 JSON: ' + e.message); }
-    if (!gtz || !gtz.gpBase64) throw new Error("gtz 格式错误：缺少 gpBase64");
+    if (!gtz || typeof gtz !== 'object') throw new Error('gtz 格式错误：不是对象');
+
+    // 兼容旧版（gpBase64）与新版（score.data / scoreBase64）
+    let scoreB64 = null;
+    if (gtz.gpBase64) {
+      scoreB64 = gtz.gpBase64;
+    } else if (gtz.score && gtz.score.data) {
+      scoreB64 = gtz.score.data;
+    } else if (gtz.scoreBase64) {
+      scoreB64 = gtz.scoreBase64;
+    }
+    if (!scoreB64) throw new Error('gtz 格式错误：缺少谱面数据（gpBase64 / score.data / scoreBase64）');
 
     // 保存导出时的显示状态（歌词字号/行距/可见轨道/缩放）
-    window.__gtzState = gtz.state || null;
+    window.__gtzState = gtz.state || gtz.viewerState || null;
+    window.__gtzMeta = gtz.meta || null;
+    window.__gtzPackage = gtz;
 
-    const bytes = base64ToUint8Array(gtz.gpBase64);
+    const bytes = base64ToUint8Array(scoreB64);
     api.load(bytes);
 
     setPlayerStatus('谱面已加载');
