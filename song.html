@@ -406,6 +406,7 @@
       }
       try { api.render(); } catch (e) {}
       scheduleChordRewrite(120);
+      scheduleTabCapoOverlay(140);
     } catch (e) {
       console.warn('applyScoreTransposition failed', e);
     }
@@ -450,7 +451,111 @@
     applyLyricSpacing(window.__atApi, viewerPrefs.scoreSpacingFactor);
     applyScoreTransposition(window.__atApi);
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
+    scheduleTabCapoOverlay(120);
   }
+
+
+  let __tabCapoOverlayTimer = null;
+
+  function ensureTabCapoOverlayRoot() {
+    const host = document.getElementById('alphaTab');
+    if (!host) return null;
+    host.style.position = host.style.position || 'relative';
+    let root = host.querySelector('.tab-capo-overlay-root');
+    if (!root) {
+      root = document.createElement('div');
+      root.className = 'tab-capo-overlay-root';
+      root.style.position = 'absolute';
+      root.style.left = '0';
+      root.style.top = '0';
+      root.style.right = '0';
+      root.style.bottom = '0';
+      root.style.pointerEvents = 'none';
+      root.style.zIndex = '20';
+      host.appendChild(root);
+    }
+    return root;
+  }
+
+  function clearTabCapoOverlay() {
+    const root = document.querySelector('#alphaTab .tab-capo-overlay-root');
+    if (root) root.innerHTML = '';
+  }
+
+  function isTabBarBounds(barBounds) {
+    const staff = barBounds?.bar?.staff;
+    if (!staff) return false;
+    if (!staff.showTablature) return false;
+    if (staff.showStandardNotation) return false;
+    return true;
+  }
+
+  function getDisplayedFretForCapo(note) {
+    if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
+    const capo = getEffectiveCapo();
+    if (!capo) return null;
+    const displayed = note.fret - capo;
+    if (!Number.isFinite(displayed) || displayed < 0) return null;
+    return displayed;
+  }
+
+  function renderTabCapoOverlay() {
+    const api = window.__atApi;
+    const root = ensureTabCapoOverlayRoot();
+    if (!api || !root) return;
+    root.innerHTML = '';
+
+    const capo = getEffectiveCapo();
+    const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
+    if (!capo || !lookup || !Array.isArray(lookup.staffSystems)) return;
+
+    for (const system of lookup.staffSystems) {
+      const masterBars = Array.isArray(system?.bars) ? system.bars : [];
+      for (const masterBar of masterBars) {
+        const barBoundsList = Array.isArray(masterBar?.bars) ? masterBar.bars : [];
+        for (const barBounds of barBoundsList) {
+          if (!isTabBarBounds(barBounds)) continue;
+          const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
+          for (const beatBounds of beats) {
+            const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
+            for (const noteBounds of notes) {
+              const note = noteBounds?.note;
+              const displayFret = getDisplayedFretForCapo(note);
+              const box = noteBounds?.noteHeadBounds;
+              if (displayFret === null || !box) continue;
+              const el = document.createElement('div');
+              el.className = 'tab-capo-overlay-note';
+              el.textContent = String(displayFret);
+              el.style.position = 'absolute';
+              el.style.left = `${box.x}px`;
+              el.style.top = `${box.y}px`;
+              el.style.width = `${box.w}px`;
+              el.style.height = `${box.h}px`;
+              el.style.display = 'flex';
+              el.style.alignItems = 'center';
+              el.style.justifyContent = 'center';
+              el.style.background = '#fff';
+              el.style.color = '#111';
+              el.style.fontWeight = '700';
+              el.style.fontSize = `${Math.max(12, Math.round(box.h * 0.95))}px`;
+              el.style.lineHeight = '1';
+              el.style.borderRadius = '2px';
+              el.style.boxSizing = 'border-box';
+              root.appendChild(el);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function scheduleTabCapoOverlay(delay = 60) {
+    try { if (__tabCapoOverlayTimer) clearTimeout(__tabCapoOverlayTimer); } catch (e) {}
+    __tabCapoOverlayTimer = setTimeout(() => {
+      try { renderTabCapoOverlay(); } catch (e) { console.warn('renderTabCapoOverlay failed', e); }
+    }, delay);
+  }
+
 
   function applyViewerPrefsToLyricsPage() {
     state.lyricsFontSize = viewerPrefs.pureLyricsFontSize;
@@ -957,6 +1062,9 @@ function pad4(num) {
     // 首次初始化 alphaTab API
     if (!window.__atApi) {
       const settings = {
+        core: {
+          includeNoteBounds: true
+        },
         // 文件由我们手动 load(ArrayBuffer) 提供，因此这里不设置 file
         display: {
           scale: 1.0
@@ -1002,8 +1110,12 @@ function pad4(num) {
         renderVisibleTracks(window.__atApi);
         applyScoreTransposition(window.__atApi);
         applyPlaybackTrackVisibility(window.__atApi);
+        scheduleTabCapoOverlay(180);
       });
 
+      window.__atApi.renderFinished.on(() => {
+        scheduleTabCapoOverlay(40);
+      });
 
       // 播放条绑定
       setupPlayerBar(window.__atApi);
