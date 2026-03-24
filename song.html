@@ -99,6 +99,18 @@
         <input id="tempo-slider" class="tempo-slider" type="range" min="50" max="150" value="100" step="5" />
         <span class="adjust-value" id="tempo-slider-value">100%</span>
       </div>
+      <div class="adjust-group">
+        <span class="adjust-label">转调</span>
+        <button class="mini-adjust-btn" id="btn-transpose-minus">−</button>
+        <span class="adjust-value" id="transpose-value">0</span>
+        <button class="mini-adjust-btn" id="btn-transpose-plus">+</button>
+      </div>
+      <div class="adjust-group">
+        <span class="adjust-label">Capo</span>
+        <button class="mini-adjust-btn" id="btn-capo-minus">−</button>
+        <span class="adjust-value" id="capo-value">0</span>
+        <button class="mini-adjust-btn" id="btn-capo-plus">+</button>
+      </div>
     </div>
 
     <!-- 第 3 部分：+ / - / 吉他 / 歌词 / 简繁 -->
@@ -176,7 +188,9 @@
     scoreFontSizePx: 30,
     scoreSpacingFactor: 2.0,
     pureLyricsFontSize: 24,
-    playbackSpeedPercent: 100
+    playbackSpeedPercent: 100,
+    transposeSemitones: 0,
+    capoOverride: null
   };
 
   let viewerPrefs = loadViewerPrefs();
@@ -223,6 +237,85 @@
     try { localStorage.setItem('sjcg.viewerPrefs.v1', JSON.stringify(viewerPrefs)); } catch (e) {}
   }
 
+  function normalizeCapoOverride(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const n = parseInt(value, 10);
+    if (!Number.isFinite(n)) return null;
+    return Math.max(0, Math.min(12, n));
+  }
+
+  function getEffectiveCapo() {
+    const override = normalizeCapoOverride(viewerPrefs.capoOverride);
+    if (override !== null) return override;
+    const metaCapo = parseInt(window.__gtzMeta?.capo, 10);
+    return Number.isFinite(metaCapo) ? Math.max(0, metaCapo) : 0;
+  }
+
+  function getEffectiveTranspose() {
+    const n = parseInt(viewerPrefs.transposeSemitones, 10);
+    return Number.isFinite(n) ? Math.max(-11, Math.min(11, n)) : 0;
+  }
+
+  const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const NOTE_INDEX_FLAT  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  const NOTE_TO_INDEX = {
+    C: 0, 'B#': 0,
+    'C#': 1, Db: 1,
+    D: 2,
+    'D#': 3, Eb: 3,
+    E: 4, Fb: 4,
+    F: 5, 'E#': 5,
+    'F#': 6, Gb: 6,
+    G: 7,
+    'G#': 8, Ab: 8,
+    A: 9,
+    'A#': 10, Bb: 10,
+    B: 11, Cb: 11
+  };
+
+  function prefersFlatsFromKeyName(keyName) {
+    if (!keyName) return true;
+    return String(keyName).includes('b') || /^F(?:$|m)/i.test(String(keyName));
+  }
+
+  function transposePitchName(name, semitones, preferFlats) {
+    if (!name || !Number.isFinite(semitones)) return name || '--';
+    const normalized = String(name).trim();
+    const m = normalized.match(/^([A-G](?:#|b)?)(.*)$/);
+    if (!m) return normalized;
+    const root = m[1];
+    const suffix = m[2] || '';
+    const idx = NOTE_TO_INDEX[root];
+    if (idx == null) return normalized;
+    const next = (idx + semitones % 12 + 12) % 12;
+    const names = preferFlats ? NOTE_INDEX_FLAT : NOTE_INDEX_SHARP;
+    return names[next] + suffix;
+  }
+
+  function computeDisplayedKeyName(meta) {
+    const m = meta || {};
+    const original = m.key_name || '--';
+    const semitones = getEffectiveTranspose();
+    if (!original || original === '--' || semitones === 0) return original;
+    const preferFlats = prefersFlatsFromKeyName(original);
+    return transposePitchName(original, semitones, preferFlats);
+  }
+
+  function applyScoreTransposition(api) {
+    if (!api || !api.settings) return;
+    const score = api.score || window.__currentScore || null;
+    const trackCount = score?.tracks?.length || 0;
+    const semitones = getEffectiveTranspose();
+    try {
+      if (!api.settings.notation) api.settings.notation = {};
+      api.settings.notation.transpositionPitches = trackCount > 0 ? Array(trackCount).fill(semitones) : [semitones];
+      api.updateSettings();
+      try { api.render(); } catch (e) {}
+    } catch (e) {
+      console.warn('applyScoreTransposition failed', e);
+    }
+  }
+
   function updateMetaRow(meta) {
     __currentMeta = meta || __currentMeta || {};
     const m = __currentMeta || {};
@@ -231,8 +324,8 @@
     const capoEl = document.getElementById('meta-capo');
     const speedEl = document.getElementById('meta-speed');
     if (tempoEl) tempoEl.textContent = (m.tempo != null && m.tempo !== '') ? String(m.tempo) : '--';
-    if (keyEl) keyEl.textContent = m.key_name || '--';
-    if (capoEl) capoEl.textContent = (m.capo != null && m.capo !== '') ? String(m.capo) : '0';
+    if (keyEl) keyEl.textContent = computeDisplayedKeyName(m);
+    if (capoEl) capoEl.textContent = String(getEffectiveCapo());
     if (speedEl) speedEl.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
   }
 
@@ -242,17 +335,25 @@
     const c = document.getElementById('tempo-slider');
     const d = document.getElementById('tempo-slider-value');
     const e = document.getElementById('meta-speed');
+    const f = document.getElementById('transpose-value');
+    const g = document.getElementById('capo-value');
     if (a) a.textContent = String(viewerPrefs.scoreFontSizePx);
     if (b) b.textContent = `${viewerPrefs.scoreSpacingFactor.toFixed(1)}x`;
     if (c) c.value = String(viewerPrefs.playbackSpeedPercent);
     if (d) d.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
     if (e) e.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
+    if (f) {
+      const t = getEffectiveTranspose();
+      f.textContent = t > 0 ? `+${t}` : String(t);
+    }
+    if (g) g.textContent = String(getEffectiveCapo());
   }
 
   function applyViewerPrefsToScore() {
     if (!window.__atApi) return;
     applyLyricsFont(window.__atApi, viewerPrefs.scoreFontSizePx);
     applyLyricSpacing(window.__atApi, viewerPrefs.scoreSpacingFactor);
+    applyScoreTransposition(window.__atApi);
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
   }
 
@@ -282,10 +383,29 @@
     document.getElementById('tempo-slider')?.addEventListener('input', (ev) => {
       viewerPrefs.playbackSpeedPercent = parseInt(ev.target.value, 10) || 100;
       refreshAdjustUI();
+      updateMetaRow();
       try { if (window.__atApi) window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
     });
     document.getElementById('tempo-slider')?.addEventListener('change', () => {
       saveViewerPrefs();
+    });
+
+    document.getElementById('btn-transpose-plus')?.addEventListener('click', () => {
+      viewerPrefs.transposeSemitones = Math.min(getEffectiveTranspose() + 1, 11);
+      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow(); applyViewerPrefsToScore();
+    });
+    document.getElementById('btn-transpose-minus')?.addEventListener('click', () => {
+      viewerPrefs.transposeSemitones = Math.max(getEffectiveTranspose() - 1, -11);
+      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow(); applyViewerPrefsToScore();
+    });
+
+    document.getElementById('btn-capo-plus')?.addEventListener('click', () => {
+      viewerPrefs.capoOverride = Math.min(getEffectiveCapo() + 1, 12);
+      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow();
+    });
+    document.getElementById('btn-capo-minus')?.addEventListener('click', () => {
+      viewerPrefs.capoOverride = Math.max(getEffectiveCapo() - 1, 0);
+      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow();
     });
   }
 
