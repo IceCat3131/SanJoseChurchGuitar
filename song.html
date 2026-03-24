@@ -590,11 +590,11 @@
     });
 
     document.getElementById('btn-transpose-plus')?.addEventListener('click', () => {
-      viewerPrefs.transposeSemitones = Math.min(getEffectiveTranspose() + 1, 11);
+      viewerPrefs.transposeSemitones = Math.min(getUserTranspose() + 1, 11);
       saveViewerPrefs(); refreshAdjustUI(); updateMetaRow(); applyViewerPrefsToScore();
     });
     document.getElementById('btn-transpose-minus')?.addEventListener('click', () => {
-      viewerPrefs.transposeSemitones = Math.max(getEffectiveTranspose() - 1, -11);
+      viewerPrefs.transposeSemitones = Math.max(getUserTranspose() - 1, -11);
       saveViewerPrefs(); refreshAdjustUI(); updateMetaRow(); applyViewerPrefsToScore();
     });
 
