@@ -1398,6 +1398,7 @@ function pad4(num) {
       setStaffMode(next);
       applyStaffMode();
       updateStaffToggleUI();
+      runJianKeyFix();
     });
     host.appendChild(btn);
     updateStaffToggleUI();
@@ -1411,7 +1412,6 @@ function pad4(num) {
     for (const track of api.score.tracks){
       if (!track || !Array.isArray(track.staves)) continue;
       for (const staff of track.staves){
-        // 只处理非TAB staff；TAB 保持原样
         if (staff.showTablature) continue;
         staff.showStandardNotation = (mode !== 'jian');
         if ('showNumbered' in staff) staff.showNumbered = (mode === 'jian');
@@ -1438,69 +1438,130 @@ function pad4(num) {
   });
 })();
 
-// ===== 简谱首行 1=bA 微调（增量补丁）=====
+// ===== 简谱首行 1=bA 微调（直接改文本 y / x，避免 transform 不生效）=====
 (function(){
-  function adjustJianKeyPosition(){
-    const isJian = document.body.classList.contains('jian-mode');
-    if (!isJian) return;
+  function restoreJianKeyFix(svg){
+    svg.querySelectorAll('[data-jianfix="1"]').forEach(function(el){
+      const ox = el.getAttribute('data-old-x');
+      const oy = el.getAttribute('data-old-y');
+      const ot = el.getAttribute('data-old-transform');
+      if (ox !== null) el.setAttribute('x', ox);
+      if (oy !== null) el.setAttribute('y', oy);
+      if (ot !== null) {
+        if (ot === '') el.removeAttribute('transform');
+        else el.setAttribute('transform', ot);
+      }
+      el.removeAttribute('data-jianfix');
+      el.removeAttribute('data-old-x');
+      el.removeAttribute('data-old-y');
+      el.removeAttribute('data-old-transform');
+    });
+  }
 
+  function moveNode(el, dx, dy){
+    if (!el || el.getAttribute('data-jianfix') === '1') return;
+    el.setAttribute('data-jianfix', '1');
+    el.setAttribute('data-old-x', el.getAttribute('x') || '');
+    el.setAttribute('data-old-y', el.getAttribute('y') || '');
+    el.setAttribute('data-old-transform', el.getAttribute('transform') || '');
+
+    const xAttr = el.getAttribute('x');
+    const yAttr = el.getAttribute('y');
+    let moved = false;
+
+    if (xAttr !== null || yAttr !== null){
+      if (xAttr !== null && !Number.isNaN(parseFloat(xAttr))) {
+        el.setAttribute('x', String(parseFloat(xAttr) + dx));
+        moved = true;
+      }
+      if (yAttr !== null && !Number.isNaN(parseFloat(yAttr))) {
+        el.setAttribute('y', String(parseFloat(yAttr) - dy));
+        moved = true;
+      }
+    }
+    if (!moved){
+      const old = el.getAttribute('transform') || '';
+      const m = old.match(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/);
+      if (m){
+        const x = parseFloat(m[1]) + dx;
+        const y = parseFloat(m[2]) - dy;
+        el.setAttribute('transform', old.replace(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/, 'translate(' + x + ' ' + y + ')'));
+      } else {
+        el.setAttribute('transform', (old + ' translate(' + dx + ' -' + dy + ')').trim());
+      }
+    }
+  }
+
+  function runOnce(){
+    const isJian = document.body.classList.contains('jian-mode');
     const svg = document.querySelector('#alphaTab svg');
     if (!svg) return;
 
-    const texts = svg.querySelectorAll('text');
-    texts.forEach(el => {
-      const txt = (el.textContent || '').trim();
-      if (txt === '1=' || /^1\s*=/.test(txt)) {
-        const g = el.parentElement;
-        if (!g) return;
-        if (g.dataset.adjustedJianKey) return;
-        g.dataset.adjustedJianKey = "1";
+    restoreJianKeyFix(svg);
+    if (!isJian) return;
 
-        const old = g.getAttribute('transform') || '';
-        const m = old.match(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/);
-        if (m) {
-          const x = parseFloat(m[1]);
-          const y = parseFloat(m[2]) - 30;
-          g.setAttribute('transform', `translate(${x} ${y})`);
-        } else {
-          g.setAttribute('transform', `${old} translate(0 -30)`);
-        }
+    const texts = Array.from(svg.querySelectorAll('text'));
+    let anchor = null;
 
-        let sib = g.nextElementSibling;
-        let count = 0;
-        while (sib && count < 4) {
-          const old2 = sib.getAttribute('transform') || '';
-          const m2 = old2.match(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/);
-          if (m2) {
-            const x2 = parseFloat(m2[1]);
-            const y2 = parseFloat(m2[2]) - 30;
-            sib.setAttribute('transform', `translate(${x2} ${y2})`);
-          } else {
-            sib.setAttribute('transform', `${old2} translate(0 -30)`);
-          }
-          sib = sib.nextElementSibling;
-          count++;
-        }
+    for (const t of texts){
+      const txt = (t.textContent || '').trim();
+      let bb = null;
+      try { bb = t.getBBox(); } catch(e) {}
+      if ((txt === '1=' || /^1\s*=/.test(txt)) && bb && bb.x < 180 && bb.y < 130){
+        anchor = t;
+        break;
+      }
+    }
+    if (!anchor) return;
+
+    // 只改首行左上这一小群文本，向上 30px，略向左 6px
+    const cluster = [];
+    cluster.push(anchor);
+    let p = anchor.parentElement;
+    if (p && p !== svg) cluster.push(p);
+
+    // 找附近文本
+    texts.forEach(function(t){
+      if (t === anchor) return;
+      let bb = null;
+      try { bb = t.getBBox(); } catch(e) {}
+      if (!bb) return;
+      const s = (t.textContent || '').trim();
+      if (bb.x < 240 && bb.y < 140 && (/^[#bA-G]+$/.test(s) || s === '1=' || /^1\s*=/.test(s))) {
+        cluster.push(t);
+        if (t.parentElement && t.parentElement !== svg) cluster.push(t.parentElement);
       }
     });
+
+    const seen = new Set();
+    cluster.forEach(function(el){
+      if (!el || seen.has(el)) return;
+      seen.add(el);
+      moveNode(el, -6, 30);
+    });
   }
-  function run(){
-    setTimeout(adjustJianKeyPosition, 50);
-    setTimeout(adjustJianKeyPosition, 200);
-    setTimeout(adjustJianKeyPosition, 500);
+
+  function runJianKeyFix(){
+    setTimeout(runOnce, 60);
+    setTimeout(runOnce, 220);
+    setTimeout(runOnce, 700);
   }
-  document.addEventListener('DOMContentLoaded', run);
-  const t = setInterval(()=>{
+
+  document.addEventListener('DOMContentLoaded', runJianKeyFix);
+
+  const t = setInterval(function(){
     if (window.__atApi){
       clearInterval(t);
       try{
-        if (window.__atApi.renderFinished){
-          window.__atApi.renderFinished.on(run);
+        if (window.__atApi.renderFinished && window.__atApi.renderFinished.on){
+          window.__atApi.renderFinished.on(function(){
+            runJianKeyFix();
+          });
         }
       }catch(e){}
-      run();
+      runJianKeyFix();
     }
-  },300);
+  }, 300);
 })();
 </script>
 
