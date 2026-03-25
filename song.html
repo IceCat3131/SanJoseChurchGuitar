@@ -9,6 +9,149 @@
   <script src="assets/alphatab/alphaTab.js"></script>
   <!-- 简繁转换库：opencc-js（浏览器 UMD 完整版） -->
   <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
+
+<style id="responsive-refactor-style">
+  :root{
+    --shell-bg:#ffffff;
+    --shell-fg:#111827;
+    --shell-muted:#6b7280;
+    --shell-blue:#2563eb;
+    --shell-soft:#eef3fb;
+    --shell-border:#d8e1ef;
+    --shell-card:#ffffff;
+    --shell-shadow:0 6px 24px rgba(37,99,235,.08);
+    --shell-radius:18px;
+    --page-max:1400px;
+  }
+  body{background:#eef2f7;}
+  .page{max-width:var(--page-max); margin:0 auto;}
+  .page-inner{padding-top:12px;}
+  .topbar,.player-bar,.meta-row,.adjust-row,.controls-row,.card > .search-bar{display:none !important;}
+  #app-shell{display:block; margin:0 auto 10px; padding:10px 12px 0;}
+  .shell-toolbar{
+    display:grid;
+    grid-template-columns:auto auto auto auto auto auto auto auto auto auto auto auto auto;
+    gap:8px;
+    align-items:center;
+    background:rgba(255,255,255,.86);
+    backdrop-filter:blur(8px);
+    border:1px solid var(--shell-border);
+    border-radius:22px;
+    padding:10px 12px;
+    box-shadow:var(--shell-shadow);
+  }
+  .shell-btn,.shell-pill{
+    border:none;
+    background:transparent;
+    color:var(--shell-fg);
+    font-weight:700;
+    min-height:38px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 8px;
+    border-radius:999px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .shell-btn:hover,.shell-pill:hover{background:#f3f6fb;}
+  .shell-icon{font-size:18px;}
+  .shell-play{
+    width:42px; height:42px; padding:0; background:var(--shell-blue); color:#fff;
+    box-shadow:0 6px 16px rgba(37,99,235,.25);
+  }
+  .shell-pill{font-size:15px;}
+  .shell-pill.shell-mini{min-width:34px; padding:0 6px;}
+  .shell-progress-wrap{position:relative; padding:10px 4px 0;}
+  .shell-progress{
+    width:100%; accent-color:var(--shell-blue);
+  }
+  .shell-time{
+    text-align:center; margin-top:2px; color:#6b7280; font-size:14px; font-weight:600;
+  }
+  .shell-title-wrap{
+    text-align:center; padding:8px 12px 10px;
+  }
+  .shell-main-title{font-size:clamp(22px,3.2vw,34px); line-height:1.25; font-weight:800; color:#111827;}
+  .shell-sub-title{margin-top:4px; font-size:clamp(15px,2.2vw,22px); line-height:1.35; color:#374151; font-weight:700;}
+  .shell-panels{
+    display:grid;
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:12px;
+    margin:0 0 12px;
+  }
+  .shell-panel{
+    grid-column:span 2;
+    background:rgba(255,255,255,.94);
+    border:1px solid var(--shell-border);
+    border-radius:18px;
+    padding:14px;
+    box-shadow:var(--shell-shadow);
+  }
+  .shell-panel-title{font-size:14px; color:var(--shell-muted); font-weight:700; margin-bottom:10px;}
+  .shell-panel-row{display:flex; align-items:center; gap:10px;}
+  .shell-panel-row input[type="range"]{flex:1; accent-color:var(--shell-blue);}
+  .shell-panel-value{font-size:18px; font-weight:800; color:var(--shell-blue); min-width:48px; text-align:center;}
+  .shell-panel-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:12px;}
+  .shell-panel-btn,.shell-option-btn,.shell-seg-btn,.shell-step-btn{
+    border:1px solid var(--shell-border);
+    background:#fff;
+    color:var(--shell-fg);
+    border-radius:12px;
+    min-height:40px;
+    padding:0 14px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .shell-primary{background:var(--shell-blue); color:#fff; border-color:transparent;}
+  .shell-option-list{display:flex; gap:10px; flex-wrap:wrap;}
+  .shell-grid-two{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px;}
+  .shell-control-card{background:var(--shell-soft); border-radius:14px; padding:10px;}
+  .shell-control-label{font-size:13px; color:var(--shell-muted); margin-bottom:8px; font-weight:700;}
+  .shell-panel-stepper{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .shell-step-btn{width:40px; padding:0; font-size:24px; line-height:1;}
+  .shell-search-book{display:flex; gap:8px; margin-bottom:10px;}
+  .shell-seg-btn.active,.shell-option-btn.active{background:var(--shell-blue); color:#fff; border-color:transparent;}
+  .shell-search-row{display:flex; gap:8px;}
+  .shell-search-input{
+    flex:1; min-width:0; border:1px solid var(--shell-border); border-radius:12px; min-height:42px; padding:0 12px; font-size:16px;
+  }
+  .shell-panel-note{margin-top:8px; color:var(--shell-muted); font-size:12px;}
+  .content-card{background:#fff; border-radius:24px; box-shadow:var(--shell-shadow); border:1px solid var(--shell-border);}
+  #score-view{padding-top:8px;}
+  @media (max-width: 1024px){
+    .shell-toolbar{
+      grid-template-columns:repeat(13,minmax(0,auto));
+      overflow-x:auto;
+      scrollbar-width:none;
+    }
+    .shell-toolbar::-webkit-scrollbar{display:none;}
+    .shell-panels{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .shell-panel{grid-column:span 1;}
+  }
+  @media (max-width: 767px){
+    .page-inner{padding-top:6px;}
+    #app-shell{padding:8px 8px 0;}
+    .shell-toolbar{
+      grid-template-columns:repeat(13,max-content);
+      gap:6px;
+      padding:8px 10px;
+      border-radius:18px;
+    }
+    .shell-btn,.shell-pill{min-height:34px; font-size:14px; padding:0 6px;}
+    .shell-play{width:38px; height:38px;}
+    .shell-progress-wrap{padding:8px 2px 0;}
+    .shell-time{font-size:13px;}
+    .shell-title-wrap{padding:6px 8px 8px;}
+    .shell-main-title{font-size:clamp(16px,6vw,28px);}
+    .shell-sub-title{font-size:clamp(13px,4.2vw,18px);}
+    .shell-panels{grid-template-columns:1fr; gap:10px;}
+    .shell-panel{grid-column:span 1; padding:12px;}
+    .shell-grid-two{grid-template-columns:1fr;}
+    .content-card{border-radius:18px;}
+  }
+</style>
+
 </head>
 <body>
 <div class="page">
@@ -138,6 +281,120 @@
     </div>
 
     <!-- 第 4 部分：内容 -->
+    
+    <div id="app-shell" class="app-shell">
+      <div class="shell-toolbar">
+        <button class="shell-btn shell-icon" id="shell-home" aria-label="首页">⌂</button>
+        <button class="shell-pill" id="shell-speed-btn"><span id="shell-speed-label">95</span></button>
+        <button class="shell-pill" id="shell-key-btn"><span id="shell-key-label">--</span></button>
+        <div class="shell-pill shell-capo" id="shell-capo-pill">CP<span id="shell-capo-label">0</span></div>
+        <button class="shell-pill shell-mode" id="shell-mode-btn"><span id="shell-mode-label">吉</span></button>
+        <button class="shell-btn shell-icon" id="shell-prev" aria-label="上一首">⏮</button>
+        <button class="shell-btn shell-play" id="shell-play" aria-label="播放">▶</button>
+        <button class="shell-btn shell-icon" id="shell-next" aria-label="下一首">⏭</button>
+        <button class="shell-pill shell-mini" id="shell-text-btn">字</button>
+        <button class="shell-pill shell-mini" id="shell-track-btn">轨</button>
+        <button class="shell-pill shell-mini" id="shell-staff-btn">谱</button>
+        <button class="shell-btn shell-icon" id="shell-lang-btn" aria-label="语言">🌐</button>
+        <button class="shell-btn shell-icon" id="shell-search-btn" aria-label="搜索">⌕</button>
+      </div>
+      <div class="shell-progress-wrap">
+        <input class="shell-progress" id="shell-progress" type="range" min="0" max="1000" value="0" />
+        <div class="shell-time" id="shell-time">00:00</div>
+      </div>
+
+      <div class="shell-title-wrap">
+        <div class="shell-main-title" id="shell-main-title"></div>
+        <div class="shell-sub-title" id="shell-sub-title"></div>
+      </div>
+
+      <div class="shell-panels">
+        <div class="shell-panel" id="panel-speed" hidden>
+          <div class="shell-panel-title">速度</div>
+          <div class="shell-panel-row">
+            <input id="panel-speed-range" type="range" min="50" max="150" step="5" value="100" />
+            <div class="shell-panel-value" id="panel-speed-value">100%</div>
+          </div>
+          <div class="shell-panel-actions">
+            <button class="shell-panel-btn" id="panel-speed-reset">恢复</button>
+            <button class="shell-panel-btn shell-primary" data-close-panel>完成</button>
+          </div>
+        </div>
+
+        <div class="shell-panel" id="panel-key" hidden>
+          <div class="shell-panel-title">转调</div>
+          <div class="shell-panel-row shell-panel-stepper">
+            <button class="shell-step-btn" id="panel-key-minus">−</button>
+            <div class="shell-panel-value" id="panel-key-value">0</div>
+            <button class="shell-step-btn" id="panel-key-plus">+</button>
+          </div>
+          <div class="shell-panel-actions">
+            <button class="shell-panel-btn" id="panel-key-reset">恢复</button>
+            <button class="shell-panel-btn shell-primary" data-close-panel>完成</button>
+          </div>
+        </div>
+
+        <div class="shell-panel" id="panel-mode" hidden>
+          <div class="shell-panel-title">内容</div>
+          <div class="shell-option-list">
+            <button class="shell-option-btn" id="panel-mode-score">吉他</button>
+            <button class="shell-option-btn" id="panel-mode-lyrics">歌词</button>
+          </div>
+        </div>
+
+        <div class="shell-panel" id="panel-text" hidden>
+          <div class="shell-panel-title">字</div>
+          <div class="shell-panel-row shell-grid-two">
+            <div class="shell-control-card">
+              <div class="shell-control-label">谱词字号</div>
+              <div class="shell-panel-stepper">
+                <button class="shell-step-btn" id="panel-font-minus">−</button>
+                <div class="shell-panel-value" id="panel-font-value">30</div>
+                <button class="shell-step-btn" id="panel-font-plus">+</button>
+              </div>
+            </div>
+            <div class="shell-control-card">
+              <div class="shell-control-label">谱词距</div>
+              <div class="shell-panel-stepper">
+                <button class="shell-step-btn" id="panel-spacing-minus">−</button>
+                <div class="shell-panel-value" id="panel-spacing-value">2.0x</div>
+                <button class="shell-step-btn" id="panel-spacing-plus">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="shell-panel" id="panel-staff" hidden>
+          <div class="shell-panel-title">谱</div>
+          <div class="shell-option-list">
+            <button class="shell-option-btn" id="panel-staff-five">五线谱</button>
+            <button class="shell-option-btn" id="panel-staff-jian">简谱</button>
+          </div>
+          <div class="shell-panel-note">当前版本为测试切换。</div>
+        </div>
+
+        <div class="shell-panel" id="panel-lang" hidden>
+          <div class="shell-panel-title">语言</div>
+          <div class="shell-option-list">
+            <button class="shell-option-btn" id="panel-lang-simplified">简体</button>
+            <button class="shell-option-btn" id="panel-lang-traditional">繁体</button>
+          </div>
+        </div>
+
+        <div class="shell-panel" id="panel-search" hidden>
+          <div class="shell-panel-title">搜索</div>
+          <div class="shell-search-book">
+            <button class="shell-seg-btn" id="panel-book-c">大本</button>
+            <button class="shell-seg-btn" id="panel-book-ts">小本</button>
+          </div>
+          <div class="shell-search-row">
+            <input id="panel-search-input" class="shell-search-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="输入编号，如31" />
+            <button class="shell-panel-btn shell-primary" id="panel-search-go">搜索</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="content-card">
       <div id="score-view" class="score-wrap" aria-hidden="false">
         <div id="alphaTab" class="at-viewport"></div>
@@ -1369,210 +1626,348 @@ function pad4(num) {
   });
 </script>
 
-<script>
-// ===== 五线谱 / 简谱 切换（只切主谱，不动TAB）=====
+<script id="responsive-refactor-script">
 (function(){
-  function getStaffMode(){
-    try { return localStorage.getItem('staffMode') || 'five'; } catch(e) { return 'five'; }
+  function $(sel, root=document){ return root.querySelector(sel); }
+  function $all(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
+
+  function injectShell(){
+    const contentCard = document.querySelector('.content-card');
+    const pageInner = document.querySelector('.page-inner');
+    if (!contentCard || !pageInner || document.getElementById('app-shell')) return;
+    contentCard.insertAdjacentHTML('beforebegin', `
+    <div id="app-shell" class="app-shell">
+      <div class="shell-toolbar">
+        <button class="shell-btn shell-icon" id="shell-home" aria-label="首页">⌂</button>
+        <button class="shell-pill" id="shell-speed-btn"><span id="shell-speed-label">95</span></button>
+        <button class="shell-pill" id="shell-key-btn"><span id="shell-key-label">--</span></button>
+        <div class="shell-pill shell-capo" id="shell-capo-pill">CP<span id="shell-capo-label">0</span></div>
+        <button class="shell-pill shell-mode" id="shell-mode-btn"><span id="shell-mode-label">吉</span></button>
+        <button class="shell-btn shell-icon" id="shell-prev" aria-label="上一首">⏮</button>
+        <button class="shell-btn shell-play" id="shell-play" aria-label="播放">▶</button>
+        <button class="shell-btn shell-icon" id="shell-next" aria-label="下一首">⏭</button>
+        <button class="shell-pill shell-mini" id="shell-text-btn">字</button>
+        <button class="shell-pill shell-mini" id="shell-track-btn">轨</button>
+        <button class="shell-pill shell-mini" id="shell-staff-btn">谱</button>
+        <button class="shell-btn shell-icon" id="shell-lang-btn" aria-label="语言">🌐</button>
+        <button class="shell-btn shell-icon" id="shell-search-btn" aria-label="搜索">⌕</button>
+      </div>
+      <div class="shell-progress-wrap">
+        <input class="shell-progress" id="shell-progress" type="range" min="0" max="1000" value="0" />
+        <div class="shell-time" id="shell-time">00:00</div>
+      </div>
+
+      <div class="shell-title-wrap">
+        <div class="shell-main-title" id="shell-main-title"></div>
+        <div class="shell-sub-title" id="shell-sub-title"></div>
+      </div>
+
+      <div class="shell-panels">
+        <div class="shell-panel" id="panel-speed" hidden>
+          <div class="shell-panel-title">速度</div>
+          <div class="shell-panel-row">
+            <input id="panel-speed-range" type="range" min="50" max="150" step="5" value="100" />
+            <div class="shell-panel-value" id="panel-speed-value">100%</div>
+          </div>
+          <div class="shell-panel-actions">
+            <button class="shell-panel-btn" id="panel-speed-reset">恢复</button>
+            <button class="shell-panel-btn shell-primary" data-close-panel>完成</button>
+          </div>
+        </div>
+
+        <div class="shell-panel" id="panel-key" hidden>
+          <div class="shell-panel-title">转调</div>
+          <div class="shell-panel-row shell-panel-stepper">
+            <button class="shell-step-btn" id="panel-key-minus">−</button>
+            <div class="shell-panel-value" id="panel-key-value">0</div>
+            <button class="shell-step-btn" id="panel-key-plus">+</button>
+          </div>
+          <div class="shell-panel-actions">
+            <button class="shell-panel-btn" id="panel-key-reset">恢复</button>
+            <button class="shell-panel-btn shell-primary" data-close-panel>完成</button>
+          </div>
+        </div>
+
+        <div class="shell-panel" id="panel-mode" hidden>
+          <div class="shell-panel-title">内容</div>
+          <div class="shell-option-list">
+            <button class="shell-option-btn" id="panel-mode-score">吉他</button>
+            <button class="shell-option-btn" id="panel-mode-lyrics">歌词</button>
+          </div>
+        </div>
+
+        <div class="shell-panel" id="panel-text" hidden>
+          <div class="shell-panel-title">字</div>
+          <div class="shell-panel-row shell-grid-two">
+            <div class="shell-control-card">
+              <div class="shell-control-label">谱词字号</div>
+              <div class="shell-panel-stepper">
+                <button class="shell-step-btn" id="panel-font-minus">−</button>
+                <div class="shell-panel-value" id="panel-font-value">30</div>
+                <button class="shell-step-btn" id="panel-font-plus">+</button>
+              </div>
+            </div>
+            <div class="shell-control-card">
+              <div class="shell-control-label">谱词距</div>
+              <div class="shell-panel-stepper">
+                <button class="shell-step-btn" id="panel-spacing-minus">−</button>
+                <div class="shell-panel-value" id="panel-spacing-value">2.0x</div>
+                <button class="shell-step-btn" id="panel-spacing-plus">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="shell-panel" id="panel-staff" hidden>
+          <div class="shell-panel-title">谱</div>
+          <div class="shell-option-list">
+            <button class="shell-option-btn" id="panel-staff-five">五线谱</button>
+            <button class="shell-option-btn" id="panel-staff-jian">简谱</button>
+          </div>
+          <div class="shell-panel-note">当前版本为测试切换。</div>
+        </div>
+
+        <div class="shell-panel" id="panel-lang" hidden>
+          <div class="shell-panel-title">语言</div>
+          <div class="shell-option-list">
+            <button class="shell-option-btn" id="panel-lang-simplified">简体</button>
+            <button class="shell-option-btn" id="panel-lang-traditional">繁体</button>
+          </div>
+        </div>
+
+        <div class="shell-panel" id="panel-search" hidden>
+          <div class="shell-panel-title">搜索</div>
+          <div class="shell-search-book">
+            <button class="shell-seg-btn" id="panel-book-c">大本</button>
+            <button class="shell-seg-btn" id="panel-book-ts">小本</button>
+          </div>
+          <div class="shell-search-row">
+            <input id="panel-search-input" class="shell-search-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="输入编号，如31" />
+            <button class="shell-panel-btn shell-primary" id="panel-search-go">搜索</button>
+          </div>
+        </div>
+      </div>
+    </div>
+`);
   }
-  function setStaffMode(mode){
-    try { localStorage.setItem('staffMode', mode); } catch(e) {}
+
+  function openPanel(id){
+    $all('.shell-panel').forEach(p => p.hidden = true);
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (el) el.hidden = false;
   }
-  function updateStaffToggleUI(){
-    const btn = document.getElementById('btn-staff-toggle');
-    if (!btn) return;
-    btn.textContent = (getStaffMode() === 'jian') ? '五' : '简';
+  function closePanels(){ openPanel(null); }
+
+  function click(id){ const el = document.getElementById(id); if (el) el.click(); }
+  function setInputValue(id, value){
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = value;
+    el.dispatchEvent(new Event('input', {bubbles:true}));
+    el.dispatchEvent(new Event('change', {bubbles:true}));
   }
-  function ensureStaffToggleButton(){
-    if (document.getElementById('btn-staff-toggle')) return;
-    const host =
-      document.querySelector('.controls-row .controls-left') ||
-      document.querySelector('.controls-row') ||
-      document.body;
-    const btn = document.createElement('button');
-    btn.id = 'btn-staff-toggle';
-    btn.className = 'script-toggle-btn';
-    btn.style.marginLeft = '8px';
-    btn.addEventListener('click', function(){
-      const next = (getStaffMode() === 'jian') ? 'five' : 'jian';
-      setStaffMode(next);
-      applyStaffMode();
-      updateStaffToggleUI();
-      runHideJianKeyTexts();
+
+  function syncTitles(){
+    const t = document.getElementById('song-title')?.textContent?.trim() || '诗歌';
+    const main = document.getElementById('shell-main-title');
+    const sub = document.getElementById('shell-sub-title');
+    if (main) main.textContent = t;
+
+    const params = new URLSearchParams(location.search);
+    const book = params.get('book') || 'c';
+    const no = parseInt(params.get('no') || '1', 10);
+    if (typeof getSong === 'function'){
+      Promise.resolve(getSong(book, no)).then(song => {
+        if (!song) return;
+        if (main) main.textContent = (song.big_title || song.title || t);
+        if (sub) sub.textContent = (song.big_title && song.title) ? song.title : (song.full_title && song.full_title !== song.title ? song.full_title : '');
+      }).catch(()=>{});
+    }
+  }
+
+  function getText(id){ return document.getElementById(id)?.textContent?.trim() || ''; }
+
+  function syncShell(){
+    const tempoMeta = getText('meta-tempo');
+    const keyMeta = getText('meta-key');
+    const capoMeta = getText('meta-capo');
+    const speedPctText = getText('meta-speed').replace('%','') || '100';
+    const transText = getText('transpose-value') || '0';
+    const fontText = getText('score-font-value') || '30';
+    const spacingText = getText('spacing-value') || '2.0x';
+    const playerTime = document.getElementById('player-time')?.textContent || '00:00 / 00:00';
+    const currentTime = playerTime.split('/')[0].trim();
+
+    const speedPct = parseInt(speedPctText, 10) || 100;
+    const originalTempo = parseInt(tempoMeta, 10);
+    const displayTempo = Number.isFinite(originalTempo) ? Math.round(originalTempo * speedPct / 100) : speedPct;
+
+    const speedLabel = document.getElementById('shell-speed-label');
+    const keyLabel = document.getElementById('shell-key-label');
+    const capoLabel = document.getElementById('shell-capo-label');
+    const modeLabel = document.getElementById('shell-mode-label');
+    const playBtn = document.getElementById('shell-play');
+    const shellTime = document.getElementById('shell-time');
+    const shellProg = document.getElementById('shell-progress');
+
+    if (speedLabel) speedLabel.textContent = String(displayTempo || tempoMeta || '95');
+    if (keyLabel) keyLabel.textContent = keyMeta || '--';
+    if (capoLabel) capoLabel.textContent = String(capoMeta || '0');
+    if (modeLabel) modeLabel.textContent = document.getElementById('btn-mode-lyrics')?.classList.contains('active') ? '词' : '吉';
+    if (playBtn) playBtn.textContent = (document.getElementById('btn-player-play')?.textContent || '▶').includes('⏸') ? '⏸' : '▶';
+    if (shellTime) shellTime.textContent = currentTime || '00:00';
+
+    const hiddenProg = document.getElementById('player-progress');
+    if (shellProg && hiddenProg) shellProg.value = hiddenProg.value || '0';
+
+    const pr = document.getElementById('panel-speed-range');
+    const prv = document.getElementById('panel-speed-value');
+    if (pr) pr.value = String(speedPct);
+    if (prv) prv.textContent = speedPct + '%';
+
+    const pkv = document.getElementById('panel-key-value');
+    if (pkv) pkv.textContent = transText;
+
+    const pfv = document.getElementById('panel-font-value');
+    if (pfv) pfv.textContent = fontText;
+    const psv = document.getElementById('panel-spacing-value');
+    if (psv) psv.textContent = spacingText;
+
+    const searchInput = document.getElementById('search-input');
+    const panelSearch = document.getElementById('panel-search-input');
+    if (searchInput && panelSearch && document.activeElement !== panelSearch) panelSearch.value = searchInput.value || '';
+
+    document.getElementById('panel-book-c')?.classList.toggle('active', document.getElementById('btn-book-c')?.classList.contains('active'));
+    document.getElementById('panel-book-ts')?.classList.toggle('active', document.getElementById('btn-book-ts')?.classList.contains('active'));
+    document.getElementById('panel-mode-score')?.classList.toggle('active', document.getElementById('btn-mode-score')?.classList.contains('active'));
+    document.getElementById('panel-mode-lyrics')?.classList.toggle('active', document.getElementById('btn-mode-lyrics')?.classList.contains('active'));
+
+    const scriptBtnText = document.getElementById('btn-script')?.textContent?.trim() || '繁';
+    document.getElementById('panel-lang-simplified')?.classList.toggle('active', scriptBtnText === '繁');
+    document.getElementById('panel-lang-traditional')?.classList.toggle('active', scriptBtnText === '简');
+
+    const staffMode = (localStorage.getItem('staffMode') || 'five');
+    document.getElementById('panel-staff-five')?.classList.toggle('active', staffMode === 'five');
+    document.getElementById('panel-staff-jian')?.classList.toggle('active', staffMode === 'jian');
+
+    syncTitles();
+  }
+
+  function initShellBindings(){
+    document.getElementById('shell-home')?.addEventListener('click', ()=> click('btn-back'));
+    document.getElementById('shell-prev')?.addEventListener('click', ()=> click('btn-player-prev'));
+    document.getElementById('shell-play')?.addEventListener('click', ()=> click('btn-player-play'));
+    document.getElementById('shell-next')?.addEventListener('click', ()=> click('btn-player-next'));
+
+    document.getElementById('shell-speed-btn')?.addEventListener('click', ()=> openPanel('panel-speed'));
+    document.getElementById('shell-key-btn')?.addEventListener('click', ()=> openPanel('panel-key'));
+    document.getElementById('shell-mode-btn')?.addEventListener('click', ()=> openPanel('panel-mode'));
+    document.getElementById('shell-text-btn')?.addEventListener('click', ()=> openPanel('panel-text'));
+    document.getElementById('shell-track-btn')?.addEventListener('click', ()=> click('btn-tracks'));
+    document.getElementById('shell-staff-btn')?.addEventListener('click', ()=> openPanel('panel-staff'));
+    document.getElementById('shell-lang-btn')?.addEventListener('click', ()=> openPanel('panel-lang'));
+    document.getElementById('shell-search-btn')?.addEventListener('click', ()=> openPanel('panel-search'));
+
+    $all('[data-close-panel]').forEach(btn => btn.addEventListener('click', closePanels));
+
+    const speedRange = document.getElementById('panel-speed-range');
+    speedRange?.addEventListener('input', e => setInputValue('tempo-slider', e.target.value));
+    document.getElementById('panel-speed-reset')?.addEventListener('click', ()=> setInputValue('tempo-slider', 100));
+
+    document.getElementById('panel-key-plus')?.addEventListener('click', ()=> click('btn-transpose-plus'));
+    document.getElementById('panel-key-minus')?.addEventListener('click', ()=> click('btn-transpose-minus'));
+    document.getElementById('panel-key-reset')?.addEventListener('click', ()=>{
+      const txt = getText('transpose-value').replace('+','');
+      const n = parseInt(txt, 10) || 0;
+      if (n > 0) { for (let i=0;i<n;i++) click('btn-transpose-minus'); }
+      else if (n < 0) { for (let i=0;i<Math.abs(n);i++) click('btn-transpose-plus'); }
     });
-    host.appendChild(btn);
-    updateStaffToggleUI();
+
+    document.getElementById('panel-mode-score')?.addEventListener('click', ()=> { click('btn-mode-score'); syncShell(); closePanels(); });
+    document.getElementById('panel-mode-lyrics')?.addEventListener('click', ()=> { click('btn-mode-lyrics'); syncShell(); closePanels(); });
+
+    document.getElementById('panel-font-plus')?.addEventListener('click', ()=> click('btn-score-font-plus'));
+    document.getElementById('panel-font-minus')?.addEventListener('click', ()=> click('btn-score-font-minus'));
+    document.getElementById('panel-spacing-plus')?.addEventListener('click', ()=> click('btn-spacing-plus'));
+    document.getElementById('panel-spacing-minus')?.addEventListener('click', ()=> click('btn-spacing-minus'));
+
+    document.getElementById('panel-lang-simplified')?.addEventListener('click', ()=>{
+      if ((document.getElementById('btn-script')?.textContent || '').trim() !== '繁') click('btn-script');
+      syncShell(); closePanels();
+    });
+    document.getElementById('panel-lang-traditional')?.addEventListener('click', ()=>{
+      if ((document.getElementById('btn-script')?.textContent || '').trim() !== '简') click('btn-script');
+      syncShell(); closePanels();
+    });
+
+    document.getElementById('panel-book-c')?.addEventListener('click', ()=> { click('btn-book-c'); syncShell(); });
+    document.getElementById('panel-book-ts')?.addEventListener('click', ()=> { click('btn-book-ts'); syncShell(); });
+    document.getElementById('panel-search-go')?.addEventListener('click', ()=>{
+      const v = document.getElementById('panel-search-input')?.value || '';
+      const input = document.getElementById('search-input');
+      if (input) input.value = v;
+      click('btn-search');
+      closePanels();
+    });
+
+    const shellProg = document.getElementById('shell-progress');
+    shellProg?.addEventListener('input', ()=>{
+      const hiddenProg = document.getElementById('player-progress');
+      if (!hiddenProg) return;
+      hiddenProg.value = shellProg.value;
+      hiddenProg.dispatchEvent(new Event('input', {bubbles:true}));
+    });
+    shellProg?.addEventListener('change', ()=>{
+      const hiddenProg = document.getElementById('player-progress');
+      if (!hiddenProg) return;
+      hiddenProg.value = shellProg.value;
+      hiddenProg.dispatchEvent(new Event('change', {bubbles:true}));
+    });
+
+    document.getElementById('panel-staff-five')?.addEventListener('click', ()=>{
+      try { localStorage.setItem('staffMode','five'); } catch(e){}
+      if (typeof window.applyStaffMode === 'function') window.applyStaffMode();
+      syncShell(); closePanels();
+    });
+    document.getElementById('panel-staff-jian')?.addEventListener('click', ()=>{
+      try { localStorage.setItem('staffMode','jian'); } catch(e){}
+      if (typeof window.applyStaffMode === 'function') window.applyStaffMode();
+      syncShell(); closePanels();
+    });
+
+    document.addEventListener('click', (e)=>{
+      if (!e.target.closest('.shell-panel') && !e.target.closest('.shell-toolbar')) {
+        if (!e.target.closest('#tracks-panel')) closePanels();
+      }
+    });
   }
 
-  function applyStaffMode(){
-    const api = window.__atApi;
-    if (!api || !api.score || !Array.isArray(api.score.tracks)) return;
-
-    const mode = getStaffMode();
-    document.body.classList.toggle('jian-mode', mode === 'jian');
-
-    for (const track of api.score.tracks){
-      if (!track || !Array.isArray(track.staves)) continue;
-      for (const staff of track.staves){
-        if (staff.showTablature) continue; // TAB 完全不动
-        if ('showStandardNotation' in staff) staff.showStandardNotation = (mode !== 'jian');
-        if ('showNumbered' in staff) staff.showNumbered = (mode === 'jian');
-        if ('showNumberedNotation' in staff) staff.showNumberedNotation = (mode === 'jian');
-      }
-    }
-    try { api.render(); } catch(e) { console.warn('applyStaffMode render failed', e); }
+  function wireTrackPanel(){
+    const panel = document.getElementById('tracks-panel');
+    if (!panel || panel.dataset.shellMoved === '1') return;
+    panel.dataset.shellMoved = '1';
+    document.body.appendChild(panel);
+    panel.style.position = 'fixed';
+    panel.style.right = '12px';
+    panel.style.top = '76px';
+    panel.style.zIndex = '9999';
   }
 
-  document.addEventListener('DOMContentLoaded', function(){
-    ensureStaffToggleButton();
-    const t = setInterval(function(){
-      if (window.__atApi){
-        clearInterval(t);
-        try{
-          if (window.__atApi.renderFinished && window.__atApi.renderFinished.on){
-            window.__atApi.renderFinished.on(function(){
-              updateStaffToggleUI();
-            });
-          }
-        }catch(e){}
-        applyStaffMode();
-      }
-    }, 300);
+  function periodicSync(){
+    syncShell();
+    wireTrackPanel();
+  }
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+    injectShell();
+    initShellBindings();
+    periodicSync();
+    setInterval(periodicSync, 400);
+    setTimeout(periodicSync, 1200);
+    const mo = new MutationObserver(periodicSync);
+    mo.observe(document.body, {subtree:true, childList:true, characterData:true});
   });
-})();
-
-// ===== 简谱模式：去掉首行左上角 1=bA 调号提示（UI 顶部已有调号）=====
-(function(){
-  function restoreHidden(svg){
-    try{
-      svg.querySelectorAll('[data-jian-key-hidden="1"]').forEach(function(el){
-        const oldDisplay = el.getAttribute('data-old-display');
-        const oldOpacity = el.getAttribute('data-old-opacity');
-        if (oldDisplay === null || oldDisplay === '') el.style.removeProperty('display');
-        else el.style.display = oldDisplay;
-        if (oldOpacity === null || oldOpacity === '') el.style.removeProperty('opacity');
-        else el.style.opacity = oldOpacity;
-        el.removeAttribute('data-jian-key-hidden');
-        el.removeAttribute('data-old-display');
-        el.removeAttribute('data-old-opacity');
-      });
-    }catch(e){}
-  }
-
-  function markHide(el){
-    if (!el || el.getAttribute('data-jian-key-hidden') === '1') return;
-    el.setAttribute('data-jian-key-hidden', '1');
-    el.setAttribute('data-old-display', el.style.display || '');
-    el.setAttribute('data-old-opacity', el.style.opacity || '');
-    el.style.display = 'none';
-    el.style.opacity = '0';
-  }
-
-  function bboxOf(el){
-    try{
-      if (typeof el.getBBox === 'function') return el.getBBox();
-    }catch(e){}
-    return null;
-  }
-
-  function hideTopLeftJianKeyTexts(){
-    try{
-      const isJian = document.body.classList.contains('jian-mode');
-      const svg = document.querySelector('#alphaTab svg');
-      if (!svg) return;
-
-      restoreHidden(svg);
-      if (!isJian) return;
-
-      const texts = Array.from(svg.querySelectorAll('text'));
-
-      // 找首行左上 1=
-      let anchor = null;
-      let abox = null;
-      for (const t of texts){
-        const s = (t.textContent || '').trim();
-        const bb = bboxOf(t);
-        if (!bb) continue;
-        if ((s === '1=' || /^1\s*=/.test(s)) && bb.x < 220 && bb.y < 150){
-          anchor = t;
-          abox = bb;
-          break;
-        }
-      }
-      if (!anchor || !abox) return;
-
-      const targets = new Set();
-      // 隐藏 anchor 和其父组
-      targets.add(anchor);
-      if (anchor.parentElement && anchor.parentElement.ownerSVGElement) targets.add(anchor.parentElement);
-
-      // 隐藏首行左上附近与调号表达相关的碎片：b / A / bA / # / 1=
-      texts.forEach(function(t){
-        const s = (t.textContent || '').trim();
-        const bb = bboxOf(t);
-        if (!bb) return;
-        const near = bb.x < 260 && bb.y < 160 && Math.abs(bb.y - abox.y) < 70;
-        const looksLikeKeyFrag = (
-          s === '1=' ||
-          /^1\s*=/.test(s) ||
-          s === 'b' ||
-          s === '#' ||
-          /^[A-G]$/.test(s) ||
-          /^b[A-G]$/.test(s) ||
-          /^#[A-G]$/.test(s)
-        );
-        if (near && looksLikeKeyFrag){
-          targets.add(t);
-          if (t.parentElement && t.parentElement.ownerSVGElement) targets.add(t.parentElement);
-        }
-      });
-
-      // 同时把 anchor 父组后面几个紧邻兄弟也去掉（常见 b / A 被拆在单独 g）
-      let g = anchor.parentElement;
-      if (g && g.nextElementSibling){
-        let sib = g.nextElementSibling;
-        let count = 0;
-        while (sib && count < 6){
-          const bb = bboxOf(sib);
-          const txt = (sib.textContent || '').trim();
-          if (!bb || (bb.x < 280 && bb.y < 170) || txt === '' || /^[#bA-G]+$/.test(txt) || sib.querySelector('text')){
-            targets.add(sib);
-          }
-          sib = sib.nextElementSibling;
-          count += 1;
-        }
-      }
-
-      targets.forEach(markHide);
-    }catch(e){
-      console.warn('hideTopLeftJianKeyTexts failed:', e);
-    }
-  }
-
-  function runHideJianKeyTexts(){
-    setTimeout(hideTopLeftJianKeyTexts, 40);
-    setTimeout(hideTopLeftJianKeyTexts, 180);
-    setTimeout(hideTopLeftJianKeyTexts, 600);
-  }
-
-  document.addEventListener('DOMContentLoaded', runHideJianKeyTexts);
-
-  const t = setInterval(function(){
-    if (window.__atApi){
-      clearInterval(t);
-      try{
-        if (window.__atApi.renderFinished && window.__atApi.renderFinished.on){
-          window.__atApi.renderFinished.on(function(){
-            runHideJianKeyTexts();
-          });
-        }
-      }catch(e){}
-      runHideJianKeyTexts();
-    }
-  }, 300);
-
-  // 暴露给 staff toggle 点击后复用
-  window.runHideJianKeyTexts = runHideJianKeyTexts;
 })();
 </script>
 
