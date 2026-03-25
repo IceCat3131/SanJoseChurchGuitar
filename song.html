@@ -1370,7 +1370,7 @@ function pad4(num) {
 </script>
 
 <script>
-// ===== 五线谱 / 简谱 切换（增量集成）=====
+// ===== 五线谱 / 简谱 切换（基于当前稳定版增量集成）=====
 (function(){
   function getStaffMode(){
     try { return localStorage.getItem('staffMode') || 'five'; } catch(e) { return 'five'; }
@@ -1383,6 +1383,7 @@ function pad4(num) {
     if (!btn) return;
     btn.textContent = (getStaffMode() === 'jian') ? '五' : '简';
   }
+
   function ensureStaffToggleButton(){
     if (document.getElementById('btn-staff-toggle')) return;
     const host =
@@ -1394,34 +1395,96 @@ function pad4(num) {
     btn.className = 'script-toggle-btn';
     btn.style.marginLeft = '8px';
     btn.addEventListener('click', function(){
-      const next = getStaffMode() === 'jian' ? 'five' : 'jian';
+      const next = (getStaffMode() === 'jian') ? 'five' : 'jian';
       setStaffMode(next);
       applyStaffMode();
       updateStaffToggleUI();
-      runJianKeyFix();
     });
     host.appendChild(btn);
     updateStaffToggleUI();
   }
+
+  function patchFirstMeasureKeySignature(track, mode){
+    try{
+      if (!track) return;
+      const measures = track.measures || track.bars || [];
+      if (!Array.isArray(measures) || !measures.length) return;
+      const first = measures[0];
+      if (!first) return;
+
+      // 常见字段兼容：keySignature / keySignatureType / key / clef container etc.
+      // 先备份
+      if (first.__origKeySignature === undefined) {
+        first.__origKeySignature = first.keySignature;
+      }
+      if (first.__origKeySignatureType === undefined) {
+        first.__origKeySignatureType = first.keySignatureType;
+      }
+      if (first.__origKey === undefined) {
+        first.__origKey = first.key;
+      }
+
+      if (mode === 'jian') {
+        // 关键：让首小节调号不参与简谱生成/布局
+        if ('keySignature' in first) first.keySignature = null;
+        if ('keySignatureType' in first) first.keySignatureType = null;
+        if ('key' in first && first.key && typeof first.key === 'object') {
+          try {
+            if (!first.__origKeyObj) first.__origKeyObj = JSON.parse(JSON.stringify(first.key));
+            if ('fifths' in first.key) first.key.fifths = 0;
+            if ('mode' in first.key) first.key.mode = first.key.mode;
+          } catch(e) {}
+        }
+      } else {
+        // 恢复
+        if ('keySignature' in first) first.keySignature = first.__origKeySignature;
+        if ('keySignatureType' in first) first.keySignatureType = first.__origKeySignatureType;
+        if ('key' in first && first.__origKey !== undefined) first.key = first.__origKey;
+        if ('key' in first && first.__origKeyObj) {
+          try { first.key = JSON.parse(JSON.stringify(first.__origKeyObj)); } catch(e) {}
+        }
+      }
+    }catch(e){
+      console.warn('patchFirstMeasureKeySignature failed:', e);
+    }
+  }
+
   function applyStaffMode(){
     const api = window.__atApi;
     if (!api || !api.score || !Array.isArray(api.score.tracks)) return;
+
     const mode = getStaffMode();
     document.body.classList.toggle('jian-mode', mode === 'jian');
 
     for (const track of api.score.tracks){
       if (!track || !Array.isArray(track.staves)) continue;
+
+      // 渲染前处理首小节调号，避免简谱首行生成 1=bA 占位
+      patchFirstMeasureKeySignature(track, mode);
+
       for (const staff of track.staves){
+        // TAB staff 完全不动
         if (staff.showTablature) continue;
-        staff.showStandardNotation = (mode !== 'jian');
-        if ('showNumbered' in staff) staff.showNumbered = (mode === 'jian');
-        if ('showNumberedNotation' in staff) staff.showNumberedNotation = (mode === 'jian');
+
+        // 只在主谱 staff 上做五/简切换
+        if ('showStandardNotation' in staff) {
+          staff.showStandardNotation = (mode !== 'jian');
+        }
+        if ('showNumbered' in staff) {
+          staff.showNumbered = (mode === 'jian');
+        }
+        if ('showNumberedNotation' in staff) {
+          staff.showNumberedNotation = (mode === 'jian');
+        }
       }
     }
-    try { api.render(); } catch(e) { console.warn(e); }
+
+    try { api.render(); } catch(e) { console.warn('applyStaffMode render failed', e); }
   }
+
   document.addEventListener('DOMContentLoaded', function(){
     ensureStaffToggleButton();
+
     const t = setInterval(function(){
       if (window.__atApi){
         clearInterval(t);
@@ -1436,146 +1499,6 @@ function pad4(num) {
       }
     }, 300);
   });
-})();
-
-// ===== 简谱首行 1=bA 微调（补抓单独 b）=====
-(function(){
-  function restoreJianKeyFix(svg){
-    svg.querySelectorAll('[data-jianfix="1"]').forEach(function(el){
-      const ox = el.getAttribute('data-old-x');
-      const oy = el.getAttribute('data-old-y');
-      const ot = el.getAttribute('data-old-transform');
-      if (ox !== null) {
-        if (ox === '') el.removeAttribute('x'); else el.setAttribute('x', ox);
-      }
-      if (oy !== null) {
-        if (oy === '') el.removeAttribute('y'); else el.setAttribute('y', oy);
-      }
-      if (ot !== null) {
-        if (ot === '') el.removeAttribute('transform'); else el.setAttribute('transform', ot);
-      }
-      el.removeAttribute('data-jianfix');
-      el.removeAttribute('data-old-x');
-      el.removeAttribute('data-old-y');
-      el.removeAttribute('data-old-transform');
-    });
-  }
-
-  function moveNode(el, dx, dy){
-    if (!el || el.getAttribute('data-jianfix') === '1') return;
-    el.setAttribute('data-jianfix', '1');
-    el.setAttribute('data-old-x', el.getAttribute('x') || '');
-    el.setAttribute('data-old-y', el.getAttribute('y') || '');
-    el.setAttribute('data-old-transform', el.getAttribute('transform') || '');
-
-    const xAttr = el.getAttribute('x');
-    const yAttr = el.getAttribute('y');
-    let moved = false;
-
-    if (xAttr !== null || yAttr !== null){
-      if (xAttr !== null && !Number.isNaN(parseFloat(xAttr))) {
-        el.setAttribute('x', String(parseFloat(xAttr) + dx));
-        moved = true;
-      }
-      if (yAttr !== null && !Number.isNaN(parseFloat(yAttr))) {
-        el.setAttribute('y', String(parseFloat(yAttr) - dy));
-        moved = true;
-      }
-    }
-    if (!moved){
-      const old = el.getAttribute('transform') || '';
-      const m = old.match(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/);
-      if (m){
-        const x = parseFloat(m[1]) + dx;
-        const y = parseFloat(m[2]) - dy;
-        el.setAttribute('transform', old.replace(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/, 'translate(' + x + ' ' + y + ')'));
-      } else {
-        el.setAttribute('transform', (old + ' translate(' + dx + ' -' + dy + ')').trim());
-      }
-    }
-  }
-
-  function runOnce(){
-    const isJian = document.body.classList.contains('jian-mode');
-    const svg = document.querySelector('#alphaTab svg');
-    if (!svg) return;
-
-    restoreJianKeyFix(svg);
-    if (!isJian) return;
-
-    const texts = Array.from(svg.querySelectorAll('text'));
-    let anchor = null;
-    let anchorBox = null;
-
-    for (const t of texts){
-      const txt = (t.textContent || '').trim();
-      let bb = null;
-      try { bb = t.getBBox(); } catch(e) {}
-      if ((txt === '1=' || /^1\s*=/.test(txt)) && bb && bb.x < 220 && bb.y < 140){
-        anchor = t;
-        anchorBox = bb;
-        break;
-      }
-    }
-    if (!anchor || !anchorBox) return;
-
-    const cluster = new Set();
-    const addNode = (el) => { if (el) cluster.add(el); };
-
-    // anchor and its parent
-    addNode(anchor);
-    if (anchor.parentElement && anchor.parentElement !== svg) addNode(anchor.parentElement);
-
-    // nearby text nodes, including solitary flat sign 'b'
-    texts.forEach(function(t){
-      let bb = null;
-      try { bb = t.getBBox(); } catch(e) {}
-      if (!bb) return;
-      const s = (t.textContent || '').trim();
-
-      const nearX = Math.abs(bb.x - anchorBox.x) < 120;
-      const nearY = Math.abs(bb.y - anchorBox.y) < 60;
-      const interesting = (
-        s === '1=' ||
-        /^1\s*=/.test(s) ||
-        /^[A-G]$/.test(s) ||
-        /^b[A-G]$/.test(s) ||
-        s === 'b' ||
-        s === '#'
-      );
-
-      if (nearX && nearY && interesting) {
-        addNode(t);
-        if (t.parentElement && t.parentElement !== svg) addNode(t.parentElement);
-      }
-    });
-
-    cluster.forEach(function(el){
-      moveNode(el, -6, 30);
-    });
-  }
-
-  function runJianKeyFix(){
-    setTimeout(runOnce, 60);
-    setTimeout(runOnce, 220);
-    setTimeout(runOnce, 700);
-  }
-
-  document.addEventListener('DOMContentLoaded', runJianKeyFix);
-
-  const t = setInterval(function(){
-    if (window.__atApi){
-      clearInterval(t);
-      try{
-        if (window.__atApi.renderFinished && window.__atApi.renderFinished.on){
-          window.__atApi.renderFinished.on(function(){
-            runJianKeyFix();
-          });
-        }
-      }catch(e){}
-      runJianKeyFix();
-    }
-  }, 300);
 })();
 </script>
 
