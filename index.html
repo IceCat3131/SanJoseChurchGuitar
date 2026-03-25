@@ -1,37 +1,35 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>召会诗歌吉他谱</title>
-  <link rel="stylesheet" href="./style.css" />
+  <title>GTZ 乐谱测试站</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
-<body class="page-body">
-  <div class="mobile-shell home-shell">
-    <header class="home-header">
-      <h1 class="site-title">召会诗歌吉他谱</h1>
-    </header>
-
-    <section class="search-panel home-search-panel">
-      <div class="search-book-toggle">
-        <button id="homeBookC" class="book-chip active" type="button">大本</button>
-        <button id="homeBookTs" class="book-chip" type="button">小本</button>
+<body class="index-body">
+  <main class="index-wrap">
+    <h1>GTZ 乐谱测试站</h1>
+    <p>此版本按路径读取 <code>.gtz</code>，再从包内解出 MusicXML 交给 alphaTab 渲染。</p>
+    <div class="index-card">
+      <div class="index-row">
+        <label for="fileInput">GTZ 路径</label>
+        <input id="fileInput" type="text" value="./assets/c0001_cn_g.gtz" />
       </div>
-      <div class="search-input-row">
-        <input id="homeSearchInput" class="song-search-input" type="text" placeholder="输入编号，如 1" />
-        <button id="homeSearchBtn" class="icon-btn ghost" type="button" aria-label="搜索">⌕</button>
+      <div class="index-actions">
+        <a id="openLink" class="primary-btn" href="./song.html?file=./assets/c0001_cn_g.gtz">打开测试页</a>
       </div>
-    </section>
-
-    <section class="song-list-panel">
-      <div class="song-list-head">
-        <span id="homeResultLabel">大本</span>
-        <span id="homeCountLabel"></span>
-      </div>
-      <div id="homeSongList" class="song-list"></div>
-    </section>
-  </div>
-
-  <script src="./app.js"></script>
+      <p class="index-tip">也可直接打开：<code>song.html?file=./assets/c0001_cn_g.gtz</code></p>
+    </div>
+  </main>
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const openLink = document.getElementById('openLink');
+    function syncLink() {
+      const path = fileInput.value.trim() || './assets/c0001_cn_g.gtz';
+      openLink.href = `./song.html?file=${encodeURIComponent(path)}`;
+    }
+    fileInput.addEventListener('input', syncLink);
+    syncLink();
+  </script>
 </body>
 </html>
