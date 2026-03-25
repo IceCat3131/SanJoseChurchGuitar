@@ -1370,7 +1370,7 @@ function pad4(num) {
 </script>
 
 <script>
-// ===== 五线谱 / 简谱 切换（基于当前稳定版增量集成）=====
+// ===== 五线谱 / 简谱 切换（只切主谱，不动TAB）=====
 (function(){
   function getStaffMode(){
     try { return localStorage.getItem('staffMode') || 'five'; } catch(e) { return 'five'; }
@@ -1383,7 +1383,6 @@ function pad4(num) {
     if (!btn) return;
     btn.textContent = (getStaffMode() === 'jian') ? '五' : '简';
   }
-
   function ensureStaffToggleButton(){
     if (document.getElementById('btn-staff-toggle')) return;
     const host =
@@ -1399,54 +1398,10 @@ function pad4(num) {
       setStaffMode(next);
       applyStaffMode();
       updateStaffToggleUI();
+      runHideJianKeyTexts();
     });
     host.appendChild(btn);
     updateStaffToggleUI();
-  }
-
-  function patchFirstMeasureKeySignature(track, mode){
-    try{
-      if (!track) return;
-      const measures = track.measures || track.bars || [];
-      if (!Array.isArray(measures) || !measures.length) return;
-      const first = measures[0];
-      if (!first) return;
-
-      // 常见字段兼容：keySignature / keySignatureType / key / clef container etc.
-      // 先备份
-      if (first.__origKeySignature === undefined) {
-        first.__origKeySignature = first.keySignature;
-      }
-      if (first.__origKeySignatureType === undefined) {
-        first.__origKeySignatureType = first.keySignatureType;
-      }
-      if (first.__origKey === undefined) {
-        first.__origKey = first.key;
-      }
-
-      if (mode === 'jian') {
-        // 关键：让首小节调号不参与简谱生成/布局
-        if ('keySignature' in first) first.keySignature = null;
-        if ('keySignatureType' in first) first.keySignatureType = null;
-        if ('key' in first && first.key && typeof first.key === 'object') {
-          try {
-            if (!first.__origKeyObj) first.__origKeyObj = JSON.parse(JSON.stringify(first.key));
-            if ('fifths' in first.key) first.key.fifths = 0;
-            if ('mode' in first.key) first.key.mode = first.key.mode;
-          } catch(e) {}
-        }
-      } else {
-        // 恢复
-        if ('keySignature' in first) first.keySignature = first.__origKeySignature;
-        if ('keySignatureType' in first) first.keySignatureType = first.__origKeySignatureType;
-        if ('key' in first && first.__origKey !== undefined) first.key = first.__origKey;
-        if ('key' in first && first.__origKeyObj) {
-          try { first.key = JSON.parse(JSON.stringify(first.__origKeyObj)); } catch(e) {}
-        }
-      }
-    }catch(e){
-      console.warn('patchFirstMeasureKeySignature failed:', e);
-    }
   }
 
   function applyStaffMode(){
@@ -1458,33 +1413,18 @@ function pad4(num) {
 
     for (const track of api.score.tracks){
       if (!track || !Array.isArray(track.staves)) continue;
-
-      // 渲染前处理首小节调号，避免简谱首行生成 1=bA 占位
-      patchFirstMeasureKeySignature(track, mode);
-
       for (const staff of track.staves){
-        // TAB staff 完全不动
-        if (staff.showTablature) continue;
-
-        // 只在主谱 staff 上做五/简切换
-        if ('showStandardNotation' in staff) {
-          staff.showStandardNotation = (mode !== 'jian');
-        }
-        if ('showNumbered' in staff) {
-          staff.showNumbered = (mode === 'jian');
-        }
-        if ('showNumberedNotation' in staff) {
-          staff.showNumberedNotation = (mode === 'jian');
-        }
+        if (staff.showTablature) continue; // TAB 完全不动
+        if ('showStandardNotation' in staff) staff.showStandardNotation = (mode !== 'jian');
+        if ('showNumbered' in staff) staff.showNumbered = (mode === 'jian');
+        if ('showNumberedNotation' in staff) staff.showNumberedNotation = (mode === 'jian');
       }
     }
-
     try { api.render(); } catch(e) { console.warn('applyStaffMode render failed', e); }
   }
 
   document.addEventListener('DOMContentLoaded', function(){
     ensureStaffToggleButton();
-
     const t = setInterval(function(){
       if (window.__atApi){
         clearInterval(t);
@@ -1499,6 +1439,140 @@ function pad4(num) {
       }
     }, 300);
   });
+})();
+
+// ===== 简谱模式：去掉首行左上角 1=bA 调号提示（UI 顶部已有调号）=====
+(function(){
+  function restoreHidden(svg){
+    try{
+      svg.querySelectorAll('[data-jian-key-hidden="1"]').forEach(function(el){
+        const oldDisplay = el.getAttribute('data-old-display');
+        const oldOpacity = el.getAttribute('data-old-opacity');
+        if (oldDisplay === null || oldDisplay === '') el.style.removeProperty('display');
+        else el.style.display = oldDisplay;
+        if (oldOpacity === null || oldOpacity === '') el.style.removeProperty('opacity');
+        else el.style.opacity = oldOpacity;
+        el.removeAttribute('data-jian-key-hidden');
+        el.removeAttribute('data-old-display');
+        el.removeAttribute('data-old-opacity');
+      });
+    }catch(e){}
+  }
+
+  function markHide(el){
+    if (!el || el.getAttribute('data-jian-key-hidden') === '1') return;
+    el.setAttribute('data-jian-key-hidden', '1');
+    el.setAttribute('data-old-display', el.style.display || '');
+    el.setAttribute('data-old-opacity', el.style.opacity || '');
+    el.style.display = 'none';
+    el.style.opacity = '0';
+  }
+
+  function bboxOf(el){
+    try{
+      if (typeof el.getBBox === 'function') return el.getBBox();
+    }catch(e){}
+    return null;
+  }
+
+  function hideTopLeftJianKeyTexts(){
+    try{
+      const isJian = document.body.classList.contains('jian-mode');
+      const svg = document.querySelector('#alphaTab svg');
+      if (!svg) return;
+
+      restoreHidden(svg);
+      if (!isJian) return;
+
+      const texts = Array.from(svg.querySelectorAll('text'));
+
+      // 找首行左上 1=
+      let anchor = null;
+      let abox = null;
+      for (const t of texts){
+        const s = (t.textContent || '').trim();
+        const bb = bboxOf(t);
+        if (!bb) continue;
+        if ((s === '1=' || /^1\s*=/.test(s)) && bb.x < 220 && bb.y < 150){
+          anchor = t;
+          abox = bb;
+          break;
+        }
+      }
+      if (!anchor || !abox) return;
+
+      const targets = new Set();
+      // 隐藏 anchor 和其父组
+      targets.add(anchor);
+      if (anchor.parentElement && anchor.parentElement.ownerSVGElement) targets.add(anchor.parentElement);
+
+      // 隐藏首行左上附近与调号表达相关的碎片：b / A / bA / # / 1=
+      texts.forEach(function(t){
+        const s = (t.textContent || '').trim();
+        const bb = bboxOf(t);
+        if (!bb) return;
+        const near = bb.x < 260 && bb.y < 160 && Math.abs(bb.y - abox.y) < 70;
+        const looksLikeKeyFrag = (
+          s === '1=' ||
+          /^1\s*=/.test(s) ||
+          s === 'b' ||
+          s === '#' ||
+          /^[A-G]$/.test(s) ||
+          /^b[A-G]$/.test(s) ||
+          /^#[A-G]$/.test(s)
+        );
+        if (near && looksLikeKeyFrag){
+          targets.add(t);
+          if (t.parentElement && t.parentElement.ownerSVGElement) targets.add(t.parentElement);
+        }
+      });
+
+      // 同时把 anchor 父组后面几个紧邻兄弟也去掉（常见 b / A 被拆在单独 g）
+      let g = anchor.parentElement;
+      if (g && g.nextElementSibling){
+        let sib = g.nextElementSibling;
+        let count = 0;
+        while (sib && count < 6){
+          const bb = bboxOf(sib);
+          const txt = (sib.textContent || '').trim();
+          if (!bb || (bb.x < 280 && bb.y < 170) || txt === '' || /^[#bA-G]+$/.test(txt) || sib.querySelector('text')){
+            targets.add(sib);
+          }
+          sib = sib.nextElementSibling;
+          count += 1;
+        }
+      }
+
+      targets.forEach(markHide);
+    }catch(e){
+      console.warn('hideTopLeftJianKeyTexts failed:', e);
+    }
+  }
+
+  function runHideJianKeyTexts(){
+    setTimeout(hideTopLeftJianKeyTexts, 40);
+    setTimeout(hideTopLeftJianKeyTexts, 180);
+    setTimeout(hideTopLeftJianKeyTexts, 600);
+  }
+
+  document.addEventListener('DOMContentLoaded', runHideJianKeyTexts);
+
+  const t = setInterval(function(){
+    if (window.__atApi){
+      clearInterval(t);
+      try{
+        if (window.__atApi.renderFinished && window.__atApi.renderFinished.on){
+          window.__atApi.renderFinished.on(function(){
+            runHideJianKeyTexts();
+          });
+        }
+      }catch(e){}
+      runHideJianKeyTexts();
+    }
+  }, 300);
+
+  // 暴露给 staff toggle 点击后复用
+  window.runHideJianKeyTexts = runHideJianKeyTexts;
 })();
 </script>
 
