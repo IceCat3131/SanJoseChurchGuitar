@@ -1,12 +1,3 @@
-<style>
-/* Jianpu first-system spacing fix */
-body.jian-mode #alphaTab,
-body.jian-mode .at-viewport,
-body.jian-mode #score-view {
-  padding-top: 28px !important;
-  box-sizing: border-box;
-}
-</style>
 
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -1393,9 +1384,6 @@ function pad4(num) {
     const label = document.getElementById("staff-toggle-label");
     if (btn) btn.textContent = (mode === "jian") ? "五" : "简";
     if (label) label.textContent = (mode === "jian") ? "简" : "五";
-    try {
-      document.body.classList.toggle("jian-mode", mode === "jian");
-    } catch(e) {}
   }
 
   function applyStaffMode(){
@@ -1531,54 +1519,98 @@ function pad4(num) {
 
 <script>
 (function(){
-  function applyJianRenderSpacing() {
-    try {
-      const isJian = document.body.classList.contains("jian-mode");
-      const root = document.getElementById("alphaTab");
-      if (!root) return;
-
-      const targets = root.querySelectorAll("svg, canvas");
-      targets.forEach((el, idx) => {
-        if (isJian) {
-          el.style.marginTop = "28px";
-        } else {
-          el.style.marginTop = "";
-        }
+  function restoreJianKeyFix(root){
+    try{
+      root.querySelectorAll('[data-jian-key-fix="1"]').forEach(function(el){
+        const oldTransform = el.getAttribute('data-old-transform');
+        const oldOpacity = el.getAttribute('data-old-opacity');
+        if (oldTransform !== null) el.setAttribute('transform', oldTransform);
+        if (oldOpacity !== null && oldOpacity !== '') el.setAttribute('opacity', oldOpacity);
+        if (oldOpacity === '') el.removeAttribute('opacity');
+        el.removeAttribute('data-jian-key-fix');
+        el.removeAttribute('data-old-transform');
+        el.removeAttribute('data-old-opacity');
       });
-    } catch(e) {
-      console.warn("applyJianRenderSpacing failed:", e);
+    }catch(e){ console.warn(e); }
+  }
+
+  function moveUpElement(el, dy){
+    const old = el.getAttribute('transform') || '';
+    el.setAttribute('data-jian-key-fix', '1');
+    el.setAttribute('data-old-transform', old);
+    el.setAttribute('data-old-opacity', el.getAttribute('opacity') || '');
+    const m = old.match(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/);
+    if (m){
+      const x = parseFloat(m[1]);
+      const y = parseFloat(m[2]) - dy;
+      el.setAttribute('transform', old.replace(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/, 'translate(' + x + ' ' + y + ')'));
+    } else {
+      el.setAttribute('transform', (old + ' translate(0 -' + dy + ')').trim());
     }
   }
 
-  document.addEventListener("DOMContentLoaded", function(){
-    setTimeout(applyJianRenderSpacing, 1200);
-    setTimeout(applyJianRenderSpacing, 2200);
+  function fixFirstSystemJianKeyText(){
+    try{
+      const isJian = document.body.classList.contains('jian-mode');
+      const root = document.querySelector('#alphaTab svg');
+      if (!root) return;
+
+      restoreJianKeyFix(root);
+      if (!isJian) return;
+
+      const texts = Array.from(root.querySelectorAll('text'));
+      texts.forEach(function(t){
+        const txt = (t.textContent || '').trim();
+        if (!(txt === '1=' || /^1\s*=/.test(txt))) return;
+
+        let bbox = null;
+        try { bbox = t.getBBox(); } catch(e){}
+        if (bbox && bbox.y > 100) return;
+
+        const parent = t.parentElement;
+        if (parent && parent.tagName && parent.tagName.toLowerCase() === 'g') {
+          moveUpElement(parent, 24);
+
+          let sib = parent.nextElementSibling;
+          let count = 0;
+          while (sib && count < 3){
+            const st = (sib.textContent || '').trim();
+            if (st === '' || /^[#bA-G]+$/.test(st) || sib.querySelector('text')) {
+              moveUpElement(sib, 24);
+            }
+            sib = sib.nextElementSibling;
+            count += 1;
+          }
+        }
+      });
+    }catch(e){
+      console.warn('fixFirstSystemJianKeyText failed:', e);
+    }
+  }
+
+  function runJianKeyFix(){
+    setTimeout(fixFirstSystemJianKeyText, 30);
+    setTimeout(fixFirstSystemJianKeyText, 180);
+    setTimeout(fixFirstSystemJianKeyText, 600);
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    runJianKeyFix();
   });
 
-  const _timerJianSpacing = setInterval(function(){
+  const timer = setInterval(function(){
     if (window.__atApi) {
+      clearInterval(timer);
       try{
         if (window.__atApi.renderFinished && window.__atApi.renderFinished.on) {
           window.__atApi.renderFinished.on(function(){
-            setTimeout(applyJianRenderSpacing, 30);
-            setTimeout(applyJianRenderSpacing, 180);
+            runJianKeyFix();
           });
         }
       }catch(e){}
-      clearInterval(_timerJianSpacing);
+      runJianKeyFix();
     }
   }, 300);
-
-  const mo = new MutationObserver(function(){
-    applyJianRenderSpacing();
-  });
-  window.addEventListener("load", function(){
-    const root = document.getElementById("alphaTab");
-    if (root) {
-      mo.observe(root, { childList: true, subtree: true, attributes: False });
-      setTimeout(applyJianRenderSpacing, 500);
-    }
-  });
 })();
 </script>
 
