@@ -1528,5 +1528,59 @@ function pad4(num) {
 })();
 </script>
 
+
+<script>
+(function(){
+  function applyJianRenderSpacing() {
+    try {
+      const isJian = document.body.classList.contains("jian-mode");
+      const root = document.getElementById("alphaTab");
+      if (!root) return;
+
+      const targets = root.querySelectorAll("svg, canvas");
+      targets.forEach((el, idx) => {
+        if (isJian) {
+          el.style.marginTop = "28px";
+        } else {
+          el.style.marginTop = "";
+        }
+      });
+    } catch(e) {
+      console.warn("applyJianRenderSpacing failed:", e);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    setTimeout(applyJianRenderSpacing, 1200);
+    setTimeout(applyJianRenderSpacing, 2200);
+  });
+
+  const _timerJianSpacing = setInterval(function(){
+    if (window.__atApi) {
+      try{
+        if (window.__atApi.renderFinished && window.__atApi.renderFinished.on) {
+          window.__atApi.renderFinished.on(function(){
+            setTimeout(applyJianRenderSpacing, 30);
+            setTimeout(applyJianRenderSpacing, 180);
+          });
+        }
+      }catch(e){}
+      clearInterval(_timerJianSpacing);
+    }
+  }, 300);
+
+  const mo = new MutationObserver(function(){
+    applyJianRenderSpacing();
+  });
+  window.addEventListener("load", function(){
+    const root = document.getElementById("alphaTab");
+    if (root) {
+      mo.observe(root, { childList: true, subtree: true, attributes: False });
+      setTimeout(applyJianRenderSpacing, 500);
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
