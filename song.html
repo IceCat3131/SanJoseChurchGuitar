@@ -1,3 +1,12 @@
+<style>
+/* Jianpu first-system spacing fix */
+body.jian-mode #alphaTab,
+body.jian-mode .at-viewport,
+body.jian-mode #score-view {
+  padding-top: 28px !important;
+  box-sizing: border-box;
+}
+</style>
 
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -1384,6 +1393,9 @@ function pad4(num) {
     const label = document.getElementById("staff-toggle-label");
     if (btn) btn.textContent = (mode === "jian") ? "五" : "简";
     if (label) label.textContent = (mode === "jian") ? "简" : "五";
+    try {
+      document.body.classList.toggle("jian-mode", mode === "jian");
+    } catch(e) {}
   }
 
   function applyStaffMode(){
