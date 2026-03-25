@@ -99,16 +99,6 @@
         <input id="tempo-slider" class="tempo-slider" type="range" min="50" max="150" value="100" step="5" />
         <span class="adjust-value" id="tempo-slider-value">100%</span>
       </div>
-      <div class="adjust-group">
-        <span class="adjust-label">转调</span>
-        <button class="mini-adjust-btn" id="btn-transpose-minus">−</button>
-        <span class="adjust-value" id="transpose-value">0</span>
-        <button class="mini-adjust-btn" id="btn-transpose-plus">+</button>
-      </div>
-      <div class="adjust-group">
-        <span class="adjust-label">原始Capo</span>
-        <span class="adjust-value" id="capo-value">0</span>
-      </div>
     </div>
 
     <!-- 第 3 部分：+ / - / 吉他 / 歌词 / 简繁 -->
@@ -186,8 +176,7 @@
     scoreFontSizePx: 30,
     scoreSpacingFactor: 2.0,
     pureLyricsFontSize: 24,
-    playbackSpeedPercent: 100,
-    transposeSemitones: 0
+    playbackSpeedPercent: 100
   };
 
   let viewerPrefs = loadViewerPrefs();
@@ -224,9 +213,6 @@
       const raw = localStorage.getItem('sjcg.viewerPrefs.v1');
       if (!raw) return { ...DEFAULT_VIEWER_PREFS };
       const obj = JSON.parse(raw);
-      if (obj && Object.prototype.hasOwnProperty.call(obj, 'capoOverride')) {
-        try { delete obj.capoOverride; } catch (e) {}
-      }
       return { ...DEFAULT_VIEWER_PREFS, ...obj };
     } catch (e) {
       return { ...DEFAULT_VIEWER_PREFS };
@@ -237,180 +223,6 @@
     try { localStorage.setItem('sjcg.viewerPrefs.v1', JSON.stringify(viewerPrefs)); } catch (e) {}
   }
 
-  function getSongCapo() {
-    const metaCapo = parseInt(window.__gtzMeta?.capo, 10);
-    return Number.isFinite(metaCapo) ? Math.max(0, Math.min(12, metaCapo)) : 0;
-  }
-
-  function getEffectiveCapo() {
-    return getSongCapo();
-  }
-
-  function getUserTranspose() {
-    const n = parseInt(viewerPrefs.transposeSemitones, 10);
-    return Number.isFinite(n) ? Math.max(-11, Math.min(11, n)) : 0;
-  }
-
-  function getEffectiveTranspose() {
-    return getSongCapo() + getUserTranspose();
-  }
-
-  const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  const NOTE_INDEX_FLAT  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-  const NOTE_TO_INDEX = {
-    C: 0, 'B#': 0,
-    'C#': 1, Db: 1,
-    D: 2,
-    'D#': 3, Eb: 3,
-    E: 4, Fb: 4,
-    F: 5, 'E#': 5,
-    'F#': 6, Gb: 6,
-    G: 7,
-    'G#': 8, Ab: 8,
-    A: 9,
-    'A#': 10, Bb: 10,
-    B: 11, Cb: 11
-  };
-
-  function prefersFlatsFromKeyName(keyName) {
-    if (!keyName) return true;
-    return String(keyName).includes('b') || /^F(?:$|m)/i.test(String(keyName));
-  }
-
-  function transposePitchName(name, semitones, preferFlats) {
-    if (!name || !Number.isFinite(semitones)) return name || '--';
-    const normalized = String(name).trim();
-    const m = normalized.match(/^([A-G](?:#|b)?)(.*)$/);
-    if (!m) return normalized;
-    const root = m[1];
-    const suffix = m[2] || '';
-    const idx = NOTE_TO_INDEX[root];
-    if (idx == null) return normalized;
-    const next = (idx + semitones % 12 + 12) % 12;
-    const names = preferFlats ? NOTE_INDEX_FLAT : NOTE_INDEX_SHARP;
-    return names[next] + suffix;
-  }
-
-
-  function transposeChordSymbol(symbol, semitones, preferFlats) {
-    const raw = String(symbol || '').trim();
-    if (!raw || !Number.isFinite(semitones) || semitones === 0) return raw;
-    const m = raw.match(/^([A-G](?:#|b)?)([^/]*?)(?:\/([A-G](?:#|b)?))?$/);
-    if (!m) return raw;
-    const root = m[1];
-    const quality = m[2] || '';
-    const bass = m[3] || '';
-    if (NOTE_TO_INDEX[root] == null) return raw;
-    if (bass && NOTE_TO_INDEX[bass] == null) return raw;
-    const nextRoot = transposePitchName(root, semitones, preferFlats);
-    const nextBass = bass ? transposePitchName(bass, semitones, preferFlats) : '';
-    return nextRoot + quality + (nextBass ? '/' + nextBass : '');
-  }
-
-  function looksLikeChordSymbol(text) {
-    const s = String(text || '').trim();
-    if (!s || s.length > 20) return false;
-    if (!/^[A-G](?:#|b)?/.test(s)) return false;
-    if (/[^A-Ga-g0-9#b\/()\-+susmajdimaugaddnoø°△mM ]/.test(s)) return false;
-    return /^(?:[A-G](?:#|b)?)(?:m|maj|min|sus|dim|aug|add|[0-9]|\(|\/|$)/i.test(s);
-  }
-
-  function rewriteRenderedChordTexts() {
-    const root = document.getElementById('alphaTab');
-    if (!root) return;
-    const semitones = getUserTranspose();
-    const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
-    const nodes = root.querySelectorAll('text, tspan');
-    nodes.forEach((el) => {
-      if (el.children && el.children.length) return;
-      const current = (el.textContent || '').trim();
-      if (!current) return;
-      const original = el.getAttribute('data-orig-chord') || current;
-      if (!looksLikeChordSymbol(original)) return;
-      if (!el.getAttribute('data-orig-chord')) {
-        el.setAttribute('data-orig-chord', original);
-      }
-      const next = semitones === 0 ? original : transposeChordSymbol(original, semitones, preferFlats);
-      if (next && next !== current) {
-        el.textContent = next;
-      }
-    });
-  }
-
-  let __chordObserver = null;
-  let __chordRewriteTimer = null;
-  function scheduleChordRewrite(delay = 80) {
-    try { if (__chordRewriteTimer) clearTimeout(__chordRewriteTimer); } catch (e) {}
-    __chordRewriteTimer = setTimeout(() => {
-      rewriteRenderedChordTexts();
-    }, delay);
-  }
-
-  function ensureChordObserver() {
-    const root = document.getElementById('alphaTab');
-    if (!root || __chordObserver) return;
-    __chordObserver = new MutationObserver(() => {
-      scheduleChordRewrite(30);
-    });
-    __chordObserver.observe(root, { childList: true, subtree: true, characterData: false });
-  }
-
-  function computeDisplayedKeyName(meta) {
-    const m = meta || {};
-    const original = m.key_name || '--';
-    const semitones = getUserTranspose();
-    if (!original || original === '--' || semitones === 0) return original;
-    const preferFlats = prefersFlatsFromKeyName(original);
-    return transposePitchName(original, semitones, preferFlats);
-  }
-
-  function getAllTracks(api) {
-    const tracks = api?.score?.tracks || __currentScore?.tracks || [];
-    return Array.isArray(tracks) ? tracks : [];
-  }
-
-  function getSelectedTrackIndices(api) {
-    const tracks = getAllTracks(api);
-    if (!tracks.length) return [];
-    if (Array.isArray(__visibleTrackIndices)) return __visibleTrackIndices.slice();
-    return tracks.map((_, i) => i);
-  }
-
-  function applyPlaybackTrackVisibility(api) {
-    if (!api) return;
-    const tracks = getAllTracks(api);
-    if (!tracks.length || typeof api.changeTrackMute !== 'function') return;
-
-    const selected = new Set(getSelectedTrackIndices(api));
-    const hasExplicitSelection = Array.isArray(__visibleTrackIndices);
-    const useAll = !hasExplicitSelection;
-
-    tracks.forEach((track, i) => {
-      const muted = useAll ? false : !selected.has(i);
-      try { api.changeTrackMute([track], muted); } catch (e) {}
-    });
-  }
-
-  function applyScoreTransposition(api) {
-    if (!api || !api.settings) return;
-    const tracks = getAllTracks(api);
-    const trackCount = tracks.length;
-    const semitones = getEffectiveTranspose();
-    try {
-      if (!api.settings.notation) api.settings.notation = {};
-      api.settings.notation.transpositionPitches = trackCount > 0 ? Array(trackCount).fill(semitones) : [semitones];
-      api.updateSettings();
-      if (typeof api.changeTrackTranspositionPitch === 'function' && tracks.length) {
-        try { api.changeTrackTranspositionPitch(tracks, semitones); } catch (e) { console.warn('live transpose failed', e); }
-      }
-      try { api.render(); } catch (e) {}
-      scheduleChordRewrite(120);
-      scheduleTabCapoOverlay(140);
-    } catch (e) {
-      console.warn('applyScoreTransposition failed', e);
-    }
-  }
-
   function updateMetaRow(meta) {
     __currentMeta = meta || __currentMeta || {};
     const m = __currentMeta || {};
@@ -419,8 +231,8 @@
     const capoEl = document.getElementById('meta-capo');
     const speedEl = document.getElementById('meta-speed');
     if (tempoEl) tempoEl.textContent = (m.tempo != null && m.tempo !== '') ? String(m.tempo) : '--';
-    if (keyEl) keyEl.textContent = computeDisplayedKeyName(m);
-    if (capoEl) capoEl.textContent = String(getEffectiveCapo());
+    if (keyEl) keyEl.textContent = m.key_name || '--';
+    if (capoEl) capoEl.textContent = (m.capo != null && m.capo !== '') ? String(m.capo) : '0';
     if (speedEl) speedEl.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
   }
 
@@ -430,131 +242,19 @@
     const c = document.getElementById('tempo-slider');
     const d = document.getElementById('tempo-slider-value');
     const e = document.getElementById('meta-speed');
-    const f = document.getElementById('transpose-value');
-    const g = document.getElementById('capo-value');
     if (a) a.textContent = String(viewerPrefs.scoreFontSizePx);
     if (b) b.textContent = `${viewerPrefs.scoreSpacingFactor.toFixed(1)}x`;
     if (c) c.value = String(viewerPrefs.playbackSpeedPercent);
     if (d) d.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
     if (e) e.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
-    if (f) {
-      const t = getUserTranspose();
-      f.textContent = t > 0 ? `+${t}` : String(t);
-    }
-    if (g) g.textContent = String(getEffectiveCapo());
   }
 
   function applyViewerPrefsToScore() {
     if (!window.__atApi) return;
     applyLyricsFont(window.__atApi, viewerPrefs.scoreFontSizePx);
     applyLyricSpacing(window.__atApi, viewerPrefs.scoreSpacingFactor);
-    applyScoreTransposition(window.__atApi);
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
-    scheduleTabCapoOverlay(120);
   }
-
-
-  let __tabCapoOverlayTimer = null;
-
-  function ensureTabCapoOverlayRoot() {
-    const host = document.getElementById('alphaTab');
-    if (!host) return null;
-    host.style.position = host.style.position || 'relative';
-    let root = host.querySelector('.tab-capo-overlay-root');
-    if (!root) {
-      root = document.createElement('div');
-      root.className = 'tab-capo-overlay-root';
-      root.style.position = 'absolute';
-      root.style.left = '0';
-      root.style.top = '0';
-      root.style.right = '0';
-      root.style.bottom = '0';
-      root.style.pointerEvents = 'none';
-      root.style.zIndex = '20';
-      host.appendChild(root);
-    }
-    return root;
-  }
-
-  function clearTabCapoOverlay() {
-    const root = document.querySelector('#alphaTab .tab-capo-overlay-root');
-    if (root) root.innerHTML = '';
-  }
-
-  function isTabBarBounds(barBounds) {
-    const staff = barBounds?.bar?.staff;
-    if (!staff) return false;
-    if (!staff.showTablature) return false;
-    if (staff.showStandardNotation) return false;
-    return true;
-  }
-
-  function getDisplayedFretForCapo(note) {
-    if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
-    const capo = getEffectiveCapo();
-    if (!capo) return null;
-    const displayed = note.fret - capo;
-    if (!Number.isFinite(displayed) || displayed < 0) return null;
-    return displayed;
-  }
-
-  function renderTabCapoOverlay() {
-    const api = window.__atApi;
-    const root = ensureTabCapoOverlayRoot();
-    if (!api || !root) return;
-    root.innerHTML = '';
-
-    const capo = getEffectiveCapo();
-    const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
-    if (!capo || !lookup || !Array.isArray(lookup.staffSystems)) return;
-
-    for (const system of lookup.staffSystems) {
-      const masterBars = Array.isArray(system?.bars) ? system.bars : [];
-      for (const masterBar of masterBars) {
-        const barBoundsList = Array.isArray(masterBar?.bars) ? masterBar.bars : [];
-        for (const barBounds of barBoundsList) {
-          if (!isTabBarBounds(barBounds)) continue;
-          const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
-          for (const beatBounds of beats) {
-            const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
-            for (const noteBounds of notes) {
-              const note = noteBounds?.note;
-              const displayFret = getDisplayedFretForCapo(note);
-              const box = noteBounds?.noteHeadBounds;
-              if (displayFret === null || !box) continue;
-              const el = document.createElement('div');
-              el.className = 'tab-capo-overlay-note';
-              el.textContent = String(displayFret);
-              el.style.position = 'absolute';
-              el.style.left = `${box.x}px`;
-              el.style.top = `${box.y}px`;
-              el.style.width = `${box.w}px`;
-              el.style.height = `${box.h}px`;
-              el.style.display = 'flex';
-              el.style.alignItems = 'center';
-              el.style.justifyContent = 'center';
-              el.style.background = '#fff';
-              el.style.color = '#111';
-              el.style.fontWeight = '700';
-              el.style.fontSize = `${Math.max(12, Math.round(box.h * 0.95))}px`;
-              el.style.lineHeight = '1';
-              el.style.borderRadius = '2px';
-              el.style.boxSizing = 'border-box';
-              root.appendChild(el);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  function scheduleTabCapoOverlay(delay = 60) {
-    try { if (__tabCapoOverlayTimer) clearTimeout(__tabCapoOverlayTimer); } catch (e) {}
-    __tabCapoOverlayTimer = setTimeout(() => {
-      try { renderTabCapoOverlay(); } catch (e) { console.warn('renderTabCapoOverlay failed', e); }
-    }, delay);
-  }
-
 
   function applyViewerPrefsToLyricsPage() {
     state.lyricsFontSize = viewerPrefs.pureLyricsFontSize;
@@ -582,22 +282,11 @@
     document.getElementById('tempo-slider')?.addEventListener('input', (ev) => {
       viewerPrefs.playbackSpeedPercent = parseInt(ev.target.value, 10) || 100;
       refreshAdjustUI();
-      updateMetaRow();
       try { if (window.__atApi) window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
     });
     document.getElementById('tempo-slider')?.addEventListener('change', () => {
       saveViewerPrefs();
     });
-
-    document.getElementById('btn-transpose-plus')?.addEventListener('click', () => {
-      viewerPrefs.transposeSemitones = Math.min(getUserTranspose() + 1, 11);
-      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow(); applyViewerPrefsToScore();
-    });
-    document.getElementById('btn-transpose-minus')?.addEventListener('click', () => {
-      viewerPrefs.transposeSemitones = Math.max(getUserTranspose() - 1, -11);
-      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow(); applyViewerPrefsToScore();
-    });
-
   }
 
   
@@ -803,7 +492,6 @@
       console.warn('renderScore failed, fallback render', e);
       try { api.render(); } catch(e2) {}
     }
-    applyPlaybackTrackVisibility(api);
   }
 
   function buildTracksPanel(score) {
@@ -1053,9 +741,6 @@ function pad4(num) {
     // 首次初始化 alphaTab API
     if (!window.__atApi) {
       const settings = {
-        core: {
-          includeNoteBounds: true
-        },
         // 文件由我们手动 load(ArrayBuffer) 提供，因此这里不设置 file
         display: {
           scale: 1.0
@@ -1099,14 +784,8 @@ function pad4(num) {
         enableCursor(window.__atApi);
 
         renderVisibleTracks(window.__atApi);
-        applyScoreTransposition(window.__atApi);
-        applyPlaybackTrackVisibility(window.__atApi);
-        scheduleTabCapoOverlay(180);
       });
 
-      window.__atApi.renderFinished.on(() => {
-        scheduleTabCapoOverlay(40);
-      });
 
       // 播放条绑定
       setupPlayerBar(window.__atApi);
@@ -1371,234 +1050,95 @@ function pad4(num) {
 
 <script>
 (function(){
-  // 五线谱 / 简谱 切换（基于当前稳定版增量注入）
-  function getStaffMode(){
-    try { return localStorage.getItem("staffMode") || "five"; } catch(e) { return "five"; }
-  }
-  function setStaffMode(mode){
-    try { localStorage.setItem("staffMode", mode); } catch(e) {}
-  }
-
-  function updateStaffToggleUI(mode){
-    const btn = document.getElementById("btn-staff-toggle");
-    const label = document.getElementById("staff-toggle-label");
-    if (btn) btn.textContent = (mode === "jian") ? "五" : "简";
-    if (label) label.textContent = (mode === "jian") ? "简" : "五";
-  }
-
-  function applyStaffMode(){
-    const api = window.__atApi;
-    if (!api || !api.score || !api.score.tracks) return;
-
-    const mode = getStaffMode();
-    try{
-      for (const track of api.score.tracks) {
-        if (!track || !track.staves) continue;
-        for (const staff of track.staves) {
-          // 只改“非TAB主谱 staff”，TAB staff 保持原样
-          const hasTab = !!staff.showTablature;
-          const hasStd = !!staff.showStandardNotation;
-          if (hasTab) continue;
-
-          // 关键：只在主谱 staff 上切换
-          staff.showStandardNotation = (mode !== "jian");
-
-          // alphaTab 的编号谱开关兼容写法
-          if ("showNumbered" in staff) {
-            staff.showNumbered = (mode === "jian");
-          }
-          if ("showNumberedNotation" in staff) {
-            staff.showNumberedNotation = (mode === "jian");
-          }
-        }
-      }
-
-      if (api.settings && api.settings.notation) {
-        // 尽量避免全局 displayMode 影响 TAB 或额外 staff
-        if ("displayMode" in api.settings.notation) {
-          // 不改全局 displayMode，只走 staff 层开关
-        }
-      }
-
-      api.render();
-      updateStaffToggleUI(mode);
-    }catch(e){
-      console.warn("staff toggle apply failed:", e);
-    }
-  }
-
-  function ensureStaffToggleButton(){
-    // 优先放在已有顶部模式区域附近；找不到就挂到 body 顶部，但不是单独空白页
-    if (document.getElementById("btn-staff-toggle")) return;
-
-    const candidates = [
-      document.querySelector(".mode-switch"),
-      document.querySelector(".top-row"),
-      document.querySelector(".toolbar"),
-      document.querySelector(".controls"),
-      document.querySelector(".score-toolbar"),
-      document.querySelector("body")
-    ];
-    const host = candidates.find(Boolean);
-    if (!host) return;
-
-    const wrap = document.createElement("div");
-    wrap.style.display = "inline-flex";
-    wrap.style.alignItems = "center";
-    wrap.style.gap = "8px";
-    wrap.style.marginLeft = "12px";
-
-    const label = document.createElement("span");
-    label.id = "staff-toggle-label";
-    label.textContent = "五";
-    label.style.color = "#2563eb";
-    label.style.fontWeight = "700";
-    label.style.fontSize = "16px";
-
-    const btn = document.createElement("button");
-    btn.id = "btn-staff-toggle";
-    btn.textContent = "简";
-    btn.style.border = "none";
-    btn.style.borderRadius = "999px";
-    btn.style.padding = "6px 14px";
-    btn.style.background = "#e5eefc";
-    btn.style.color = "#2563eb";
-    btn.style.fontWeight = "700";
-    btn.style.cursor = "pointer";
-
-    btn.addEventListener("click", function(){
-      const now = getStaffMode();
-      const next = (now === "jian") ? "five" : "jian";
-      setStaffMode(next);
-      // render 后再套一次，防止 alphaTab 重建 staff
-      applyStaffMode();
-      setTimeout(applyStaffMode, 50);
-      setTimeout(applyStaffMode, 250);
-    });
-
-    wrap.appendChild(label);
-    wrap.appendChild(btn);
-
-    if (host === document.body) {
-      document.body.insertBefore(wrap, document.body.firstChild);
-    } else {
-      host.appendChild(wrap);
-    }
-    updateStaffToggleUI(getStaffMode());
-  }
-
-  function bootStaffToggle(){
-    ensureStaffToggleButton();
-    applyStaffMode();
-    setTimeout(applyStaffMode, 200);
-    setTimeout(applyStaffMode, 800);
-  }
-
-  document.addEventListener("DOMContentLoaded", function(){
-    ensureStaffToggleButton();
-    setTimeout(bootStaffToggle, 1200);
-  });
-
-  // alphaTab 异步加载后再补一次
-  const timer = setInterval(function(){
-    if (window.__atApi) {
-      clearInterval(timer);
-      bootStaffToggle();
-      try{
-        if (window.__atApi.renderFinished && window.__atApi.renderFinished.on) {
-          window.__atApi.renderFinished.on(function(){
-            updateStaffToggleUI(getStaffMode());
-          });
-        }
-      }catch(e){}
-    }
-  }, 300);
-})();
-</script>
-
-
-<script>
-(function(){
-  function restoreJianKeyText(root){
-    try{
-      root.querySelectorAll('[data-jian-key-hide="1"]').forEach(function(el){
-        const oldOpacity = el.getAttribute('data-old-opacity');
-        if (oldOpacity === '') {
-          el.removeAttribute('opacity');
-        } else if (oldOpacity != null) {
-          el.setAttribute('opacity', oldOpacity);
-        }
-        el.removeAttribute('data-jian-key-hide');
-        el.removeAttribute('data-old-opacity');
-      });
-    }catch(e){}
-  }
-
-  function hideFirstSystemJianKeyText(){
-    try{
+  function moveJianKeyVeryFar(){
+    try {
       const isJian = document.body.classList.contains('jian-mode');
-      const root = document.querySelector('#alphaTab svg');
-      if (!root) return;
-
-      restoreJianKeyText(root);
       if (!isJian) return;
 
-      const texts = Array.from(root.querySelectorAll('text'));
-      texts.forEach(function(t){
-        const txt = (t.textContent || '').trim();
-        if (!(txt === '1=' || /^1\s*=/.test(txt))) return;
+      const svg = document.querySelector('#alphaTab svg');
+      if (!svg) return;
 
-        let bbox = null;
-        try { bbox = t.getBBox(); } catch(e){}
-        if (bbox && bbox.y > 100) return; // 只处理首行附近
+      const texts = svg.querySelectorAll('text');
 
-        const parent = t.parentElement;
-        if (!parent) return;
+      texts.forEach(el => {
+        const txt = (el.textContent || '').trim();
 
-        const targets = [parent];
-        let sib = parent.nextElementSibling;
-        let count = 0;
-        while (sib && count < 3){
-          const st = (sib.textContent || '').trim();
-          if (st === '' || /^[#bA-G]+$/.test(st) || sib.querySelector('text')) {
-            targets.push(sib);
+        if (txt === '1=' || /^1\s*=/.test(txt)) {
+          const g = el.parentElement;
+          if (!g) return;
+
+          if (!g.dataset.movedJianKey) {
+            g.dataset.movedJianKey = '1';
+            g.dataset.oldTransform = g.getAttribute('transform') || '';
+            g.setAttribute('transform', 'translate(-9999 -9999)');
           }
-          sib = sib.nextElementSibling;
-          count += 1;
-        }
 
-        targets.forEach(function(el){
-          el.setAttribute('data-jian-key-hide', '1');
-          el.setAttribute('data-old-opacity', el.getAttribute('opacity') || '');
-          el.setAttribute('opacity', '0');
-        });
+          let sib = g.nextElementSibling;
+          let count = 0;
+          while (sib && count < 5) {
+            if (!sib.dataset.movedJianKey) {
+              sib.dataset.movedJianKey = '1';
+              sib.dataset.oldTransform = sib.getAttribute('transform') || '';
+              sib.setAttribute('transform', 'translate(-9999 -9999)');
+            }
+            sib = sib.nextElementSibling;
+            count++;
+          }
+        }
       });
-    }catch(e){
-      console.warn('hideFirstSystemJianKeyText failed:', e);
+    } catch(e) {
+      console.warn('moveJianKeyVeryFar failed:', e);
     }
   }
 
-  function runHideJianKey(){
-    setTimeout(hideFirstSystemJianKeyText, 30);
-    setTimeout(hideFirstSystemJianKeyText, 180);
-    setTimeout(hideFirstSystemJianKeyText, 600);
+  function restoreJianKey(){
+    try {
+      const svg = document.querySelector('#alphaTab svg');
+      if (!svg) return;
+
+      svg.querySelectorAll('[data-moved-jian-key="1"], [data-movedjiankey="1"], [data-movedJianKey="1"]').forEach(el => {
+        const old = el.dataset.oldTransform;
+        if (old !== undefined) {
+          if (old) el.setAttribute('transform', old);
+          else el.removeAttribute('transform');
+        }
+        delete el.dataset.movedJianKey;
+        delete el.dataset.oldTransform;
+      });
+    } catch(e) {
+      console.warn('restoreJianKey failed:', e);
+    }
   }
 
-  document.addEventListener('DOMContentLoaded', function(){
-    runHideJianKey();
-  });
+  function applyJianKeyHack(){
+    try {
+      const isJian = document.body.classList.contains('jian-mode');
+      if (isJian) moveJianKeyVeryFar();
+      else restoreJianKey();
+    } catch(e) {
+      console.warn('applyJianKeyHack failed:', e);
+    }
+  }
 
-  const timer = setInterval(function(){
+  function runJianKeyHack(){
+    setTimeout(applyJianKeyHack, 50);
+    setTimeout(applyJianKeyHack, 200);
+    setTimeout(applyJianKeyHack, 600);
+  }
+
+  document.addEventListener('DOMContentLoaded', runJianKeyHack);
+
+  const timer = setInterval(() => {
     if (window.__atApi) {
       clearInterval(timer);
-      try{
+      try {
         if (window.__atApi.renderFinished && window.__atApi.renderFinished.on) {
-          window.__atApi.renderFinished.on(function(){
-            runHideJianKey();
-          });
+          window.__atApi.renderFinished.on(runJianKeyHack);
         }
-      }catch(e){}
-      runHideJianKey();
+      } catch(e) {
+        console.warn(e);
+      }
+      runJianKeyHack();
     }
   }, 300);
 })();
