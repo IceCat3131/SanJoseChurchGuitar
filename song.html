@@ -1519,43 +1519,28 @@ function pad4(num) {
 
 <script>
 (function(){
-  function restoreJianKeyFix(root){
+  function restoreJianKeyText(root){
     try{
-      root.querySelectorAll('[data-jian-key-fix="1"]').forEach(function(el){
-        const oldTransform = el.getAttribute('data-old-transform');
+      root.querySelectorAll('[data-jian-key-hide="1"]').forEach(function(el){
         const oldOpacity = el.getAttribute('data-old-opacity');
-        if (oldTransform !== null) el.setAttribute('transform', oldTransform);
-        if (oldOpacity !== null && oldOpacity !== '') el.setAttribute('opacity', oldOpacity);
-        if (oldOpacity === '') el.removeAttribute('opacity');
-        el.removeAttribute('data-jian-key-fix');
-        el.removeAttribute('data-old-transform');
+        if (oldOpacity === '') {
+          el.removeAttribute('opacity');
+        } else if (oldOpacity != null) {
+          el.setAttribute('opacity', oldOpacity);
+        }
+        el.removeAttribute('data-jian-key-hide');
         el.removeAttribute('data-old-opacity');
       });
-    }catch(e){ console.warn(e); }
+    }catch(e){}
   }
 
-  function moveUpElement(el, dy){
-    const old = el.getAttribute('transform') || '';
-    el.setAttribute('data-jian-key-fix', '1');
-    el.setAttribute('data-old-transform', old);
-    el.setAttribute('data-old-opacity', el.getAttribute('opacity') || '');
-    const m = old.match(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/);
-    if (m){
-      const x = parseFloat(m[1]);
-      const y = parseFloat(m[2]) - dy;
-      el.setAttribute('transform', old.replace(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/, 'translate(' + x + ' ' + y + ')'));
-    } else {
-      el.setAttribute('transform', (old + ' translate(0 -' + dy + ')').trim());
-    }
-  }
-
-  function fixFirstSystemJianKeyText(){
+  function hideFirstSystemJianKeyText(){
     try{
       const isJian = document.body.classList.contains('jian-mode');
       const root = document.querySelector('#alphaTab svg');
       if (!root) return;
 
-      restoreJianKeyFix(root);
+      restoreJianKeyText(root);
       if (!isJian) return;
 
       const texts = Array.from(root.querySelectorAll('text'));
@@ -1565,37 +1550,42 @@ function pad4(num) {
 
         let bbox = null;
         try { bbox = t.getBBox(); } catch(e){}
-        if (bbox && bbox.y > 100) return;
+        if (bbox && bbox.y > 100) return; // 只处理首行附近
 
         const parent = t.parentElement;
-        if (parent && parent.tagName && parent.tagName.toLowerCase() === 'g') {
-          moveUpElement(parent, 24);
+        if (!parent) return;
 
-          let sib = parent.nextElementSibling;
-          let count = 0;
-          while (sib && count < 3){
-            const st = (sib.textContent || '').trim();
-            if (st === '' || /^[#bA-G]+$/.test(st) || sib.querySelector('text')) {
-              moveUpElement(sib, 24);
-            }
-            sib = sib.nextElementSibling;
-            count += 1;
+        const targets = [parent];
+        let sib = parent.nextElementSibling;
+        let count = 0;
+        while (sib && count < 3){
+          const st = (sib.textContent || '').trim();
+          if (st === '' || /^[#bA-G]+$/.test(st) || sib.querySelector('text')) {
+            targets.push(sib);
           }
+          sib = sib.nextElementSibling;
+          count += 1;
         }
+
+        targets.forEach(function(el){
+          el.setAttribute('data-jian-key-hide', '1');
+          el.setAttribute('data-old-opacity', el.getAttribute('opacity') || '');
+          el.setAttribute('opacity', '0');
+        });
       });
     }catch(e){
-      console.warn('fixFirstSystemJianKeyText failed:', e);
+      console.warn('hideFirstSystemJianKeyText failed:', e);
     }
   }
 
-  function runJianKeyFix(){
-    setTimeout(fixFirstSystemJianKeyText, 30);
-    setTimeout(fixFirstSystemJianKeyText, 180);
-    setTimeout(fixFirstSystemJianKeyText, 600);
+  function runHideJianKey(){
+    setTimeout(hideFirstSystemJianKeyText, 30);
+    setTimeout(hideFirstSystemJianKeyText, 180);
+    setTimeout(hideFirstSystemJianKeyText, 600);
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    runJianKeyFix();
+    runHideJianKey();
   });
 
   const timer = setInterval(function(){
@@ -1604,11 +1594,11 @@ function pad4(num) {
       try{
         if (window.__atApi.renderFinished && window.__atApi.renderFinished.on) {
           window.__atApi.renderFinished.on(function(){
-            runJianKeyFix();
+            runHideJianKey();
           });
         }
       }catch(e){}
-      runJianKeyFix();
+      runHideJianKey();
     }
   }, 300);
 })();
