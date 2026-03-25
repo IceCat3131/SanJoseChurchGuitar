@@ -156,18 +156,33 @@
     el.alphaTabHost.classList.toggle('hidden', lyricsMode);
   }
 
+  function applyNotationToScore(score) {
+    if (!score || !Array.isArray(score.tracks)) return;
+    const showStandard = state.currentNotation === 'staff';
+    const showNumbered = state.currentNotation === 'jianpu';
+
+    score.tracks.forEach(track => {
+      if (!track || !Array.isArray(track.staves)) return;
+      track.staves.forEach(staff => {
+        if (!staff) return;
+        if ('showStandardNotation' in staff) {
+          staff.showStandardNotation = showStandard;
+        }
+        if ('showNumbered' in staff) {
+          staff.showNumbered = showNumbered;
+        }
+      });
+    });
+  }
+
   function updateDisplaySettings() {
     if (!state.api) return;
-    const settings = state.api.settings;
-    settings.display.showStandardNotation = state.currentNotation === 'staff';
-    settings.display.showNumberedNotation = state.currentNotation === 'jianpu';
-    settings.display.showTab = true;
-    settings.display.showChordNames = true;
-    settings.display.showScoreLyrics = true;
 
-    // alphaTab JSON settings support these aliases during init; on live settings object
-    // we keep our own state and trigger rerender. Custom lyric spacing is reserved here.
-    state.api.updateSettings();
+    // Important: in alphaTab 1.8.x, numbered/standard staff visibility is a staff-model flag
+    // (`track.staves[].showNumbered` / `showStandardNotation`), not a live DisplaySettings field.
+    // So we must mutate the loaded score and re-render it.
+    applyNotationToScore(state.api.score);
+
     if (state.api.score && state.api.score.tracks && state.api.score.tracks.length) {
       const indices = state.visibleTrackIndices.length ? state.visibleTrackIndices : [0];
       const tracks = indices
@@ -177,6 +192,8 @@
         state.api.renderTracks(tracks);
         return;
       }
+      state.api.renderScore(state.api.score);
+      return;
     }
     state.api.render();
   }
@@ -255,6 +272,10 @@
 
     state.api.renderStarted.on(() => {
       setLoading('正在渲染乐谱...');
+    });
+
+    state.api.scoreLoaded.on(() => {
+      applyNotationToScore(state.api.score);
     });
 
     state.api.renderFinished.on(() => {
