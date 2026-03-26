@@ -39,9 +39,7 @@
     fontPlusBtn: qs('#fontPlusBtn'),
     spacingMinusBtn: qs('#spacingMinusBtn'),
     spacingPlusBtn: qs('#spacingPlusBtn'),
-    trackList: qs('#trackList'),
-    progressBar: qs('#progressBar'),
-    timeText: qs('#timeText')
+    trackList: qs('#trackList')
   };
 
   function getQueryFile() {
@@ -81,7 +79,6 @@
   function getPackageScoreData(pkg) {
     return pkg?.score?.data || pkg?.scoreBase64 || '';
   }
-
 
   function absoluteUrl(relativePath) {
     return new URL(relativePath, window.location.href).href;
@@ -147,7 +144,6 @@
     qs('#staffOption').classList.toggle('selected', isStaff);
     qs('#jianpuOption').classList.toggle('selected', !isStaff);
     el.alphaTabHost.classList.toggle('jianpu-mode', !isStaff);
-    if (isStaff) el.alphaTabHost.classList.remove('jianpu-header-hidden');
   }
 
   function syncModeUi() {
@@ -158,81 +154,92 @@
     el.lyricsPlaceholder.classList.toggle('hidden', !lyricsMode);
     el.alphaTabHost.classList.toggle('hidden', lyricsMode);
   }
+
   function normalizeLooseText(value) {
     return String(value || '').replace(/\s+/g, '').replace(/[♭]/g, 'b').replace(/[♯]/g, '#');
   }
 
-  function hideJianpuHeaderArtifacts() {
-    const svg = el.alphaTabHost.querySelector('svg');
-    if (!svg) return;
-
-    // restore previous shifts first
-    svg.querySelectorAll('[data-lyric-shifted="1"]').forEach(node => {
-      const y = node.getAttribute('data-original-y');
-      if (y != null) node.setAttribute('y', y);
-      node.removeAttribute('data-lyric-shifted');
-    });
-    svg.querySelectorAll('[data-jianpu-header-hidden="1"]').forEach(node => {
-      node.style.display = '';
-      node.removeAttribute('data-jianpu-header-hidden');
-    });
-
-    if (state.currentNotation !== 'jianpu') {
-      el.alphaTabHost.classList.remove('jianpu-header-hidden');
-      return;
-    }
-
-    const candidateNodes = Array.from(svg.querySelectorAll('text, tspan'));
+  function markAndHideTopLeftJianpuHeader(svg) {
+    const textNodes = Array.from(svg.querySelectorAll('text'));
     let hiddenCount = 0;
 
-    candidateNodes.forEach(node => {
+    textNodes.forEach((node) => {
       const raw = node.textContent || '';
       const normalized = normalizeLooseText(raw);
       if (!normalized) return;
-      const x = Number(node.getAttribute('x') || node.parentElement?.getAttribute('x') || NaN);
-      const y = Number(node.getAttribute('y') || node.parentElement?.getAttribute('y') || NaN);
-      if (Number.isNaN(x) || Number.isNaN(y)) return;
+      let box;
+      try { box = node.getBBox(); } catch (_) { return; }
+      if (!box || box.width <= 0 || box.height <= 0) return;
 
-      const isKeyHeader = /^1=/.test(normalized) || normalized === '1' || normalized === '=' || /^[#b][A-G]$/.test(normalized) || /^[A-G]$/.test(normalized);
-      if (isKeyHeader && x < 260 && y < 240) {
-        const target = node.closest('text') || node;
-        target.style.display = 'none';
-        target.setAttribute('data-jianpu-header-hidden', '1');
+      const isHeaderToken = /^1=/.test(normalized)
+        || normalized === '1'
+        || normalized === '='
+        || /^[#b][A-G]$/.test(normalized)
+        || /^[A-G]$/.test(normalized)
+        || /^([#b]?)([A-G])$/.test(normalized);
+
+      if (isHeaderToken && box.x < 260 && box.y < 220) {
+        node.style.display = 'none';
+        node.setAttribute('data-jianpu-hidden', '1');
         hiddenCount += 1;
       }
     });
 
-    // compensate first-system lyric crowding manually, because the key signature band still reserves layout space.
-    candidateNodes.forEach(node => {
-      const raw = (node.textContent || '').trim();
-      if (!raw) return;
-      const x = Number(node.getAttribute('x') || node.parentElement?.getAttribute('x') || NaN);
-      const y = Number(node.getAttribute('y') || node.parentElement?.getAttribute('y') || NaN);
-      if (Number.isNaN(x) || Number.isNaN(y)) return;
-      const isLikelyLyric = /[㐀-鿿]/.test(raw) || /[A-Za-z]/.test(raw);
-      if (!isLikelyLyric) return;
-      if (x < 40 || y < 120 || y > 260) return;
-      // avoid moving title/header texts
-      if (raw.length > 12) return;
-      if (node.closest('text')) {
-        const textNode = node.closest('text');
-        const y0 = textNode.getAttribute('y');
-        if (y0 != null && !textNode.hasAttribute('data-lyric-shifted')) {
-          textNode.setAttribute('data-original-y', y0);
-          textNode.setAttribute('y', String(Number(y0) + 16));
-          textNode.setAttribute('data-lyric-shifted', '1');
-        }
+    return hiddenCount;
+  }
+
+  function shiftFirstSystemLyrics(svg) {
+    // reset previous shifts
+    svg.querySelectorAll('[data-lyric-shift="1"]').forEach((node) => {
+      const target = node;
+      const orig = target.getAttribute('data-orig-transform');
+      if (orig === null) {
+        target.removeAttribute('transform');
       } else {
-        const y0 = node.getAttribute('y');
-        if (y0 != null && !node.hasAttribute('data-lyric-shifted')) {
-          node.setAttribute('data-original-y', y0);
-          node.setAttribute('y', String(Number(y0) + 16));
-          node.setAttribute('data-lyric-shifted', '1');
-        }
+        target.setAttribute('transform', orig);
       }
+      target.removeAttribute('data-lyric-shift');
+      target.removeAttribute('data-orig-transform');
     });
 
-    el.alphaTabHost.classList.toggle('jianpu-header-hidden', hiddenCount > 0);
+    if (state.currentNotation !== 'jianpu') return;
+
+    const texts = Array.from(svg.querySelectorAll('text'));
+    texts.forEach((node) => {
+      const raw = (node.textContent || '').trim();
+      if (!raw) return;
+      if (!/[\u3400-\u9FFF]/.test(raw)) return;
+      let box;
+      try { box = node.getBBox(); } catch (_) { return; }
+      if (!box || box.width <= 0 || box.height <= 0) return;
+      if (box.x < 40 || box.x > 1400) return;
+      if (box.y < 130 || box.y > 280) return;
+      if (raw.length > 12) return;
+
+      const orig = node.getAttribute('transform');
+      node.setAttribute('data-orig-transform', orig === null ? '' : orig);
+      node.setAttribute('transform', `${orig ? orig + ' ' : ''}translate(0,18)`);
+      node.setAttribute('data-lyric-shift', '1');
+    });
+  }
+
+  function fixRenderedSvg() {
+    const svg = el.alphaTabHost.querySelector('svg');
+    if (!svg) return;
+
+    svg.querySelectorAll('[data-jianpu-hidden="1"]').forEach((node) => {
+      node.style.display = '';
+      node.removeAttribute('data-jianpu-hidden');
+    });
+
+    if (state.currentNotation === 'jianpu') {
+      const hiddenCount = markAndHideTopLeftJianpuHeader(svg);
+      shiftFirstSystemLyrics(svg);
+      el.alphaTabHost.classList.toggle('jianpu-header-hidden', hiddenCount > 0);
+    } else {
+      shiftFirstSystemLyrics(svg);
+      el.alphaTabHost.classList.remove('jianpu-header-hidden');
+    }
   }
 
   function detectNotationTrackIndices(score) {
@@ -240,59 +247,68 @@
     return [0];
   }
 
+  function staffLooksLikeTab(staff) {
+    return String(staff?.clef ?? '').toLowerCase() === 'tab'
+      || Number(staff?.stringTuning?.tunings?.length || staff?.stringCount || 0) >= 6
+      || Number(staff?.staffLines || 0) === 6;
+  }
+
   function applyNotationToScore(score) {
     if (!score || !Array.isArray(score.tracks)) return;
-    const showStandard = state.currentNotation === 'staff';
-    const showNumbered = state.currentNotation === 'jianpu';
+
     const notationTrackIndices = detectNotationTrackIndices(score);
     state.notationTrackIndices = notationTrackIndices;
+    const jianpuMode = state.currentNotation === 'jianpu';
 
     score.tracks.forEach((track, trackIndex) => {
       if (!track || !Array.isArray(track.staves)) return;
-      const shouldSwitchTrack = notationTrackIndices.includes(trackIndex);
-      track.staves.forEach(staff => {
-        if (!staff) return;
-        const isTabStaff = String(staff?.clef ?? '').toLowerCase() === 'tab'
-          || Number(staff?.stringTuning?.tunings?.length || staff?.stringCount || 0) >= 6
-          || Number(staff?.staffLines || 0) === 6;
+      const isNotationTrack = notationTrackIndices.includes(trackIndex);
 
-        if (isTabStaff || !shouldSwitchTrack) {
-          if ('showNumbered' in staff) staff.showNumbered = false;
-          if ('showStandardNotation' in staff) staff.showStandardNotation = true;
+      track.staves.forEach((staff) => {
+        if (!staff) return;
+        const isTab = staffLooksLikeTab(staff);
+
+        if (isNotationTrack) {
+          if (isTab) {
+            // Keep TAB as TAB only, never numbered notation.
+            if ('showNumbered' in staff) staff.showNumbered = false;
+            if ('showStandardNotation' in staff) staff.showStandardNotation = false;
+            return;
+          }
+          if ('showNumbered' in staff) staff.showNumbered = jianpuMode;
+          if ('showStandardNotation' in staff) staff.showStandardNotation = !jianpuMode;
           return;
         }
 
-        if ('showStandardNotation' in staff) {
-          staff.showStandardNotation = showStandard;
+        if (isTab) {
+          if ('showNumbered' in staff) staff.showNumbered = false;
+          if ('showStandardNotation' in staff) staff.showStandardNotation = false;
+          return;
         }
-        if ('showNumbered' in staff) {
-          staff.showNumbered = showNumbered;
-        }
+
+        // In jianpu mode, hide all non-target non-tab standard staves completely,
+        // so multi-track mode will not spawn an extra numbered/standard layer.
+        if ('showNumbered' in staff) staff.showNumbered = false;
+        if ('showStandardNotation' in staff) staff.showStandardNotation = !jianpuMode;
       });
     });
   }
 
+  function renderVisibleTracks() {
+    if (!state.api || !state.api.score || !state.api.score.tracks) return;
+    const indices = state.visibleTrackIndices.length ? state.visibleTrackIndices : [0];
+    const tracks = indices.map(i => state.api.score.tracks[i]).filter(Boolean);
+    if (tracks.length) {
+      state.api.renderTracks(tracks);
+    } else {
+      state.api.renderScore(state.api.score);
+    }
+  }
+
   function updateDisplaySettings() {
     if (!state.api) return;
-
-    // Important: in alphaTab 1.8.x, numbered/standard staff visibility is a staff-model flag
-    // (`track.staves[].showNumbered` / `showStandardNotation`), not a live DisplaySettings field.
-    // So we must mutate the loaded score and re-render it.
     applyNotationToScore(state.api.score);
-
-    if (state.api.score && state.api.score.tracks && state.api.score.tracks.length) {
-      const indices = state.visibleTrackIndices.length ? state.visibleTrackIndices : [0];
-      const tracks = indices
-        .map(i => state.api.score.tracks[i])
-        .filter(Boolean);
-      if (tracks.length) {
-        state.api.renderTracks(tracks);
-        return;
-      }
-      state.api.renderScore(state.api.score);
-      return;
-    }
-    state.api.render();
+    renderVisibleTracks();
   }
 
   function updateTrackList() {
@@ -301,6 +317,7 @@
       el.trackList.innerHTML = '<div class="menu-hint">暂无轨道信息</div>';
       return;
     }
+
     state.api.score.tracks.forEach((track, index) => {
       const row = document.createElement('label');
       row.className = 'check-row';
@@ -381,9 +398,7 @@
       syncNotationUi();
       syncModeUi();
       updateTrackList();
-      window.requestAnimationFrame(() => {
-        hideJianpuHeaderArtifacts();
-      });
+      window.requestAnimationFrame(fixRenderedSvg);
     });
   }
 
@@ -453,7 +468,6 @@
         state.currentNotation = btn.dataset.notation === 'jianpu' ? 'jianpu' : 'staff';
         syncNotationUi();
         updateDisplaySettings();
-        window.requestAnimationFrame(() => hideJianpuHeaderArtifacts());
         closeMenus();
       });
     });
@@ -503,7 +517,6 @@
     });
 
     qs('#homeBtn').addEventListener('click', () => { window.location.href = './index.html'; });
-
     window.addEventListener('resize', closeMenus);
   }
 

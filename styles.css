@@ -82,3 +82,6 @@ input[type="range"] { width: 100%; }
 
 .alpha-host.jianpu-header-hidden { padding-top: 10px; }
 .alpha-host.jianpu-header-hidden .at-wrap { padding-top: 6px; }
+
+.alpha-host.jianpu-header-hidden { padding-top: 8px; }
+.alpha-host.jianpu-mode svg text[data-jianpu-hidden="1"] { display:none !important; }
