@@ -684,3 +684,22 @@ flex: 1;
   .core-search-row{grid-template-columns:1fr;}
   .tracks-panel{right:8px !important; left:8px !important; top:auto !important; bottom:12px !important;}
 }
+
+
+/* ===== Hide legacy UI after core integrated UI is active ===== */
+.topbar,
+.card .search-bar,
+.player-bar,
+.meta-row,
+.adjust-row,
+.controls-row {
+  display: none !important;
+}
+
+/* Remove leftover gaps from legacy blocks */
+.topbar + .core-ui {
+  margin-top: 0 !important;
+}
+.core-ui {
+  margin-top: 0 !important;
+}
