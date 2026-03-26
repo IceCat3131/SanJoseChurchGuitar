@@ -79,3 +79,6 @@ input[type="range"] { width: 100%; }
   .score-frame { border-radius: 18px; padding: 8px; }
   .content-shell { padding-left: 8px; padding-right: 8px; }
 }
+
+.alpha-host.jianpu-header-hidden { padding-top: 10px; }
+.alpha-host.jianpu-header-hidden .at-wrap { padding-top: 6px; }

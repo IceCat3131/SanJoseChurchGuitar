@@ -13,6 +13,7 @@
     fontSizePx: 30,
     spacingFactor: 2.0,
     visibleTrackIndices: [0],
+    notationTrackIndices: [0],
     currentPath: './assets/c0001_cn_g.gtz'
   };
 
@@ -145,6 +146,8 @@
     const isStaff = state.currentNotation === 'staff';
     qs('#staffOption').classList.toggle('selected', isStaff);
     qs('#jianpuOption').classList.toggle('selected', !isStaff);
+    el.alphaTabHost.classList.toggle('jianpu-mode', !isStaff);
+    if (isStaff) el.alphaTabHost.classList.remove('jianpu-header-hidden');
   }
 
   function syncModeUi() {
@@ -155,16 +158,98 @@
     el.lyricsPlaceholder.classList.toggle('hidden', !lyricsMode);
     el.alphaTabHost.classList.toggle('hidden', lyricsMode);
   }
+  function normalizeLooseText(value) {
+    return String(value || '').replace(/\s+/g, '').replace(/[♭]/g, 'b').replace(/[♯]/g, '#');
+  }
+
+  function hideJianpuHeaderArtifacts() {
+    if (state.currentNotation !== 'jianpu') return;
+    const svg = el.alphaTabHost.querySelector('svg');
+    if (!svg) return;
+
+    const candidateNodes = Array.from(svg.querySelectorAll('text, tspan'));
+    let hiddenCount = 0;
+
+    candidateNodes.forEach(node => {
+      const raw = node.textContent || '';
+      const normalized = normalizeLooseText(raw);
+      if (!normalized) return;
+
+      const isKeyHeader = /^1=/.test(normalized) || normalized === '1' || normalized === '=' || /^[#b][A-G]$/.test(normalized) || /^[A-G]$/.test(normalized);
+      if (!isKeyHeader) return;
+
+      const x = Number(node.getAttribute('x') || node.parentElement?.getAttribute('x') || NaN);
+      const y = Number(node.getAttribute('y') || node.parentElement?.getAttribute('y') || NaN);
+      if (Number.isNaN(x) || Number.isNaN(y)) return;
+      if (x > 220 || y > 260) return;
+
+      const target = node.closest('text') || node;
+      if (!target.dataset.jianpuHeaderHidden) {
+        target.style.display = 'none';
+        target.dataset.jianpuHeaderHidden = '1';
+        hiddenCount += 1;
+      }
+    });
+
+    if (hiddenCount) {
+      el.alphaTabHost.classList.add('jianpu-header-hidden');
+    } else {
+      el.alphaTabHost.classList.remove('jianpu-header-hidden');
+    }
+  }
+
+
+  function detectNotationTrackIndices(score) {
+    if (!score || !Array.isArray(score.tracks) || !score.tracks.length) return [0];
+
+    const selected = [];
+    score.tracks.forEach((track, index) => {
+      if (!track || !Array.isArray(track.staves) || !track.staves.length) return;
+      const hasTab = track.staves.some(staff => {
+        const isTab = String(staff?.clef ?? '').toLowerCase() === 'tab';
+        const strings = Number(staff?.stringTuning?.tunings?.length || staff?.stringCount || 0);
+        const lineCount = Number(staff?.staffLines || 0);
+        return isTab || strings >= 6 || lineCount === 6;
+      });
+      const hasStandard = track.staves.some(staff => {
+        const clef = String(staff?.clef ?? '').toLowerCase();
+        const strings = Number(staff?.stringTuning?.tunings?.length || staff?.stringCount || 0);
+        const lineCount = Number(staff?.staffLines || 5);
+        return clef !== 'tab' && strings < 6 && lineCount !== 6;
+      });
+      if (hasStandard && !hasTab) selected.push(index);
+    });
+
+    if (selected.length) return selected;
+
+    const firstStandard = score.tracks.findIndex(track =>
+      track && Array.isArray(track.staves) && track.staves.some(staff => String(staff?.clef ?? '').toLowerCase() !== 'tab')
+    );
+    return [firstStandard >= 0 ? firstStandard : 0];
+  }
 
   function applyNotationToScore(score) {
     if (!score || !Array.isArray(score.tracks)) return;
     const showStandard = state.currentNotation === 'staff';
     const showNumbered = state.currentNotation === 'jianpu';
+    const notationTrackIndices = detectNotationTrackIndices(score);
+    state.notationTrackIndices = notationTrackIndices;
 
-    score.tracks.forEach(track => {
+    score.tracks.forEach((track, trackIndex) => {
       if (!track || !Array.isArray(track.staves)) return;
+      const shouldSwitchTrack = notationTrackIndices.includes(trackIndex);
       track.staves.forEach(staff => {
         if (!staff) return;
+        const isTabStaff = String(staff?.clef ?? '').toLowerCase() === 'tab'
+          || Number(staff?.stringTuning?.tunings?.length || staff?.stringCount || 0) >= 6
+          || Number(staff?.staffLines || 0) === 6;
+
+        if (isTabStaff || !shouldSwitchTrack) {
+          if ('showNumbered' in staff) staff.showNumbered = false;
+          if ('showStandardNotation' in staff) staff.showStandardNotation = true;
+          return;
+        }
+
         if ('showStandardNotation' in staff) {
           staff.showStandardNotation = showStandard;
         }
@@ -284,6 +369,9 @@
       syncNotationUi();
       syncModeUi();
       updateTrackList();
+      window.requestAnimationFrame(() => {
+        hideJianpuHeaderArtifacts();
+      });
     });
   }
 
