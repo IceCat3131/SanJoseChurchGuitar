@@ -625,42 +625,70 @@ function hideNodeAndUsefulParent(node) {
   function hideTopLeftJianpuHeader(svg) {
   if (!svg || state.currentNotation !== "jianpu") return 0;
 
-  const tokens = collectTopLeftHeaderTokens(svg);
-  if (!tokens.length) return 0;
-
   let hiddenCount = 0;
 
-  // 先找“1=A / 1=G / 1=C / 1=#F / 1=bA”这一类主 token
-  const tonicTokens = tokens.filter(t =>
-    /^1=[#b]?[A-G]m?$/.test(t.text) ||
-    /^1=[A-G]m?$/.test(t.text)
-  );
+  // 1) 先找左上角的 1=A / 1=G / 1=C / 1=#F / 1=bA 这种主调文本
+  const textNodes = Array.from(svg.querySelectorAll("text"));
+  const tonicNodes = [];
 
-  // 再找单独 accidental token：♭ / ♯ / b / #
-  const accidentalTokens = tokens.filter(t =>
-    t.text === "b" || t.text === "#" || t.raw === "♭" || t.raw === "♯"
-  );
+  for (const node of textNodes) {
+    const raw = (node.textContent || "").trim();
+    if (!raw) continue;
 
-  // 先隐藏 1=A 这种主 token
-  tonicTokens.forEach(t => {
-    if (t.box.x < 180 && t.box.y < 80) {
-      hideNodeAndUsefulParent(t.node);
-      hiddenCount++;
+    const text = raw.replace(/\s+/g, "").replace(/♭/g, "b").replace(/♯/g, "#");
+
+    if (!/^1=[#b]?[A-G]m?$/.test(text)) continue;
+
+    let box;
+    try {
+      box = node.getBBox();
+    } catch (_) {
+      continue;
     }
+    if (!box || box.width <= 0 || box.height <= 0) continue;
+
+    if (box.x < 180 && box.y < 80) {
+      tonicNodes.push({ node, box, text });
+    }
+  }
+
+  // 2) 隐藏主调文本
+  tonicNodes.forEach(({ node }) => {
+    const hidden = hideNodeAndUsefulParent(node);
+    if (hidden) hiddenCount++;
   });
 
-  // 只隐藏“贴着主 token”的那个 accidental
-  tonicTokens.forEach(tonic => {
-    accidentalTokens.forEach(acc => {
-      const nearLeftHeader =
-        acc.box.x >= tonic.box.x - 28 &&
-        acc.box.x <= tonic.box.x + tonic.box.width + 22 &&
-        Math.abs(acc.box.y - tonic.box.y) <= 18;
+  // 3) 只隐藏“紧挨着主调文本”的那个 accidental glyph
+  const atGroups = Array.from(svg.querySelectorAll("g.at"));
 
-      if (nearLeftHeader) {
-        hideNodeAndUsefulParent(acc.node);
-      }
+  atGroups.forEach((g) => {
+    let gBox;
+    try {
+      gBox = g.getBBox();
+    } catch (_) {
+      return;
+    }
+    if (!gBox || gBox.width <= 0 || gBox.height <= 0) return;
+
+    // 只看首行左上角
+    if (!(gBox.x < 180 && gBox.y < 80)) return;
+
+    const innerText = (g.textContent || "").trim();
+    if (!(innerText === "♭" || innerText === "♯" || innerText === "b" || innerText === "#")) return;
+
+    const nearAnyTonic = tonicNodes.some(({ box }) => {
+      return (
+        gBox.x >= box.x - 32 &&
+        gBox.x <= box.x + box.width + 26 &&
+        Math.abs(gBox.y - box.y) <= 20
+      );
     });
+
+    if (nearAnyTonic) {
+      g.style.display = "none";
+      g.setAttribute("data-jianpu-hidden", "1");
+      hiddenCount++;
+    }
   });
 
   return hiddenCount;
