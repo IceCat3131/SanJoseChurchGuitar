@@ -59927,6 +59927,8 @@
         _accidental = AccidentalType.None;
         _accidentalOffset = 0;
         _padding = 0;
+        _visualHeight = 0;
+        static LayoutOffsetY = -30;
         constructor(x, y, keySignature, keySignatureType) {
             super(x, y);
             this._keySignature = keySignature;
@@ -60076,7 +60078,8 @@
             this._padding =
                 this.renderer.index === 0 ? settings.display.firstStaffPaddingLeft : settings.display.staffPaddingLeft;
             this.width = this._padding + fullSize.width;
-            this.height = fullSize.height;
+            this._visualHeight = fullSize.height;
+            this.height = 0;
         }
         paint(cx, cy, canvas) {
             const _ = ElementStyleHelper.bar(canvas, BarSubElement.NumberedKeySignature, this.renderer.bar);
@@ -60084,9 +60087,10 @@
                 const res = this.renderer.resources;
                 canvas.font = res.numberedNotationFont;
                 canvas.textBaseline = TextBaseline.Alphabetic;
-                canvas.fillText(this._text, cx + this.x + this._padding, cy + this.y + this.height);
+                const baselineY = cy + this.y + this._visualHeight + NumberedKeySignatureGlyph.LayoutOffsetY;
+                canvas.fillText(this._text, cx + this.x + this._padding, baselineY);
                 if (this._accidental !== AccidentalType.None) {
-                    CanvasHelper.fillMusicFontSymbolSafe(canvas, cx + this.x + this._padding + this._accidentalOffset, cy + this.y + this.height, 1, AccidentalGlyph.getMusicSymbol(this._accidental), false);
+                    CanvasHelper.fillMusicFontSymbolSafe(canvas, cx + this.x + this._padding + this._accidentalOffset, baselineY, 1, AccidentalGlyph.getMusicSymbol(this._accidental), false);
                 }
             }
             finally {
