@@ -163,9 +163,24 @@
   }
 
   function hideJianpuHeaderArtifacts() {
-    if (state.currentNotation !== 'jianpu') return;
     const svg = el.alphaTabHost.querySelector('svg');
     if (!svg) return;
+
+    // restore previous shifts first
+    svg.querySelectorAll('[data-lyric-shifted="1"]').forEach(node => {
+      const y = node.getAttribute('data-original-y');
+      if (y != null) node.setAttribute('y', y);
+      node.removeAttribute('data-lyric-shifted');
+    });
+    svg.querySelectorAll('[data-jianpu-header-hidden="1"]').forEach(node => {
+      node.style.display = '';
+      node.removeAttribute('data-jianpu-header-hidden');
+    });
+
+    if (state.currentNotation !== 'jianpu') {
+      el.alphaTabHost.classList.remove('jianpu-header-hidden');
+      return;
+    }
 
     const candidateNodes = Array.from(svg.querySelectorAll('text, tspan'));
     let hiddenCount = 0;
@@ -174,58 +189,55 @@
       const raw = node.textContent || '';
       const normalized = normalizeLooseText(raw);
       if (!normalized) return;
-
-      const isKeyHeader = /^1=/.test(normalized) || normalized === '1' || normalized === '=' || /^[#b][A-G]$/.test(normalized) || /^[A-G]$/.test(normalized);
-      if (!isKeyHeader) return;
-
       const x = Number(node.getAttribute('x') || node.parentElement?.getAttribute('x') || NaN);
       const y = Number(node.getAttribute('y') || node.parentElement?.getAttribute('y') || NaN);
       if (Number.isNaN(x) || Number.isNaN(y)) return;
-      if (x > 220 || y > 260) return;
 
-      const target = node.closest('text') || node;
-      if (!target.dataset.jianpuHeaderHidden) {
+      const isKeyHeader = /^1=/.test(normalized) || normalized === '1' || normalized === '=' || /^[#b][A-G]$/.test(normalized) || /^[A-G]$/.test(normalized);
+      if (isKeyHeader && x < 260 && y < 240) {
+        const target = node.closest('text') || node;
         target.style.display = 'none';
-        target.dataset.jianpuHeaderHidden = '1';
+        target.setAttribute('data-jianpu-header-hidden', '1');
         hiddenCount += 1;
       }
     });
 
-    if (hiddenCount) {
-      el.alphaTabHost.classList.add('jianpu-header-hidden');
-    } else {
-      el.alphaTabHost.classList.remove('jianpu-header-hidden');
-    }
-  }
+    // compensate first-system lyric crowding manually, because the key signature band still reserves layout space.
+    candidateNodes.forEach(node => {
+      const raw = (node.textContent || '').trim();
+      if (!raw) return;
+      const x = Number(node.getAttribute('x') || node.parentElement?.getAttribute('x') || NaN);
+      const y = Number(node.getAttribute('y') || node.parentElement?.getAttribute('y') || NaN);
+      if (Number.isNaN(x) || Number.isNaN(y)) return;
+      const isLikelyLyric = /[㐀-鿿]/.test(raw) || /[A-Za-z]/.test(raw);
+      if (!isLikelyLyric) return;
+      if (x < 40 || y < 120 || y > 260) return;
+      // avoid moving title/header texts
+      if (raw.length > 12) return;
+      if (node.closest('text')) {
+        const textNode = node.closest('text');
+        const y0 = textNode.getAttribute('y');
+        if (y0 != null && !textNode.hasAttribute('data-lyric-shifted')) {
+          textNode.setAttribute('data-original-y', y0);
+          textNode.setAttribute('y', String(Number(y0) + 16));
+          textNode.setAttribute('data-lyric-shifted', '1');
+        }
+      } else {
+        const y0 = node.getAttribute('y');
+        if (y0 != null && !node.hasAttribute('data-lyric-shifted')) {
+          node.setAttribute('data-original-y', y0);
+          node.setAttribute('y', String(Number(y0) + 16));
+          node.setAttribute('data-lyric-shifted', '1');
+        }
+      }
+    });
 
+    el.alphaTabHost.classList.toggle('jianpu-header-hidden', hiddenCount > 0);
+  }
 
   function detectNotationTrackIndices(score) {
     if (!score || !Array.isArray(score.tracks) || !score.tracks.length) return [0];
-
-    const selected = [];
-    score.tracks.forEach((track, index) => {
-      if (!track || !Array.isArray(track.staves) || !track.staves.length) return;
-      const hasTab = track.staves.some(staff => {
-        const isTab = String(staff?.clef ?? '').toLowerCase() === 'tab';
-        const strings = Number(staff?.stringTuning?.tunings?.length || staff?.stringCount || 0);
-        const lineCount = Number(staff?.staffLines || 0);
-        return isTab || strings >= 6 || lineCount === 6;
-      });
-      const hasStandard = track.staves.some(staff => {
-        const clef = String(staff?.clef ?? '').toLowerCase();
-        const strings = Number(staff?.stringTuning?.tunings?.length || staff?.stringCount || 0);
-        const lineCount = Number(staff?.staffLines || 5);
-        return clef !== 'tab' && strings < 6 && lineCount !== 6;
-      });
-      if (hasStandard && !hasTab) selected.push(index);
-    });
-
-    if (selected.length) return selected;
-
-    const firstStandard = score.tracks.findIndex(track =>
-      track && Array.isArray(track.staves) && track.staves.some(staff => String(staff?.clef ?? '').toLowerCase() !== 'tab')
-    );
-    return [firstStandard >= 0 ? firstStandard : 0];
+    return [0];
   }
 
   function applyNotationToScore(score) {
@@ -441,6 +453,7 @@
         state.currentNotation = btn.dataset.notation === 'jianpu' ? 'jianpu' : 'staff';
         syncNotationUi();
         updateDisplaySettings();
+        window.requestAnimationFrame(() => hideJianpuHeaderArtifacts());
         closeMenus();
       });
     });
