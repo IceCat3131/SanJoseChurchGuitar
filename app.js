@@ -166,7 +166,7 @@
 
     el.songTitle.textContent = bigTitle;
     el.songSubtitle.textContent = subTitle;
-    document.title = `${bigTitle} - GTZ 乐谱 v7`;
+    document.title = `${bigTitle} - GTZ 乐谱 v8`;
 
     state.originalTempo = Number(meta.tempo || 95);
     state.currentTempo = state.originalTempo;
@@ -220,65 +220,12 @@
     el.alphaTabHost.classList.toggle("hidden", lyricsMode);
   }
 
-  function normalizeLooseText(value) {
-    return String(value || "")
-      .replace(/\s+/g, "")
-      .replace(/[♭]/g, "b")
-      .replace(/[♯]/g, "#");
-  }
+  function resetSvgFixes(svg) {
+    svg.querySelectorAll('[data-jianpu-hidden="1"]').forEach((node) => {
+      node.style.display = "";
+      node.removeAttribute("data-jianpu-hidden");
+    });
 
-  function isLikelyHeaderToken(text) {
-    const t = normalizeLooseText(text);
-    if (!t) return false;
-    return (
-      /^1=/.test(t) ||
-      t === "1" ||
-      t === "=" ||
-      /^[#b]?[A-G]m?$/.test(t)
-    );
-  }
-
-  function hideTopLeftJianpuHeader(svg) {
-    const textNodes = Array.from(svg.querySelectorAll("text"));
-    const candidates = [];
-
-    for (const node of textNodes) {
-      const raw = node.textContent || "";
-      if (!isLikelyHeaderToken(raw)) continue;
-
-      let box;
-      try {
-        box = node.getBBox();
-      } catch (_) {
-        continue;
-      }
-      if (!box || box.width <= 0 || box.height <= 0) continue;
-
-      if (box.x < 260 && box.y < 220) {
-        candidates.push({ node, box, text: normalizeLooseText(raw) });
-      }
-    }
-
-    if (!candidates.length) return 0;
-
-    let hiddenCount = 0;
-
-    for (const item of candidates) {
-      const node = item.node;
-      node.style.display = "none";
-      node.setAttribute("data-jianpu-hidden", "1");
-      hiddenCount += 1;
-
-      const parent = node.parentElement;
-      if (parent && parent.tagName.toLowerCase() === "tspan") {
-        parent.style.display = "none";
-      }
-    }
-
-    return hiddenCount;
-  }
-
-  function resetLyricShift(svg) {
     svg.querySelectorAll('[data-lyric-shift="1"]').forEach((node) => {
       const orig = node.getAttribute("data-orig-transform");
       if (orig === null || orig === "") {
@@ -289,64 +236,6 @@
       node.removeAttribute("data-lyric-shift");
       node.removeAttribute("data-orig-transform");
     });
-  }
-
-  function shiftFirstSystemLyrics(svg) {
-    resetLyricShift(svg);
-
-    if (state.currentNotation !== "jianpu") return;
-
-    const texts = Array.from(svg.querySelectorAll("text"));
-    const lyricNodes = [];
-
-    for (const node of texts) {
-      const raw = (node.textContent || "").trim();
-      if (!raw) continue;
-      if (!/[\u3400-\u9FFF]/.test(raw)) continue;
-      if (raw.length > 12) continue;
-
-      let box;
-      try {
-        box = node.getBBox();
-      } catch (_) {
-        continue;
-      }
-      if (!box || box.width <= 0 || box.height <= 0) continue;
-      if (box.x < 40 || box.x > 1500) continue;
-      if (box.y < 120 || box.y > 300) continue;
-
-      lyricNodes.push({ node, box });
-    }
-
-    if (!lyricNodes.length) return;
-
-    const topMin = Math.min(...lyricNodes.map((x) => x.box.y));
-    const firstLine = lyricNodes.filter((x) => Math.abs(x.box.y - topMin) < 12);
-
-    for (const item of firstLine) {
-      const node = item.node;
-      const orig = node.getAttribute("transform");
-      node.setAttribute("data-orig-transform", orig === null ? "" : orig);
-      node.setAttribute("transform", `${orig ? `${orig} ` : ""}translate(0,16)`);
-      node.setAttribute("data-lyric-shift", "1");
-    }
-  }
-
-  function fixRenderedSvg() {
-    const svg = el.alphaTabHost.querySelector("svg");
-    if (!svg) return;
-
-    svg.querySelectorAll('[data-jianpu-hidden="1"]').forEach((node) => {
-      node.style.display = "";
-      node.removeAttribute("data-jianpu-hidden");
-    });
-
-    if (state.currentNotation === "jianpu") {
-      hideTopLeftJianpuHeader(svg);
-      shiftFirstSystemLyrics(svg);
-    } else {
-      resetLyricShift(svg);
-    }
   }
 
   function staffLooksLikeTab(staff) {
@@ -369,18 +258,14 @@
 
     const melodyOnly = [];
     score.tracks.forEach((track, index) => {
-      if (trackLooksLikeMelody(track)) {
-        melodyOnly.push(index);
-      }
+      if (trackLooksLikeMelody(track)) melodyOnly.push(index);
     });
     if (melodyOnly.length) return [melodyOnly[0]];
 
     const firstNonTab = [];
     score.tracks.forEach((track, index) => {
       if (!track || !Array.isArray(track.staves)) return;
-      if (track.staves.some((s) => !staffLooksLikeTab(s))) {
-        firstNonTab.push(index);
-      }
+      if (track.staves.some((s) => !staffLooksLikeTab(s))) firstNonTab.push(index);
     });
 
     return firstNonTab.length ? [firstNonTab[0]] : [0];
@@ -412,7 +297,6 @@
         if (isNotationTrack) {
           if ("showNumbered" in staff) staff.showNumbered = jianpuMode;
           if ("showStandardNotation" in staff) staff.showStandardNotation = !jianpuMode;
-
           if (jianpuMode && "showKeySignature" in staff) {
             staff.showKeySignature = false;
           }
@@ -446,6 +330,7 @@
     setTimeout(fixRenderedSvg, 40);
     setTimeout(fixRenderedSvg, 120);
     setTimeout(fixRenderedSvg, 260);
+    setTimeout(fixRenderedSvg, 420);
   }
 
   function trackDisplayName(track, index) {
@@ -523,11 +408,13 @@
       setTimeout(fixRenderedSvg, 50);
       setTimeout(fixRenderedSvg, 160);
       setTimeout(fixRenderedSvg, 320);
+      setTimeout(fixRenderedSvg, 520);
     });
 
     state.api.renderFinished.on(() => {
       setTimeout(fixRenderedSvg, 20);
       setTimeout(fixRenderedSvg, 90);
+      setTimeout(fixRenderedSvg, 180);
     });
 
     state.api.error.on((error) => {
@@ -539,7 +426,7 @@
   async function loadScore() {
     try {
       clearError();
-      setLoading("正在加载 GTZ 与乐谱... v7");
+      setLoading("正在加载 GTZ 与乐谱... v8");
 
       destroyApi();
 
@@ -588,9 +475,7 @@
     document.addEventListener("click", (e) => {
       const inMenu = e.target.closest(".dropdown-menu");
       const inToolBtn = e.target.closest(".tool-btn");
-      if (!inMenu && !inToolBtn) {
-        closeMenus();
-      }
+      if (!inMenu && !inToolBtn) closeMenus();
     });
   }
 
@@ -673,13 +558,8 @@
       } catch (_) {}
     });
 
-    el.prevBtn.addEventListener("click", () => {
-      // 预留
-    });
-
-    el.nextBtn.addEventListener("click", () => {
-      // 预留
-    });
+    el.prevBtn.addEventListener("click", () => {});
+    el.nextBtn.addEventListener("click", () => {});
 
     el.homeBtn.addEventListener("click", () => {
       window.location.href = "./index.html";
@@ -688,6 +568,150 @@
     el.searchBtn.addEventListener("click", () => {
       window.location.href = "./index.html";
     });
+  }
+
+  function hideNodeAndUsefulParent(node) {
+    if (!node) return;
+    const parent1 = node.parentElement;
+    const parent2 = parent1 ? parent1.parentElement : null;
+
+    if (parent2 && parent2.tagName && parent2.tagName.toLowerCase() === "g") {
+      parent2.style.display = "none";
+      parent2.setAttribute("data-jianpu-hidden", "1");
+      return;
+    }
+    if (parent1 && parent1.tagName && parent1.tagName.toLowerCase() === "g") {
+      parent1.style.display = "none";
+      parent1.setAttribute("data-jianpu-hidden", "1");
+      return;
+    }
+    node.style.display = "none";
+    node.setAttribute("data-jianpu-hidden", "1");
+  }
+
+  function collectTopLeftHeaderTokens(svg) {
+    const textNodes = Array.from(svg.querySelectorAll("text"));
+    const tokens = [];
+
+    for (const node of textNodes) {
+      const raw = (node.textContent || "").trim();
+      if (!raw) continue;
+
+      let box;
+      try {
+        box = node.getBBox();
+      } catch (_) {
+        continue;
+      }
+      if (!box || box.width <= 0 || box.height <= 0) continue;
+
+      if (box.x > 260 || box.y > 220) continue;
+
+      const text = raw.replace(/\s+/g, "").replace(/♭/g, "b").replace(/♯/g, "#");
+
+      tokens.push({ node, box, raw, text });
+    }
+
+    return tokens;
+  }
+
+  function hideTopLeftJianpuHeader(svg) {
+    const tokens = collectTopLeftHeaderTokens(svg);
+    if (!tokens.length) return 0;
+
+    let hidden = 0;
+
+    const tonicCandidates = tokens.filter(t =>
+      /^1=?$/.test(t.text) ||
+      /^1=[A-G]m?$/.test(t.text) ||
+      /^1=[#b]?[A-G]m?$/.test(t.text) ||
+      /^[A-G]m?$/.test(t.text) ||
+      /^[#b]?[A-G]m?$/.test(t.text)
+    );
+
+    const accidentalCandidates = tokens.filter(t =>
+      t.text === "b" || t.text === "#" || t.text === "♭" || t.text === "♯"
+    );
+
+    for (const tonic of tonicCandidates) {
+      if (tonic.box.x > 220 || tonic.box.y > 180) continue;
+
+      hideNodeAndUsefulParent(tonic.node);
+      hidden++;
+
+      for (const acc of accidentalCandidates) {
+        const dx = Math.abs(acc.box.x - tonic.box.x);
+        const dy = Math.abs(acc.box.y - tonic.box.y);
+        const nearSameHeader =
+          dx < 90 &&
+          dy < 35 &&
+          acc.box.x >= tonic.box.x - 40 &&
+          acc.box.x <= tonic.box.x + 80;
+
+        if (nearSameHeader) {
+          hideNodeAndUsefulParent(acc.node);
+        }
+      }
+    }
+
+    for (const acc of accidentalCandidates) {
+      if (acc.box.x < 180 && acc.box.y < 180) {
+        hideNodeAndUsefulParent(acc.node);
+      }
+    }
+
+    return hidden;
+  }
+
+  function shiftFirstSystemLyrics(svg) {
+    if (state.currentNotation !== "jianpu") return;
+
+    const texts = Array.from(svg.querySelectorAll("text"));
+    const lyricNodes = [];
+
+    for (const node of texts) {
+      const raw = (node.textContent || "").trim();
+      if (!raw) continue;
+      if (!/[\u3400-\u9FFF]/.test(raw)) continue;
+      if (raw.length > 12) continue;
+
+      let box;
+      try {
+        box = node.getBBox();
+      } catch (_) {
+        continue;
+      }
+      if (!box || box.width <= 0 || box.height <= 0) continue;
+      if (box.x < 40 || box.x > 1500) continue;
+      if (box.y < 120 || box.y > 320) continue;
+
+      lyricNodes.push({ node, box });
+    }
+
+    if (!lyricNodes.length) return;
+
+    const topMin = Math.min(...lyricNodes.map((x) => x.box.y));
+    const firstLine = lyricNodes.filter((x) => Math.abs(x.box.y - topMin) < 12);
+
+    for (const item of firstLine) {
+      const node = item.node;
+      const orig = node.getAttribute("transform");
+      node.setAttribute("data-orig-transform", orig === null ? "" : orig);
+      node.setAttribute("transform", `${orig ? `${orig} ` : ""}translate(0,18)`);
+      node.setAttribute("data-lyric-shift", "1");
+    }
+  }
+
+  function fixRenderedSvg() {
+    const svg = el.alphaTabHost.querySelector("svg");
+    if (!svg) return;
+
+    resetSvgFixes(svg);
+
+    if (state.currentNotation === "jianpu") {
+      hideTopLeftJianpuHeader(svg);
+      shiftFirstSystemLyrics(svg);
+    }
   }
 
   function init() {
