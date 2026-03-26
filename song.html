@@ -1,131 +1,118 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>GTZ 乐谱 v7</title>
+  <title>GTZ 乐谱</title>
   <link rel="stylesheet" href="./styles.css" />
   <script src="./assets/alphatab/alphaTab.js"></script>
 </head>
 <body>
   <div class="app-shell">
-    <header class="topbar">
+    <header class="toolbar-shell">
       <div class="toolbar-scroll">
         <div class="toolbar-row">
-          <button class="tool-btn" id="homeBtn" type="button" title="返回首页">⌂</button>
-
-          <button class="tool-btn" id="tempoBtn" type="button">95</button>
-          <button class="tool-btn" id="keyBtn" type="button">Ab</button>
-          <button class="tool-btn" id="capoBtn" type="button">CP1</button>
-
-          <button class="tool-btn" id="modeBtn" type="button">吉</button>
-
-          <button class="tool-btn" id="prevBtn" type="button">◀</button>
-          <button class="tool-btn" id="playBtn" type="button">▶</button>
-          <button class="tool-btn" id="nextBtn" type="button">▶</button>
-
-          <button class="tool-btn" id="fontBtn" type="button">字</button>
-          <button class="tool-btn" id="trackBtn" type="button">轨</button>
-          <button class="tool-btn active" id="notationBtn" type="button">谱</button>
-
-          <button class="tool-btn" id="searchBtn" type="button">⌕</button>
+          <button class="tool-btn icon-btn" id="homeBtn" title="首页">⌂</button>
+          <button class="tool-btn" id="tempoBtn" data-menu="tempoMenu">95</button>
+          <button class="tool-btn" id="keyBtn" data-menu="keyMenu">Ab</button>
+          <button class="tool-btn" id="capoBtn">CP1</button>
+          <button class="tool-btn" id="modeBtn" data-menu="modeMenu">吉</button>
+          <button class="tool-btn icon-btn disabled-like" id="prevBtn" title="上一首">◀</button>
+          <button class="tool-btn play-btn disabled-like" id="playBtn" title="播放">▶</button>
+          <button class="tool-btn icon-btn disabled-like" id="nextBtn" title="下一首">▶</button>
+          <button class="tool-btn" id="textBtn" data-menu="textMenu">字</button>
+          <button class="tool-btn" id="trackBtn" data-menu="trackMenu">轨</button>
+          <button class="tool-btn active-primary" id="notationBtn" data-menu="notationMenu">谱</button>
+          <button class="tool-btn icon-btn" id="langBtn" data-menu="langMenu">🌐</button>
+          <button class="tool-btn icon-btn" id="searchBtn" data-menu="searchMenu">⌕</button>
         </div>
+      </div>
+
+      <div class="menu-layer">
+        <div class="dropdown-menu hidden" id="tempoMenu">
+          <div class="menu-title">速度</div>
+          <div class="menu-row between"><span>当前</span><strong id="tempoValue">95</strong></div>
+          <input type="range" id="tempoRange" min="40" max="220" step="1" value="95" />
+          <div class="menu-actions">
+            <button class="mini-btn" id="tempoResetBtn">恢复</button>
+          </div>
+        </div>
+
+        <div class="dropdown-menu hidden" id="keyMenu">
+          <div class="menu-title">原始调</div>
+          <div class="menu-row between"><span>当前</span><strong id="keyValue">Ab</strong></div>
+          <div class="menu-hint">此版先显示，不做转调逻辑。</div>
+        </div>
+
+        <div class="dropdown-menu hidden" id="modeMenu">
+          <div class="menu-title">显示模式</div>
+          <button class="menu-option selected" data-mode-option="score">吉他谱</button>
+          <button class="menu-option" data-mode-option="lyrics">纯歌词（预留）</button>
+        </div>
+
+        <div class="dropdown-menu hidden" id="textMenu">
+          <div class="menu-title">字号 / 谱间距</div>
+          <div class="menu-row between"><span>字号</span><strong id="fontSizeValue">30</strong></div>
+          <div class="stepper-row">
+            <button class="mini-btn" id="fontMinusBtn">-</button>
+            <button class="mini-btn" id="fontPlusBtn">+</button>
+          </div>
+          <div class="menu-row between"><span>谱间距</span><strong id="spacingValue">2.0</strong></div>
+          <div class="stepper-row">
+            <button class="mini-btn" id="spacingMinusBtn">-</button>
+            <button class="mini-btn" id="spacingPlusBtn">+</button>
+          </div>
+        </div>
+
+        <div class="dropdown-menu hidden" id="trackMenu">
+          <div class="menu-title">轨道</div>
+          <div id="trackList" class="check-list"></div>
+        </div>
+
+        <div class="dropdown-menu hidden" id="notationMenu">
+          <div class="menu-title">谱</div>
+          <button class="menu-option selected" id="staffOption" data-notation="staff">五线谱</button>
+          <button class="menu-option" id="jianpuOption" data-notation="jianpu">简谱</button>
+        </div>
+
+        <div class="dropdown-menu hidden" id="langMenu">
+          <div class="menu-title">语言</div>
+          <button class="menu-option selected" data-lang="zh-Hans">简体</button>
+          <button class="menu-option" data-lang="zh-Hant">繁体</button>
+          <div class="menu-hint">此版仅保留菜单结构。</div>
+        </div>
+
+        <div class="dropdown-menu hidden menu-search" id="searchMenu">
+          <div class="menu-title">读取 GTZ</div>
+          <div class="menu-row stack">
+            <label for="pathInput">文件路径</label>
+            <input id="pathInput" type="text" value="./assets/c0001_cn_g.gtz" />
+          </div>
+          <div class="menu-actions">
+            <button class="mini-btn" id="reloadBtn">重新读取</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <input type="range" min="0" max="100" value="0" class="progress-bar" id="progressBar" />
+        <div class="time-text" id="timeText">00:00</div>
       </div>
     </header>
 
-    <div class="menus-layer">
-      <div class="dropdown-menu hidden" id="tempoMenu">
-        <div class="menu-title">速度</div>
-        <div class="menu-value">当前 <span id="tempoValue">95</span></div>
-        <input id="tempoRange" type="range" min="40" max="220" step="1" value="95" />
-        <div class="menu-actions">
-          <button class="menu-btn" id="tempoResetBtn" type="button">恢复</button>
-        </div>
-      </div>
-
-      <div class="dropdown-menu hidden" id="keyMenu">
-        <div class="menu-title">原始调</div>
-        <div class="menu-value">当前 <span id="keyValue">Ab</span></div>
-        <div class="menu-help">此版先显示，不做转调逻辑。</div>
-      </div>
-
-      <div class="dropdown-menu hidden" id="modeMenu">
-        <div class="menu-title">显示模式</div>
-        <div class="option-list">
-          <button class="option-btn selected" data-mode-option="score" type="button">吉他谱</button>
-          <button class="option-btn" data-mode-option="lyrics" type="button">纯歌词（预留）</button>
-        </div>
-      </div>
-
-      <div class="dropdown-menu hidden" id="fontMenu">
-        <div class="menu-title">字号 / 谱间距</div>
-
-        <div class="rowline">
-          <span>字号</span>
-          <span id="fontSizeValue">30</span>
-        </div>
-        <div class="stepper">
-          <button class="menu-btn" id="fontMinusBtn" type="button">-</button>
-          <button class="menu-btn" id="fontPlusBtn" type="button">+</button>
-        </div>
-
-        <div class="rowline">
-          <span>谱间距</span>
-          <span id="spacingValue">2.0</span>
-        </div>
-        <div class="stepper">
-          <button class="menu-btn" id="spacingMinusBtn" type="button">-</button>
-          <button class="menu-btn" id="spacingPlusBtn" type="button">+</button>
-        </div>
-      </div>
-
-      <div class="dropdown-menu hidden" id="trackMenu">
-        <div class="menu-title">轨道</div>
-        <div id="trackList" class="track-list">暂无轨道信息</div>
-      </div>
-
-      <div class="dropdown-menu hidden" id="notationMenu">
-        <div class="menu-title">谱</div>
-        <div class="option-list">
-          <button class="option-btn selected" id="staffOption" type="button">五线谱</button>
-          <button class="option-btn" id="jianpuOption" type="button">简谱</button>
-        </div>
-      </div>
-
-      <div class="dropdown-menu hidden" id="langMenu">
-        <div class="menu-title">语言</div>
-        <div class="option-list">
-          <button class="option-btn selected" type="button">简体</button>
-          <button class="option-btn" type="button">繁体</button>
-        </div>
-      </div>
-    </div>
-
-    <main class="content">
-      <section class="song-header">
-        <h1 id="songTitle"># 正在读取... v7</h1>
+    <main class="content-shell">
+      <section class="title-block">
+        <h1 id="songTitle">正在读取...</h1>
         <h2 id="songSubtitle"></h2>
       </section>
 
-      <section class="path-panel">
-        <div class="path-title">读取 GTZ</div>
-        <div class="path-row">
-          <input id="pathInput" type="text" placeholder="文件路径" />
-          <button id="reloadBtn" type="button">重新读取</button>
-        </div>
-      </section>
-
-      <section class="player-bar">
-        <div class="time-text" id="timeLabel">00:00</div>
-      </section>
-
       <section class="score-section">
-        <div id="scoreLoading" class="score-loading">正在加载 GTZ 与乐谱... v7</div>
-        <div id="scoreError" class="score-error hidden"></div>
-        <div id="lyricsPlaceholder" class="lyrics-placeholder hidden">
-          纯歌词模式预留。当前版仍以乐谱显示为主。
+        <div class="score-frame">
+          <div id="scoreLoading" class="status-box">正在加载 GTZ 与乐谱...</div>
+          <div id="scoreError" class="status-box error hidden"></div>
+          <div id="lyricsPlaceholder" class="status-box hidden">纯歌词模式预留。当前版仍以乐谱显示为主。</div>
+          <div id="alphaTabHost" class="alpha-host"></div>
         </div>
-        <div id="alphaTabHost" class="alpha-tab-host"></div>
       </section>
     </main>
   </div>
