@@ -1,4 +1,6 @@
 (function () {
+  "use strict";
+
   const qs = (sel) => document.querySelector(sel);
   const qsa = (sel) => Array.from(document.querySelectorAll(sel));
 
@@ -6,495 +8,237 @@
     api: null,
     gtz: null,
     xmlBlobUrl: null,
-    currentNotation: 'staff',
-    currentMode: 'score',
+    currentNotation: "jianpu", // ⭐ 默认打开就是简谱
+    currentMode: "score",
     originalTempo: 95,
     currentTempo: 95,
     fontSizePx: 30,
     spacingFactor: 2.0,
     visibleTrackIndices: [0],
-    notationTrackIndices: [0],
-    currentPath: './assets/c0001_cn_g.gtz'
+    notationTrackIndices: [],
+    currentPath: "./assets/c0001_cn_g.gtz",
+    scoreLoaded: false
   };
 
   const el = {
-    songTitle: qs('#songTitle'),
-    songSubtitle: qs('#songSubtitle'),
-    scoreLoading: qs('#scoreLoading'),
-    scoreError: qs('#scoreError'),
-    lyricsPlaceholder: qs('#lyricsPlaceholder'),
-    alphaTabHost: qs('#alphaTabHost'),
-    pathInput: qs('#pathInput'),
-    reloadBtn: qs('#reloadBtn'),
-    tempoValue: qs('#tempoValue'),
-    tempoRange: qs('#tempoRange'),
-    tempoBtn: qs('#tempoBtn'),
-    tempoResetBtn: qs('#tempoResetBtn'),
-    keyBtn: qs('#keyBtn'),
-    keyValue: qs('#keyValue'),
-    capoBtn: qs('#capoBtn'),
-    fontSizeValue: qs('#fontSizeValue'),
-    spacingValue: qs('#spacingValue'),
-    fontMinusBtn: qs('#fontMinusBtn'),
-    fontPlusBtn: qs('#fontPlusBtn'),
-    spacingMinusBtn: qs('#spacingMinusBtn'),
-    spacingPlusBtn: qs('#spacingPlusBtn'),
-    trackList: qs('#trackList'),
-    progressBar: qs('#progressBar'),
-    timeText: qs('#timeText')
+    songTitle: qs("#songTitle"),
+    songSubtitle: qs("#songSubtitle"),
+    scoreLoading: qs("#scoreLoading"),
+    scoreError: qs("#scoreError"),
+    lyricsPlaceholder: qs("#lyricsPlaceholder"),
+    alphaTabHost: qs("#alphaTabHost"),
+    pathInput: qs("#pathInput"),
+    reloadBtn: qs("#reloadBtn"),
+    tempoValue: qs("#tempoValue"),
+    tempoRange: qs("#tempoRange"),
+    tempoBtn: qs("#tempoBtn"),
+    tempoResetBtn: qs("#tempoResetBtn"),
+    keyBtn: qs("#keyBtn"),
+    keyValue: qs("#keyValue"),
+    capoBtn: qs("#capoBtn"),
+    fontSizeValue: qs("#fontSizeValue"),
+    spacingValue: qs("#spacingValue"),
+    fontMinusBtn: qs("#fontMinusBtn"),
+    fontPlusBtn: qs("#fontPlusBtn"),
+    spacingMinusBtn: qs("#spacingMinusBtn"),
+    spacingPlusBtn: qs("#spacingPlusBtn"),
+    trackList: qs("#trackList"),
+    notationBtn: qs("#notationBtn"),
+    staffOption: qs("#staffOption"),
+    jianpuOption: qs("#jianpuOption")
   };
 
-  function getQueryFile() {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('file') || './assets/c0001_cn_g.gtz';
-  }
-
-  function showError(message) {
-    el.scoreError.textContent = message;
-    el.scoreError.classList.remove('hidden');
-    el.scoreLoading.classList.add('hidden');
-  }
-
-  function clearError() {
-    el.scoreError.textContent = '';
-    el.scoreError.classList.add('hidden');
-  }
-
-  function setLoading(message) {
-    el.scoreLoading.textContent = message || '正在加载...';
-    el.scoreLoading.classList.remove('hidden');
-  }
-
-  function hideLoading() {
-    el.scoreLoading.classList.add('hidden');
+  function buildPathFromQuery() {
+    const p = new URLSearchParams(location.search);
+    const book = p.get("book") || "c";
+    const no = String(parseInt(p.get("no") || "1", 10)).padStart(4, "0");
+    return book === "ts"
+      ? `./assets/ts/ts${no}_cn_g.gtz`
+      : `./assets/c/c${no}_cn_g.gtz`;
   }
 
   function decodeBase64ToBlobUrl(base64Data) {
     const binary = atob(base64Data);
-    const len = binary.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-    const blob = new Blob([bytes], { type: 'application/vnd.recordare.musicxml+xml' });
-    return URL.createObjectURL(blob);
-  }
-
-  function getPackageScoreData(pkg) {
-    return pkg?.score?.data || pkg?.scoreBase64 || '';
-  }
-
-
-  function absoluteUrl(relativePath) {
-    return new URL(relativePath, window.location.href).href;
-  }
-
-  function readViewerState(pkg) {
-    const viewer = pkg?.viewerState || {};
-    const legacy = pkg?.state || {};
-    state.fontSizePx = Number(viewer.fontSizePx ?? legacy.fontSizePx ?? 30);
-    state.spacingFactor = Number(viewer.spacingFactor ?? legacy.spacingFactor ?? 2.0);
-    state.visibleTrackIndices = Array.isArray(viewer.visibleTrackIndices)
-      ? [...viewer.visibleTrackIndices]
-      : (Array.isArray(legacy.visibleTrackIndices) ? [...legacy.visibleTrackIndices] : [0]);
-
-    const showNumberedNotation = !!(viewer.showNumberedNotation ?? legacy.showNumberedNotation ?? false);
-    const showStandardNotation = viewer.showStandardNotation ?? legacy.showStandardNotation ?? true;
-    state.currentNotation = showNumberedNotation && !showStandardNotation ? 'jianpu' : 'staff';
-  }
-
-  function updateMetaUi(pkg) {
-    const meta = pkg.meta || {};
-    const bigTitle = meta.big_title || meta.full_title || meta.title || '未命名歌曲';
-    const subTitle = meta.title || meta.full_title || '';
-    el.songTitle.textContent = bigTitle;
-    el.songSubtitle.textContent = subTitle;
-    document.title = `${bigTitle} - GTZ 乐谱`;
-
-    state.originalTempo = Number(meta.tempo || 95);
-    state.currentTempo = state.originalTempo;
-    el.tempoBtn.textContent = String(state.currentTempo);
-    el.tempoValue.textContent = String(state.currentTempo);
-    el.tempoRange.value = String(state.currentTempo);
-
-    const keyName = meta.key_name || 'C';
-    el.keyBtn.textContent = keyName;
-    el.keyValue.textContent = keyName;
-
-    const capo = Number(meta.capo ?? 0);
-    el.capoBtn.textContent = `CP${capo}`;
-  }
-
-  function menuButtonLeft(btn) {
-    const rect = btn.getBoundingClientRect();
-    return Math.max(10, rect.left + window.scrollX - 6);
-  }
-
-  function openMenu(menuId, anchorButton) {
-    qsa('.dropdown-menu').forEach(m => m.classList.add('hidden'));
-    const menu = document.getElementById(menuId);
-    if (!menu) return;
-    menu.classList.remove('hidden');
-    if (anchorButton) {
-      menu.style.left = `${Math.min(menuButtonLeft(anchorButton), window.innerWidth - Math.min(menu.offsetWidth || 320, window.innerWidth - 20) - 10)}px`;
-    }
-  }
-
-  function closeMenus() {
-    qsa('.dropdown-menu').forEach(m => m.classList.add('hidden'));
-  }
-
-  function syncNotationUi() {
-    const isStaff = state.currentNotation === 'staff';
-    qs('#staffOption').classList.toggle('selected', isStaff);
-    qs('#jianpuOption').classList.toggle('selected', !isStaff);
-    el.alphaTabHost.classList.toggle('jianpu-mode', !isStaff);
-    if (isStaff) el.alphaTabHost.classList.remove('jianpu-header-hidden');
-  }
-
-  function syncModeUi() {
-    qsa('[data-mode-option]').forEach(btn => {
-      btn.classList.toggle('selected', btn.dataset.modeOption === state.currentMode);
-    });
-    const lyricsMode = state.currentMode === 'lyrics';
-    el.lyricsPlaceholder.classList.toggle('hidden', !lyricsMode);
-    el.alphaTabHost.classList.toggle('hidden', lyricsMode);
-  }
-  function normalizeLooseText(value) {
-    return String(value || '').replace(/\s+/g, '').replace(/[♭]/g, 'b').replace(/[♯]/g, '#');
-  }
-
-  function hideJianpuHeaderArtifacts() {
-    if (state.currentNotation !== 'jianpu') return;
-    const svg = el.alphaTabHost.querySelector('svg');
-    if (!svg) return;
-
-    const candidateNodes = Array.from(svg.querySelectorAll('text, tspan'));
-    let hiddenCount = 0;
-
-    candidateNodes.forEach(node => {
-      const raw = node.textContent || '';
-      const normalized = normalizeLooseText(raw);
-      if (!normalized) return;
-
-      const isKeyHeader = /^1=/.test(normalized) || normalized === '1' || normalized === '=' || /^[#b][A-G]$/.test(normalized) || /^[A-G]$/.test(normalized);
-      if (!isKeyHeader) return;
-
-      const x = Number(node.getAttribute('x') || node.parentElement?.getAttribute('x') || NaN);
-      const y = Number(node.getAttribute('y') || node.parentElement?.getAttribute('y') || NaN);
-      if (Number.isNaN(x) || Number.isNaN(y)) return;
-      if (x > 220 || y > 260) return;
-
-      const target = node.closest('text') || node;
-      if (!target.dataset.jianpuHeaderHidden) {
-        target.style.display = 'none';
-        target.dataset.jianpuHeaderHidden = '1';
-        hiddenCount += 1;
-      }
-    });
-
-    if (hiddenCount) {
-      el.alphaTabHost.classList.add('jianpu-header-hidden');
-    } else {
-      el.alphaTabHost.classList.remove('jianpu-header-hidden');
-    }
-  }
-
-
-  function detectNotationTrackIndices(score) {
-    if (!score || !Array.isArray(score.tracks) || !score.tracks.length) return [0];
-
-    const selected = [];
-    score.tracks.forEach((track, index) => {
-      if (!track || !Array.isArray(track.staves) || !track.staves.length) return;
-      const hasTab = track.staves.some(staff => {
-        const isTab = String(staff?.clef ?? '').toLowerCase() === 'tab';
-        const strings = Number(staff?.stringTuning?.tunings?.length || staff?.stringCount || 0);
-        const lineCount = Number(staff?.staffLines || 0);
-        return isTab || strings >= 6 || lineCount === 6;
-      });
-      const hasStandard = track.staves.some(staff => {
-        const clef = String(staff?.clef ?? '').toLowerCase();
-        const strings = Number(staff?.stringTuning?.tunings?.length || staff?.stringCount || 0);
-        const lineCount = Number(staff?.staffLines || 5);
-        return clef !== 'tab' && strings < 6 && lineCount !== 6;
-      });
-      if (hasStandard && !hasTab) selected.push(index);
-    });
-
-    if (selected.length) return selected;
-
-    const firstStandard = score.tracks.findIndex(track =>
-      track && Array.isArray(track.staves) && track.staves.some(staff => String(staff?.clef ?? '').toLowerCase() !== 'tab')
-    );
-    return [firstStandard >= 0 ? firstStandard : 0];
-  }
-
-  function applyNotationToScore(score) {
-    if (!score || !Array.isArray(score.tracks)) return;
-    const showStandard = state.currentNotation === 'staff';
-    const showNumbered = state.currentNotation === 'jianpu';
-    const notationTrackIndices = detectNotationTrackIndices(score);
-    state.notationTrackIndices = notationTrackIndices;
-
-    score.tracks.forEach((track, trackIndex) => {
-      if (!track || !Array.isArray(track.staves)) return;
-      const shouldSwitchTrack = notationTrackIndices.includes(trackIndex);
-      track.staves.forEach(staff => {
-        if (!staff) return;
-        const isTabStaff = String(staff?.clef ?? '').toLowerCase() === 'tab'
-          || Number(staff?.stringTuning?.tunings?.length || staff?.stringCount || 0) >= 6
-          || Number(staff?.staffLines || 0) === 6;
-
-        if (isTabStaff || !shouldSwitchTrack) {
-          if ('showNumbered' in staff) staff.showNumbered = false;
-          if ('showStandardNotation' in staff) staff.showStandardNotation = true;
-          return;
-        }
-
-        if ('showStandardNotation' in staff) {
-          staff.showStandardNotation = showStandard;
-        }
-        if ('showNumbered' in staff) {
-          staff.showNumbered = showNumbered;
-        }
-      });
-    });
-  }
-
-  function updateDisplaySettings() {
-    if (!state.api) return;
-
-    // Important: in alphaTab 1.8.x, numbered/standard staff visibility is a staff-model flag
-    // (`track.staves[].showNumbered` / `showStandardNotation`), not a live DisplaySettings field.
-    // So we must mutate the loaded score and re-render it.
-    applyNotationToScore(state.api.score);
-
-    if (state.api.score && state.api.score.tracks && state.api.score.tracks.length) {
-      const indices = state.visibleTrackIndices.length ? state.visibleTrackIndices : [0];
-      const tracks = indices
-        .map(i => state.api.score.tracks[i])
-        .filter(Boolean);
-      if (tracks.length) {
-        state.api.renderTracks(tracks);
-        return;
-      }
-      state.api.renderScore(state.api.score);
-      return;
-    }
-    state.api.render();
-  }
-
-  function updateTrackList() {
-    el.trackList.innerHTML = '';
-    if (!state.api || !state.api.score || !state.api.score.tracks) {
-      el.trackList.innerHTML = '<div class="menu-hint">暂无轨道信息</div>';
-      return;
-    }
-    state.api.score.tracks.forEach((track, index) => {
-      const row = document.createElement('label');
-      row.className = 'check-row';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = state.visibleTrackIndices.includes(index);
-      cb.addEventListener('change', () => {
-        if (cb.checked) {
-          if (!state.visibleTrackIndices.includes(index)) state.visibleTrackIndices.push(index);
-        } else {
-          state.visibleTrackIndices = state.visibleTrackIndices.filter(i => i !== index);
-          if (!state.visibleTrackIndices.length) state.visibleTrackIndices = [index];
-        }
-        updateTrackList();
-        updateDisplaySettings();
-      });
-      const text = document.createElement('span');
-      text.textContent = track.name || `轨道 ${index + 1}`;
-      row.appendChild(cb);
-      row.appendChild(text);
-      el.trackList.appendChild(row);
-    });
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: "application/vnd.recordare.musicxml+xml" });
+    state.xmlBlobUrl = URL.createObjectURL(blob);
+    return state.xmlBlobUrl;
   }
 
   function destroyApi() {
     if (state.api) {
-      try { state.api.destroy(); } catch (_) {}
+      try { state.api.destroy(); } catch {}
       state.api = null;
     }
     if (state.xmlBlobUrl) {
       URL.revokeObjectURL(state.xmlBlobUrl);
       state.xmlBlobUrl = null;
     }
-    el.alphaTabHost.innerHTML = '';
+    el.alphaTabHost.innerHTML = "";
   }
 
-  function buildAlphaTab(xmlBlobUrl) {
-    destroyApi();
-    state.xmlBlobUrl = xmlBlobUrl;
+  function staffLooksLikeTab(staff) {
+    return (
+      String(staff?.clef).toLowerCase() === "tab" ||
+      staff?.stringCount >= 6 ||
+      staff?.staffLines === 6
+    );
+  }
 
-    const scriptFile = absoluteUrl('./assets/alphatab/alphaTab.js');
-    const fontDirectory = absoluteUrl('./assets/alphatab/font/');
+  function detectNotationTrackIndices(score) {
+    for (let i = 0; i < score.tracks.length; i++) {
+      const t = score.tracks[i];
+      const hasTab = t.staves.some(s => staffLooksLikeTab(s));
+      const hasStd = t.staves.some(s => !staffLooksLikeTab(s));
+      if (hasStd && !hasTab) return [i];
+    }
+    return [0];
+  }
+
+  function applyNotationToScore(score) {
+    const idxs = detectNotationTrackIndices(score);
+    const jianpu = state.currentNotation === "jianpu";
+
+    score.tracks.forEach((track, i) => {
+      track.staves.forEach(staff => {
+
+        if (staffLooksLikeTab(staff)) {
+          staff.showNumbered = false;
+          staff.showStandardNotation = false;
+          return;
+        }
+
+        if (idxs.includes(i)) {
+          staff.showNumbered = jianpu;
+          staff.showStandardNotation = !jianpu;
+
+          if (jianpu && "showKeySignature" in staff) {
+            staff.showKeySignature = false;
+          }
+        } else {
+          staff.showNumbered = false;
+          staff.showStandardNotation = true;
+        }
+      });
+    });
+  }
+
+  function hideNode(node) {
+    const g = node.closest("g");
+    (g || node).style.display = "none";
+    (g || node).setAttribute("data-jianpu-hidden", "1");
+  }
+
+  function hideTopLeftJianpuHeader(svg) {
+    if (state.currentNotation !== "jianpu") return;
+
+    const texts = [...svg.querySelectorAll("text")];
+
+    // 找 1=A
+    const tonic = texts.find(n => {
+      const t = (n.textContent || "").replace(/\s/g, "");
+      if (!/^1=[#b]?[A-G]$/.test(t)) return false;
+      const b = n.getBBox();
+      return b.x < 180 && b.y < 80;
+    });
+
+    if (!tonic) return;
+
+    const tbox = tonic.getBBox();
+    hideNode(tonic);
+
+    // 找旁边 ♭
+    const ats = [...svg.querySelectorAll("g.at")];
+
+    ats.forEach(g => {
+      const txt = (g.textContent || "").trim();
+      if (txt !== "♭" && txt !== "♯") return;
+
+      const b = g.getBBox();
+
+      const near =
+        b.x > tbox.x - 30 &&
+        b.x < tbox.x + 60 &&
+        Math.abs(b.y - tbox.y) < 20;
+
+      if (near) hideNode(g);
+    });
+  }
+
+  function shiftLyrics(svg) {
+    if (state.currentNotation !== "jianpu") return;
+
+    const nodes = [...svg.querySelectorAll("text")]
+      .map(n => ({ n, b: n.getBBox() }))
+      .filter(x =>
+        /[\u4e00-\u9fff]/.test(x.n.textContent) &&
+        x.b.y < 300 && x.b.y > 120
+      );
+
+    if (!nodes.length) return;
+
+    const minY = Math.min(...nodes.map(x => x.b.y));
+
+    nodes
+      .filter(x => Math.abs(x.b.y - minY) < 10)
+      .forEach(x => {
+        const t = x.n.getAttribute("transform") || "";
+        x.n.setAttribute("transform", `${t} translate(0,18)`);
+      });
+  }
+
+  function fixRenderedSvg() {
+    const svg = el.alphaTabHost.querySelector("svg");
+    if (!svg) return;
+
+    svg.querySelectorAll('[data-jianpu-hidden]').forEach(n => {
+      n.style.display = "";
+      n.removeAttribute("data-jianpu-hidden");
+    });
+
+    hideTopLeftJianpuHeader(svg);
+    shiftLyrics(svg);
+  }
+
+  function render() {
+    if (!state.api) return;
+    applyNotationToScore(state.api.score);
+    state.api.render();
+    setTimeout(fixRenderedSvg, 100);
+  }
+
+  async function load() {
+    destroyApi();
+
+    const path = buildPathFromQuery();
+    const pkg = await fetch(path).then(r => r.json());
+
+    const blob = decodeBase64ToBlobUrl(pkg.score.data);
 
     state.api = new alphaTab.AlphaTabApi(el.alphaTabHost, {
-      core: {
-        file: xmlBlobUrl,
-        scriptFile,
-        fontDirectory,
-        useWorkers: false
-      },
-      display: {
-        showStandardNotation: state.currentNotation === 'staff',
-        showNumberedNotation: state.currentNotation === 'jianpu',
-        showTab: true,
-        showChordNames: true,
-        showScoreLyrics: true
-      },
-      player: {
-        enablePlayer: false
-      }
-    });
-
-    state.api.error.on((e) => {
-      showError(`alphaTab 错误：${e && e.message ? e.message : String(e)}`);
-    });
-
-    state.api.renderStarted.on(() => {
-      setLoading('正在渲染乐谱...');
+      file: blob,
+      core: { useWorkers: false }
     });
 
     state.api.scoreLoaded.on(() => {
-      applyNotationToScore(state.api.score);
+      render();
     });
 
     state.api.renderFinished.on(() => {
-      hideLoading();
-      clearError();
-      syncNotationUi();
-      syncModeUi();
-      updateTrackList();
-      window.requestAnimationFrame(() => {
-        hideJianpuHeaderArtifacts();
-      });
+      fixRenderedSvg();
     });
   }
 
-  async function loadGtz(path) {
-    try {
-      closeMenus();
-      destroyApi();
-      clearError();
-      setLoading('正在读取 GTZ...');
-      state.currentPath = path;
-      el.pathInput.value = path;
+  el.staffOption.onclick = () => {
+    state.currentNotation = "staff";
+    render();
+  };
 
-      const response = await fetch(path, { cache: 'no-store' });
-      if (!response.ok) {
-        throw new Error(`读取失败：${response.status} ${response.statusText}`);
-      }
-      const text = await response.text();
-      const pkg = JSON.parse(text);
-      if (pkg.packageType !== 'songpack-gtz') {
-        throw new Error(`不是支持的 GTZ 包：packageType=${pkg.packageType || '缺失'}`);
-      }
-      const scoreData = getPackageScoreData(pkg);
-      if (!scoreData) {
-        throw new Error('GTZ 中没有 score.data 或 scoreBase64');
-      }
+  el.jianpuOption.onclick = () => {
+    state.currentNotation = "jianpu";
+    render();
+  };
 
-      state.gtz = pkg;
-      readViewerState(pkg);
-      updateMetaUi(pkg);
-      syncNotationUi();
-      syncModeUi();
+  load();
 
-      const blobUrl = decodeBase64ToBlobUrl(scoreData);
-      buildAlphaTab(blobUrl);
-    } catch (err) {
-      showError(err && err.message ? err.message : String(err));
-    }
-  }
-
-  function bindMenus() {
-    qsa('[data-menu]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const menuId = btn.dataset.menu;
-        const menu = document.getElementById(menuId);
-        const isHidden = menu.classList.contains('hidden');
-        if (!isHidden) {
-          closeMenus();
-          return;
-        }
-        openMenu(menuId, btn);
-      });
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.dropdown-menu') && !e.target.closest('[data-menu]')) {
-        closeMenus();
-      }
-    });
-  }
-
-  function bindControls() {
-    el.reloadBtn.addEventListener('click', () => loadGtz(el.pathInput.value.trim() || './assets/c0001_cn_g.gtz'));
-
-    qsa('[data-notation]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        state.currentNotation = btn.dataset.notation === 'jianpu' ? 'jianpu' : 'staff';
-        syncNotationUi();
-        updateDisplaySettings();
-        closeMenus();
-      });
-    });
-
-    qsa('[data-mode-option]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        state.currentMode = btn.dataset.modeOption;
-        syncModeUi();
-        closeMenus();
-      });
-    });
-
-    el.tempoRange.addEventListener('input', () => {
-      state.currentTempo = Number(el.tempoRange.value);
-      el.tempoValue.textContent = String(state.currentTempo);
-      el.tempoBtn.textContent = String(state.currentTempo);
-    });
-
-    el.tempoResetBtn.addEventListener('click', () => {
-      state.currentTempo = state.originalTempo;
-      el.tempoRange.value = String(state.currentTempo);
-      el.tempoValue.textContent = String(state.currentTempo);
-      el.tempoBtn.textContent = String(state.currentTempo);
-    });
-
-    const syncTextUi = () => {
-      el.fontSizeValue.textContent = String(state.fontSizePx);
-      el.spacingValue.textContent = state.spacingFactor.toFixed(1);
-    };
-    syncTextUi();
-
-    el.fontMinusBtn.addEventListener('click', () => {
-      state.fontSizePx = Math.max(12, state.fontSizePx - 1);
-      syncTextUi();
-    });
-    el.fontPlusBtn.addEventListener('click', () => {
-      state.fontSizePx = Math.min(72, state.fontSizePx + 1);
-      syncTextUi();
-    });
-    el.spacingMinusBtn.addEventListener('click', () => {
-      state.spacingFactor = Math.max(0.5, Math.round((state.spacingFactor - 0.1) * 10) / 10);
-      syncTextUi();
-    });
-    el.spacingPlusBtn.addEventListener('click', () => {
-      state.spacingFactor = Math.min(5.0, Math.round((state.spacingFactor + 0.1) * 10) / 10);
-      syncTextUi();
-    });
-
-    qs('#homeBtn').addEventListener('click', () => { window.location.href = './index.html'; });
-
-    window.addEventListener('resize', closeMenus);
-  }
-
-  bindMenus();
-  bindControls();
-  loadGtz(getQueryFile());
 })();
