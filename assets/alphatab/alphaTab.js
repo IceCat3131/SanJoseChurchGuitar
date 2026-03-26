@@ -56434,12 +56434,119 @@
             else if ('nodeType' in body) {
                 placeholder.replaceChildren(body);
             }
+            this._relocateNumberedKeySignatureHeader(placeholder, renderResult);
             placeholder.resultState = ResultState.RenderDone;
             placeholder.renderedResultId = renderResult.id;
             placeholder.renderedResult = Array.from(placeholder.children);
         }
+        _relocateNumberedKeySignatureHeader(placeholder, renderResult) {
+            if (!placeholder || !renderResult || renderResult.firstMasterBarIndex !== 0) {
+                return;
+            }
+            const canvasElement = this._api.canvasElement.element;
+            const oldHeader = canvasElement.querySelector(':scope > .at-numbered-key-header');
+            if (oldHeader) {
+                oldHeader.remove();
+            }
+            const svg = placeholder.querySelector('svg.at-surface-svg');
+            if (!svg) {
+                return;
+            }
+            const normalizeHeaderText = (s) => String(s || '').replace(/\s+/g, '').replace(/♭/g, 'b').replace(/♯/g, '#');
+            const parseTranslateXY = (node) => {
+                const tf = node?.getAttribute?.('transform') || '';
+                const m = tf.match(/translate\(\s*([-\d.]+)[ ,]\s*([-\d.]+)\s*\)/);
+                if (!m) {
+                    return null;
+                }
+                return { x: parseFloat(m[1]), y: parseFloat(m[2]) };
+            };
+            const textNodes = Array.from(svg.querySelectorAll('text'));
+            let tonicNode = null;
+            let tonicBox = null;
+            for (const node of textNodes) {
+                const raw = (node.textContent || '').trim();
+                if (!raw) {
+                    continue;
+                }
+                const t = normalizeHeaderText(raw);
+                if (!/^1=[#b]?[A-G]m?$/.test(t)) {
+                    continue;
+                }
+                let box;
+                try {
+                    box = node.getBBox();
+                }
+                catch (_a) {
+                    continue;
+                }
+                if (!box || box.width <= 0 || box.height <= 0) {
+                    continue;
+                }
+                if (box.x < 140 && box.y > -30 && box.y < 40) {
+                    tonicNode = node;
+                    tonicBox = box;
+                    break;
+                }
+            }
+            if (!tonicNode || !tonicBox) {
+                return;
+            }
+            let accidentalNode = null;
+            const atGroups = Array.from(svg.querySelectorAll('g.at'));
+            for (const g of atGroups) {
+                const xy = parseTranslateXY(g);
+                if (!xy) {
+                    continue;
+                }
+                if (!(xy.x < 140 && xy.y > -30 && xy.y < 40)) {
+                    continue;
+                }
+                const sameRow = Math.abs(xy.y - tonicBox.y) <= 12;
+                const onRightSide = xy.x >= tonicBox.x + 10 && xy.x <= tonicBox.x + 50;
+                if (sameRow && onRightSide) {
+                    accidentalNode = g;
+                    break;
+                }
+            }
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'at-numbered-key-header';
+            headerDiv.style.zIndex = '2';
+            headerDiv.style.position = 'absolute';
+            headerDiv.style.left = placeholder.style.left;
+            headerDiv.style.top = placeholder.style.top;
+            headerDiv.style.width = placeholder.style.width;
+            headerDiv.style.height = '64px';
+            headerDiv.style.display = 'inline-block';
+            headerDiv.style.pointerEvents = 'none';
+            const headerSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            headerSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            headerSvg.setAttribute('version', '1.1');
+            headerSvg.setAttribute('width', placeholder.style.width);
+            headerSvg.setAttribute('height', '64px');
+            headerSvg.setAttribute('class', 'at-surface-svg');
+            headerSvg.style.overflow = 'visible';
+            headerSvg.appendChild(tonicNode.cloneNode(true));
+            if (accidentalNode) {
+                headerSvg.appendChild(accidentalNode.cloneNode(true));
+            }
+            headerDiv.appendChild(headerSvg);
+            canvasElement.appendChild(headerDiv);
+            tonicNode.style.display = 'none';
+            tonicNode.setAttribute('data-numbered-header-relocated', '1');
+            if (accidentalNode) {
+                accidentalNode.style.display = 'none';
+                accidentalNode.setAttribute('data-numbered-header-relocated', '1');
+            }
+        }
         beginAppendRenderResults(renderResult) {
             const canvasElement = this._api.canvasElement.element;
+            if (renderResult && this._totalResultCount === 0) {
+                const oldHeader = canvasElement.querySelector(':scope > .at-numbered-key-header');
+                if (oldHeader) {
+                    oldHeader.remove();
+                }
+            }
             // null result indicates that the rendering finished
             if (!renderResult) {
                 // so we remove elements that might be from a previous render session
