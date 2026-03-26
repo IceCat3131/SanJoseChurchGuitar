@@ -56493,9 +56493,17 @@
                 return;
             }
             let accidentalNode = null;
-            const nextSibling = tonicNode.nextElementSibling;
-            if (nextSibling && nextSibling.tagName && nextSibling.tagName.toLowerCase() === 'g' && nextSibling.getAttribute('class') === 'at') {
-                accidentalNode = nextSibling;
+            const siblingCandidates = [];
+            let siblingWalker = tonicNode.nextElementSibling;
+            for (let i = 0; siblingWalker && i < 4; i++) {
+                siblingCandidates.push(siblingWalker);
+                siblingWalker = siblingWalker.nextElementSibling;
+            }
+            for (const sib of siblingCandidates) {
+                if (sib && sib.tagName && sib.tagName.toLowerCase() === 'g' && sib.classList && sib.classList.contains('at')) {
+                    accidentalNode = sib;
+                    break;
+                }
             }
             if (!accidentalNode) {
                 const atGroups = Array.from(svg.querySelectorAll('g.at'));
@@ -56504,14 +56512,14 @@
                     if (!xy) {
                         continue;
                     }
-                    if (!(xy.x < 160 && xy.y > -40 && xy.y < 60)) {
+                    if (!(xy.x < 180 && xy.y > -40 && xy.y < 60)) {
                         continue;
                     }
                     const tonicYAttr = tonicNode.getAttribute('y');
                     const tonicY = tonicYAttr ? parseFloat(tonicYAttr) : tonicBox.y;
-                    const sameRow = Math.abs(xy.y - tonicY) <= 12 || Math.abs(xy.y - tonicBox.y) <= 18;
-                    const onRightSide = xy.x >= tonicBox.x + 10 && xy.x <= tonicBox.x + 60;
-                    if (sameRow && onRightSide) {
+                    const sameRow = Math.abs(xy.y - tonicY) <= 16 || Math.abs(xy.y - tonicBox.y) <= 22;
+                    const nearRightSide = xy.x >= tonicBox.x + 8 && xy.x <= tonicBox.x + 90;
+                    if (sameRow && nearRightSide) {
                         accidentalNode = g;
                         break;
                     }
@@ -56545,6 +56553,64 @@
             if (accidentalNode) {
                 accidentalNode.style.display = 'none';
                 accidentalNode.setAttribute('data-numbered-header-relocated', '1');
+            }
+            const isLyricTextNode = (node) => {
+                if (!node || node.tagName?.toLowerCase() !== 'text') {
+                    return false;
+                }
+                const txt = (node.textContent || '').trim();
+                if (!txt) {
+                    return false;
+                }
+                return /[㐀-鿿]/.test(txt);
+            };
+            const shiftNodeY = (node, deltaY) => {
+                if (!node || node.nodeType !== 1) {
+                    return;
+                }
+                if (isLyricTextNode(node)) {
+                    return;
+                }
+                const tag = node.tagName.toLowerCase();
+                if (tag === 'g') {
+                    const tf = node.getAttribute('transform') || '';
+                    if (/translate\(/.test(tf)) {
+                        node.setAttribute('transform', tf.replace(/translate\(\s*([\-\d.]+)[ ,]\s*([\-\d.]+)\s*\)/, (_m, x, y) => `translate(${x} ${parseFloat(y) + deltaY})`));
+                    }
+                    else {
+                        node.setAttribute('transform', `translate(0 ${deltaY}) ${tf}`.trim());
+                    }
+                    return;
+                }
+                if (node.hasAttribute('y')) {
+                    const y = parseFloat(node.getAttribute('y'));
+                    if (!Number.isNaN(y)) {
+                        node.setAttribute('y', String(y + deltaY));
+                        return;
+                    }
+                }
+                if (node.hasAttribute('cy')) {
+                    const cy = parseFloat(node.getAttribute('cy'));
+                    if (!Number.isNaN(cy)) {
+                        node.setAttribute('cy', String(cy + deltaY));
+                        return;
+                    }
+                }
+                if (node.hasAttribute('transform')) {
+                    const tf = node.getAttribute('transform') || '';
+                    if (/translate\(/.test(tf)) {
+                        node.setAttribute('transform', tf.replace(/translate\(\s*([\-\d.]+)[ ,]\s*([\-\d.]+)\s*\)/, (_m, x, y) => `translate(${x} ${parseFloat(y) + deltaY})`));
+                    }
+                    else {
+                        node.setAttribute('transform', `translate(0 ${deltaY}) ${tf}`.trim());
+                    }
+                }
+            };
+            for (const child of Array.from(svg.children)) {
+                if (child === tonicNode || child === accidentalNode) {
+                    continue;
+                }
+                shiftNodeY(child, -20);
             }
         }
         beginAppendRenderResults(renderResult) {
