@@ -1,6 +1,4 @@
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 :root {
   --bg: #f3f5f9;
@@ -258,6 +256,11 @@ body {
 
 .alpha-tab-host.jianpu-mode svg {
   display: block;
+}
+
+/* 隐藏独立的简谱调号头层（1=bA / 1=#F / 1=C 等） */
+.at-numbered-key-header {
+  display: none !important;
 }
 
 input[type="range"] {
