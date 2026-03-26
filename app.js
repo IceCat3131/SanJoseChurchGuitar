@@ -221,22 +221,22 @@
   }
 
   function resetSvgFixes(svg) {
-    svg.querySelectorAll('[data-jianpu-hidden="1"]').forEach((node) => {
-      node.style.display = "";
-      node.removeAttribute("data-jianpu-hidden");
-    });
+  svg.querySelectorAll('[data-jianpu-hidden="1"]').forEach((node) => {
+    node.style.display = "";
+    node.removeAttribute("data-jianpu-hidden");
+  });
 
-    svg.querySelectorAll('[data-lyric-shift="1"]').forEach((node) => {
-      const orig = node.getAttribute("data-orig-transform");
-      if (orig === null || orig === "") {
-        node.removeAttribute("transform");
-      } else {
-        node.setAttribute("transform", orig);
-      }
-      node.removeAttribute("data-lyric-shift");
-      node.removeAttribute("data-orig-transform");
-    });
-  }
+  svg.querySelectorAll('[data-lyric-shift="1"]').forEach((node) => {
+    const orig = node.getAttribute("data-orig-transform");
+    if (orig === null || orig === "") {
+      node.removeAttribute("transform");
+    } else {
+      node.setAttribute("transform", orig);
+    }
+    node.removeAttribute("data-lyric-shift");
+    node.removeAttribute("data-orig-transform");
+  });
+}
 
   function staffLooksLikeTab(staff) {
     return (
@@ -570,98 +570,101 @@
     });
   }
 
-  function hideNodeAndUsefulParent(node) {
-    if (!node) return;
-    const parent1 = node.parentElement;
-    const parent2 = parent1 ? parent1.parentElement : null;
+function hideNodeAndUsefulParent(node) {
+  if (!node) return null;
 
-    if (parent2 && parent2.tagName && parent2.tagName.toLowerCase() === "g") {
-      parent2.style.display = "none";
-      parent2.setAttribute("data-jianpu-hidden", "1");
-      return;
-    }
-    if (parent1 && parent1.tagName && parent1.tagName.toLowerCase() === "g") {
-      parent1.style.display = "none";
-      parent1.setAttribute("data-jianpu-hidden", "1");
-      return;
-    }
-    node.style.display = "none";
-    node.setAttribute("data-jianpu-hidden", "1");
+  const p1 = node.parentElement;
+  const p2 = p1 ? p1.parentElement : null;
+
+  if (p2 && p2.tagName && p2.tagName.toLowerCase() === "g") {
+    p2.style.display = "none";
+    p2.setAttribute("data-jianpu-hidden", "1");
+    return p2;
   }
+
+  if (p1 && p1.tagName && p1.tagName.toLowerCase() === "g") {
+    p1.style.display = "none";
+    p1.setAttribute("data-jianpu-hidden", "1");
+    return p1;
+  }
+
+  node.style.display = "none";
+  node.setAttribute("data-jianpu-hidden", "1");
+  return node;
+}
 
   function collectTopLeftHeaderTokens(svg) {
-    const textNodes = Array.from(svg.querySelectorAll("text"));
-    const tokens = [];
+  const textNodes = Array.from(svg.querySelectorAll("text"));
+  const tokens = [];
 
-    for (const node of textNodes) {
-      const raw = (node.textContent || "").trim();
-      if (!raw) continue;
+  for (const node of textNodes) {
+    const raw = (node.textContent || "").trim();
+    if (!raw) continue;
 
-      let box;
-      try {
-        box = node.getBBox();
-      } catch (_) {
-        continue;
-      }
-      if (!box || box.width <= 0 || box.height <= 0) continue;
-
-      if (box.x > 260 || box.y > 220) continue;
-
-      const text = raw.replace(/\s+/g, "").replace(/♭/g, "b").replace(/♯/g, "#");
-
-      tokens.push({ node, box, raw, text });
+    let box;
+    try {
+      box = node.getBBox();
+    } catch (_) {
+      continue;
     }
+    if (!box || box.width <= 0 || box.height <= 0) continue;
 
-    return tokens;
+    // 只看首行左上角区域
+    if (box.x > 260 || box.y > 140) continue;
+
+    const text = raw
+      .replace(/\s+/g, "")
+      .replace(/♭/g, "b")
+      .replace(/♯/g, "#");
+
+    tokens.push({ node, box, raw, text });
   }
 
+  return tokens;
+}
   function hideTopLeftJianpuHeader(svg) {
-    const tokens = collectTopLeftHeaderTokens(svg);
-    if (!tokens.length) return 0;
+  if (!svg || state.currentNotation !== "jianpu") return 0;
 
-    let hidden = 0;
+  const tokens = collectTopLeftHeaderTokens(svg);
+  if (!tokens.length) return 0;
 
-    const tonicCandidates = tokens.filter(t =>
-      /^1=?$/.test(t.text) ||
-      /^1=[A-G]m?$/.test(t.text) ||
-      /^1=[#b]?[A-G]m?$/.test(t.text) ||
-      /^[A-G]m?$/.test(t.text) ||
-      /^[#b]?[A-G]m?$/.test(t.text)
-    );
+  let hiddenCount = 0;
 
-    const accidentalCandidates = tokens.filter(t =>
-      t.text === "b" || t.text === "#" || t.text === "♭" || t.text === "♯"
-    );
+  // 先找“1=A / 1=G / 1=C / 1=#F / 1=bA”这一类主 token
+  const tonicTokens = tokens.filter(t =>
+    /^1=[#b]?[A-G]m?$/.test(t.text) ||
+    /^1=[A-G]m?$/.test(t.text)
+  );
 
-    for (const tonic of tonicCandidates) {
-      if (tonic.box.x > 220 || tonic.box.y > 180) continue;
+  // 再找单独 accidental token：♭ / ♯ / b / #
+  const accidentalTokens = tokens.filter(t =>
+    t.text === "b" || t.text === "#" || t.raw === "♭" || t.raw === "♯"
+  );
 
-      hideNodeAndUsefulParent(tonic.node);
-      hidden++;
-
-      for (const acc of accidentalCandidates) {
-        const dx = Math.abs(acc.box.x - tonic.box.x);
-        const dy = Math.abs(acc.box.y - tonic.box.y);
-        const nearSameHeader =
-          dx < 90 &&
-          dy < 35 &&
-          acc.box.x >= tonic.box.x - 40 &&
-          acc.box.x <= tonic.box.x + 80;
-
-        if (nearSameHeader) {
-          hideNodeAndUsefulParent(acc.node);
-        }
-      }
+  // 先隐藏 1=A 这种主 token
+  tonicTokens.forEach(t => {
+    if (t.box.x < 180 && t.box.y < 80) {
+      hideNodeAndUsefulParent(t.node);
+      hiddenCount++;
     }
+  });
 
-    for (const acc of accidentalCandidates) {
-      if (acc.box.x < 180 && acc.box.y < 180) {
+  // 只隐藏“贴着主 token”的那个 accidental
+  tonicTokens.forEach(tonic => {
+    accidentalTokens.forEach(acc => {
+      const nearLeftHeader =
+        acc.box.x >= tonic.box.x - 28 &&
+        acc.box.x <= tonic.box.x + tonic.box.width + 22 &&
+        Math.abs(acc.box.y - tonic.box.y) <= 18;
+
+      if (nearLeftHeader) {
         hideNodeAndUsefulParent(acc.node);
       }
-    }
+    });
+  });
 
-    return hidden;
-  }
+  return hiddenCount;
+}
 
   function shiftFirstSystemLyrics(svg) {
     if (state.currentNotation !== "jianpu") return;
@@ -703,16 +706,16 @@
   }
 
   function fixRenderedSvg() {
-    const svg = el.alphaTabHost.querySelector("svg");
-    if (!svg) return;
+  const svg = el.alphaTabHost.querySelector("svg");
+  if (!svg) return;
 
-    resetSvgFixes(svg);
+  resetSvgFixes(svg);
 
-    if (state.currentNotation === "jianpu") {
-      hideTopLeftJianpuHeader(svg);
-      shiftFirstSystemLyrics(svg);
-    }
+  if (state.currentNotation === "jianpu") {
+    hideTopLeftJianpuHeader(svg);
+    shiftFirstSystemLyrics(svg);
   }
+}
 
   function init() {
     el.pathInput.value = buildPathFromQuery();
