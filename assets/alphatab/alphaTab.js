@@ -56493,20 +56493,28 @@
                 return;
             }
             let accidentalNode = null;
-            const atGroups = Array.from(svg.querySelectorAll('g.at'));
-            for (const g of atGroups) {
-                const xy = parseTranslateXY(g);
-                if (!xy) {
-                    continue;
-                }
-                if (!(xy.x < 140 && xy.y > -30 && xy.y < 40)) {
-                    continue;
-                }
-                const sameRow = Math.abs(xy.y - tonicBox.y) <= 12;
-                const onRightSide = xy.x >= tonicBox.x + 10 && xy.x <= tonicBox.x + 50;
-                if (sameRow && onRightSide) {
-                    accidentalNode = g;
-                    break;
+            const nextSibling = tonicNode.nextElementSibling;
+            if (nextSibling && nextSibling.tagName && nextSibling.tagName.toLowerCase() === 'g' && nextSibling.getAttribute('class') === 'at') {
+                accidentalNode = nextSibling;
+            }
+            if (!accidentalNode) {
+                const atGroups = Array.from(svg.querySelectorAll('g.at'));
+                for (const g of atGroups) {
+                    const xy = parseTranslateXY(g);
+                    if (!xy) {
+                        continue;
+                    }
+                    if (!(xy.x < 160 && xy.y > -40 && xy.y < 60)) {
+                        continue;
+                    }
+                    const tonicYAttr = tonicNode.getAttribute('y');
+                    const tonicY = tonicYAttr ? parseFloat(tonicYAttr) : tonicBox.y;
+                    const sameRow = Math.abs(xy.y - tonicY) <= 12 || Math.abs(xy.y - tonicBox.y) <= 18;
+                    const onRightSide = xy.x >= tonicBox.x + 10 && xy.x <= tonicBox.x + 60;
+                    if (sameRow && onRightSide) {
+                        accidentalNode = g;
+                        break;
+                    }
                 }
             }
             const headerDiv = document.createElement('div');
