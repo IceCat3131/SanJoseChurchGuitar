@@ -689,11 +689,84 @@ flex: 1;
 .core-panel-actions-left{justify-content:flex-start;}
 .core-option-btn.active{background:var(--primary); color:#fff; border-color:transparent;}
 
-/* remove old duplicated UI block (big control panel) */
-.card .search-bar,
-.player-bar,
-.meta-row,
-.adjust-row,
-.controls-row{
-  display:none !important;
+/* rewrite track panel */
+#tracks-panel { display:none !important; }
+
+.new-track-panel{
+  position:fixed;
+  right:12px;
+  top:168px;
+  z-index:10001;
+  width:min(360px, calc(100vw - 24px));
+}
+.new-track-panel.hidden{ display:none !important; }
+.new-track-panel-inner{
+  background:#fff;
+  border:1px solid var(--border-soft);
+  border-radius:20px;
+  box-shadow:0 12px 32px rgba(15,23,42,.16);
+  padding:14px;
+}
+.new-track-panel-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+  font-weight:800;
+  color:var(--text-main);
+}
+.new-track-close,
+.new-track-ghost{
+  border:none;
+  background:#eef4ff;
+  color:var(--primary);
+  border-radius:12px;
+  min-height:36px;
+  padding:0 12px;
+  font-weight:700;
+  cursor:pointer;
+}
+.new-track-panel-actions{
+  display:flex;
+  gap:8px;
+  margin-bottom:10px;
+}
+.new-track-list{
+  display:grid;
+  gap:8px;
+  max-height:min(56vh, 420px);
+  overflow:auto;
+}
+.new-track-item{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  align-items:center;
+  gap:10px;
+  min-height:42px;
+  border-radius:12px;
+  background:#f8fbff;
+  padding:0 12px;
+}
+.new-track-item input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  accent-color:var(--primary);
+}
+.new-track-name{
+  min-width:0;
+  font-weight:700;
+  color:var(--text-main);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+@media (max-width: 767px){
+  .new-track-panel{
+    left:8px;
+    right:8px;
+    width:auto;
+    top:auto;
+    bottom:12px;
+  }
 }
