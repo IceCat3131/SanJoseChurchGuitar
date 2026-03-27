@@ -488,10 +488,17 @@
     refreshAdjustUI();
   }
 
-  function setSearchBook(book) {
+  async function setSearchBook(book, autoSearch = false) {
     state.searchBook = (book === 'ts') ? 'ts' : 'c';
     syncBookButtons();
     syncUI();
+
+    const inputEl = document.getElementById('ui-search-input');
+    const value = String(inputEl?.value || '').trim();
+    if (autoSearch && value) {
+      return await performSearch(value, state.searchBook);
+    }
+    return true;
   }
 
   function setScriptMode(mode) {
@@ -512,7 +519,7 @@
     return true;
   }
 
-  async function performSearch(raw) {
+  async function performSearch(raw, bookOverride = null) {
     const value = String(raw || '').trim();
     if (!value) return false;
     const digitsMatch = value.match(/^(\d{1,4})$/);
@@ -526,7 +533,9 @@
       return false;
     }
 
-    const targetBook = (state.searchBook === 'ts') ? 'ts' : 'c';
+    const targetBook = (bookOverride === 'ts' || bookOverride === 'c')
+      ? bookOverride
+      : ((state.searchBook === 'ts') ? 'ts' : 'c');
     const song = await getSong(targetBook, no);
     if (!song) {
       alert(`在${BOOKS[targetBook].label}中找不到第 ${no} 首。`);
@@ -1433,8 +1442,16 @@ function pad4(num) {
     $('ui-lang-simp')?.addEventListener('click', ()=>{ setScriptMode('simplified'); syncUI(); });
     $('ui-lang-trad')?.addEventListener('click', ()=>{ setScriptMode('traditional'); syncUI(); });
 
-    $('ui-book-c')?.addEventListener('click', ()=>{ setSearchBook('c'); });
-    $('ui-book-ts')?.addEventListener('click', ()=>{ setSearchBook('ts'); });
+    $('ui-book-c')?.addEventListener('click', async ()=>{
+      const ok = await setSearchBook('c', true);
+      if (ok) closePanels();
+      syncUI();
+    });
+    $('ui-book-ts')?.addEventListener('click', async ()=>{
+      const ok = await setSearchBook('ts', true);
+      if (ok) closePanels();
+      syncUI();
+    });
     $('ui-search-go')?.addEventListener('click', async ()=>{
       const ok = await performSearch($('ui-search-input')?.value || '');
       if (ok) closePanels();
