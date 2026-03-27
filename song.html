@@ -512,23 +512,33 @@
     return true;
   }
 
-  function performSearch(raw) {
+  async function performSearch(raw) {
     const value = String(raw || '').trim();
-    if (!value) return;
-    const digitsMatch = value.match(/(\d{1,4})$/);
+    if (!value) return false;
+    const digitsMatch = value.match(/^(\d{1,4})$/);
     if (!digitsMatch) {
       alert('请输入正确的编号，如 31');
-      return;
+      return false;
     }
     const no = parseInt(digitsMatch[1], 10);
-    if (!Number.isFinite(no)) {
+    if (!Number.isFinite(no) || no <= 0) {
       alert('请输入正确的编号，如 31');
-      return;
+      return false;
     }
-    state.currentBook = (state.searchBook === 'ts') ? 'ts' : 'c';
+
+    const targetBook = (state.searchBook === 'ts') ? 'ts' : 'c';
+    const song = await getSong(targetBook, no);
+    if (!song) {
+      alert(`在${BOOKS[targetBook].label}中找不到第 ${no} 首。`);
+      return false;
+    }
+
+    state.searchBook = targetBook;
+    state.currentBook = targetBook;
     state.currentNo = no;
     updateURL();
-    loadAndRenderCurrentSong();
+    await loadAndRenderCurrentSong();
+    return true;
   }
 
 
@@ -993,6 +1003,7 @@ function pad4(num) {
     if (!Number.isFinite(no) || no < 1) no = 1;
     state.currentBook = (book === "ts") ? "ts" : "c";
     state.currentNo = no;
+    state.searchBook = state.currentBook;
   }
 
   function getRangeIndex(no) {
@@ -1424,16 +1435,16 @@ function pad4(num) {
 
     $('ui-book-c')?.addEventListener('click', ()=>{ setSearchBook('c'); });
     $('ui-book-ts')?.addEventListener('click', ()=>{ setSearchBook('ts'); });
-    $('ui-search-go')?.addEventListener('click', ()=>{
-      performSearch($('ui-search-input')?.value || '');
-      closePanels();
+    $('ui-search-go')?.addEventListener('click', async ()=>{
+      const ok = await performSearch($('ui-search-input')?.value || '');
+      if (ok) closePanels();
       syncUI();
     });
-    $('ui-search-input')?.addEventListener('keydown', e=>{
+    $('ui-search-input')?.addEventListener('keydown', async e=>{
       if (e.key === 'Enter') {
         e.preventDefault();
-        performSearch($('ui-search-input')?.value || '');
-        closePanels();
+        const ok = await performSearch($('ui-search-input')?.value || '');
+        if (ok) closePanels();
         syncUI();
       }
     });
