@@ -708,6 +708,6 @@ flex: 1;
 .core-panel-actions-left{justify-content:flex-start;}
 .core-option-btn.active{background:var(--primary); color:#fff; border-color:transparent;}
 
-/* v4: track panel via new toolbar button */
-#tracks-panel{z-index:9999;}
+/* v5: ensure tracks panel visible and above everything when opened from new UI */
+#tracks-panel{z-index:10000;}
 #tracks-panel.hidden{display:none !important;}
