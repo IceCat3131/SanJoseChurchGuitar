@@ -714,6 +714,43 @@
     return TAB_CHORD_SHAPES[key] || null;
   }
 
+  function getBeatBoundsX(beatBounds) {
+    const box = beatBounds?.visualBounds || beatBounds?.bounds || beatBounds;
+    const x = box?.x ?? beatBounds?.x ?? null;
+    return Number.isFinite(x) ? Number(x) : null;
+  }
+
+  function buildSystemChordTimeline(system) {
+    const timeline = [];
+    const masterBars = Array.isArray(system?.bars) ? system.bars : [];
+    for (const masterBar of masterBars) {
+      const barBoundsList = Array.isArray(masterBar?.bars) ? masterBar.bars : [];
+      for (const barBounds of barBoundsList) {
+        const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
+        for (const beatBounds of beats) {
+          const beat = beatBounds?.beat || beatBounds?.voice?.beat || null;
+          const symbol = getBeatChordSymbol(beat);
+          const x = getBeatBoundsX(beatBounds);
+          if (!symbol || x === null) continue;
+          timeline.push({ x, symbol });
+        }
+      }
+    }
+    timeline.sort((a, b) => a.x - b.x);
+    return timeline;
+  }
+
+  function getChordSymbolFromTimeline(timeline, beatBounds, fallbackSymbol = null) {
+    const x = getBeatBoundsX(beatBounds);
+    if (!Array.isArray(timeline) || !timeline.length || x === null) return fallbackSymbol;
+    let active = fallbackSymbol;
+    for (const item of timeline) {
+      if (!item || item.x > x) break;
+      if (item.symbol) active = item.symbol;
+    }
+    return active;
+  }
+
   function shouldMaskNoteAsChordX(note, beatSymbol) {
     if (!note || !Number.isFinite(note?.string) || !Number.isFinite(note?.fret) || note.fret < 0) return false;
     const shapes = getChordShapesForSymbol(beatSymbol);
@@ -754,21 +791,19 @@
     const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
     if (!lookup || !Array.isArray(lookup.staffSystems)) return;
 
-    const activeChordByStaff = new Map();
+    let lastGlobalChordSymbol = null;
 
     for (const system of lookup.staffSystems) {
+      const systemChordTimeline = buildSystemChordTimeline(system);
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];
       for (const masterBar of masterBars) {
         const barBoundsList = Array.isArray(masterBar?.bars) ? masterBar.bars : [];
         for (const barBounds of barBoundsList) {
           if (!isTabBarBounds(barBounds)) continue;
           const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
-          const staffKey = String(barBounds?.bar?.staff?.index ?? barBounds?.bar?.staff?.track?.index ?? 'default');
           for (const beatBounds of beats) {
-            const beat = beatBounds?.beat || beatBounds?.voice?.beat || null;
-            const ownChordSymbol = getBeatChordSymbol(beat);
-            if (ownChordSymbol) activeChordByStaff.set(staffKey, ownChordSymbol);
-            const beatChordSymbol = ownChordSymbol || activeChordByStaff.get(staffKey) || null;
+            const beatChordSymbol = getChordSymbolFromTimeline(systemChordTimeline, beatBounds, lastGlobalChordSymbol) || null;
+            if (beatChordSymbol) lastGlobalChordSymbol = beatChordSymbol;
             const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
             for (const noteBounds of notes) {
               const note = noteBounds?.note;
