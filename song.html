@@ -1009,6 +1009,7 @@
     } catch (e) {}
   }
   let __playerUi = null;
+  let __playbackState = { current: 0, total: 0, playing: false, progress: 0 };
   function setupPlayerBar(api) {
     if (__playerUi) return;
     const btnPrev = document.getElementById("btn-player-prev");
@@ -1041,6 +1042,7 @@
     // 播放状态变化：切换 ▶ / ⏸
     api.playerStateChanged.on((args) => {
       const playing = (args.state === alphaTab.synth.PlayerState.Playing);
+      __playbackState.playing = playing;
       btnPlay.textContent = playing ? "⏸" : "▶";
     });
 
@@ -1096,6 +1098,10 @@
   }
 
   function setPlayerUI({ current, total, playing }) {
+    __playbackState.current = current || 0;
+    __playbackState.total = total || 0;
+    __playbackState.playing = !!playing;
+    __playbackState.progress = 0;
     const timeEl = document.getElementById("player-time");
     const progressEl = document.getElementById("player-progress");
     if (timeEl) timeEl.textContent = `${msToMMSS(current)} / ${msToMMSS(total)}`;
@@ -1383,19 +1389,7 @@ function pad4(num) {
   }
 
   function handleSearch() {
-    const raw = document.getElementById("search-input").value.trim();
-    if (!raw) return;
-    const digitsMatch = raw.match(/(\d{1,4})$/);
-    if (!digitsMatch) {
-      alert("请输入正确的编号，如 31");
-      return;
-    }
-    const no = parseInt(digitsMatch[1], 10);
-    if (!Number.isFinite(no)) {
-      alert("请输入正确的编号，如 31");
-      return;
-    }
-    goToNumber(no);
+    performSearch(document.getElementById("search-input").value);
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
@@ -1404,16 +1398,14 @@ function pad4(num) {
     syncBookButtons();
     syncScriptButton(); // 默认：歌词简体，按钮显示“繁”
 
-    document.getElementById("btn-back").addEventListener("click", () => {
-      window.location.href = "index.html";
-    });
+    document.getElementById("btn-back").addEventListener("click", goHome);
 
     document.getElementById("btn-prev").addEventListener("click", () => {
-      tryGoTo(-1);
+      goPrevSong();
     });
 
     document.getElementById("btn-next").addEventListener("click", () => {
-      tryGoTo(1);
+      goNextSong();
     });
 
     // 大本 / 小本切换
@@ -1430,11 +1422,11 @@ function pad4(num) {
     });
 
     // 搜索
-    document.getElementById("btn-search").addEventListener("click", handleSearch);
+    document.getElementById("btn-search").addEventListener("click", () => performSearch(document.getElementById("search-input").value));
     document.getElementById("search-input").addEventListener("keydown", e => {
       if (e.key === "Enter") {
         e.preventDefault();
-        handleSearch();
+        performSearch(document.getElementById("search-input").value);
       }
     });
 
@@ -1448,12 +1440,7 @@ function pad4(num) {
 
     // 简繁按钮：一个位置，文字互换
     document.getElementById("btn-script").addEventListener("click", () => {
-      state.script = (state.script === "simplified") ? "traditional" : "simplified";
-      syncScriptButton();
-      // 重新渲染歌词，让转换生效
-      getSong(state.currentBook, state.currentNo).then(song => {
-        if (song) renderLyrics(song);
-      });
+      setScriptMode(state.script === "simplified" ? "traditional" : "simplified");
     });
 
     bindViewerControls();
@@ -1644,65 +1631,54 @@ function pad4(num) {
   function closePanels(){ openPanel(null); }
 
   function syncTitles(){
-    const main = $('ui-title-main');
-    const sub = $('ui-title-sub');
-    const fallback = $('song-title')?.textContent?.trim() || '诗歌';
-    if(main) main.textContent = fallback;
-    if(typeof getSong === 'function' && window.state){
-      Promise.resolve(getSong(state.currentBook, state.currentNo)).then(song=>{
-        if(!song) return;
-        if(main) main.textContent = song.big_title || song.title || fallback;
-        if(sub) sub.textContent = (song.big_title && song.title) ? song.title : (song.full_title && song.full_title !== song.title ? song.full_title : '');
-      }).catch(()=>{});
-    }
+    const main = $('song-title')?.textContent || document.title || '诗歌';
+    if($('ui-title-main')) $('ui-title-main').textContent = main;
+    if($('ui-title-sub')) $('ui-title-sub').textContent = '';
   }
 
-  function getText(id){ return $(id)?.textContent?.trim() || ''; }
-
   function syncUI(){
-    const tempoMeta = getText('meta-tempo');
-    const keyMeta = getText('meta-key');
-    const capoMeta = getText('meta-capo');
-    const speedPctText = getText('meta-speed').replace('%','') || '100';
-    const transText = getText('transpose-value') || '0';
-    const fontText = getText('score-font-value') || '30';
-    const spacingText = getText('spacing-value') || '2.0x';
+    const tempoMeta = (__currentMeta && __currentMeta.tempo != null && __currentMeta.tempo !== '') ? String(__currentMeta.tempo) : '--';
+    const keyMeta = computeDisplayedKeyName(__currentMeta || {});
+    const capoMeta = String(getDisplayedCapoLabel());
+    const speedPct = parseInt(viewerPrefs.playbackSpeedPercent, 10) || 100;
+    const transVal = getUserTranspose();
+    const transText = transVal > 0 ? `+${transVal}` : String(transVal);
+    const fontText = String(viewerPrefs.scoreFontSizePx);
+    const spacingText = `${viewerPrefs.scoreSpacingFactor.toFixed(1)}x`;
     const chordText = String(getChordFontSizePx());
-    const playerTime = $('player-time')?.textContent || '00:00 / 00:00';
-    const currentTime = playerTime.split('/')[0].trim();
-    const speedPct = parseInt(speedPctText,10) || 100;
+    const currentTime = msToMMSS(__playbackState.current || 0);
     const originalTempo = parseInt(tempoMeta,10);
     const displayTempo = Number.isFinite(originalTempo) ? Math.round(originalTempo * speedPct / 100) : speedPct;
 
     if($('ui-speed')) $('ui-speed').textContent = String(displayTempo || tempoMeta || '95');
     if($('ui-key')) $('ui-key').textContent = keyMeta || '--';
-    if($('ui-capo')) $('ui-capo').textContent = 'CP' + String(capoMeta || '0');
-    if($('ui-mode')) $('ui-mode').textContent = $('btn-mode-lyrics')?.classList.contains('active') ? '词' : '吉';
-    if($('ui-play')) $('ui-play').textContent = (($('btn-player-play')?.textContent||'▶').includes('⏸')) ? '⏸' : '▶';
-    if($('ui-time')) $('ui-time').textContent = currentTime || '00:00';
-    if($('ui-progress') && $('player-progress')) $('ui-progress').value = $('player-progress').value || '0';
+    if($('ui-capo')) $('ui-capo').textContent = 'CP' + capoMeta;
+    if($('ui-mode')) $('ui-mode').textContent = state.mode === 'lyrics' ? '词' : '吉';
+    if($('ui-play')) $('ui-play').textContent = __playbackState.playing ? '⏸' : '▶';
+    if($('ui-time')) $('ui-time').textContent = currentTime;
+    if($('ui-progress')) $('ui-progress').value = String(__playbackState.progress || 0);
     if($('ui-speed-range')) $('ui-speed-range').value = String(speedPct);
     if($('ui-speed-value')) $('ui-speed-value').textContent = speedPct + '%';
     if($('ui-key-value')) $('ui-key-value').textContent = transText;
     if($('ui-font-value')) $('ui-font-value').textContent = fontText;
     if($('ui-spacing-value')) $('ui-spacing-value').textContent = spacingText;
     if($('ui-chord-value')) $('ui-chord-value').textContent = chordText;
-    if($('ui-search-input') && $('search-input') && document.activeElement !== $('ui-search-input')) $('ui-search-input').value = $('search-input').value || '';
-    $('ui-book-c')?.classList.toggle('active', $('btn-book-c')?.classList.contains('active'));
-    $('ui-book-ts')?.classList.toggle('active', $('btn-book-ts')?.classList.contains('active'));
-    $('ui-mode-score')?.classList.toggle('active', $('btn-mode-score')?.classList.contains('active'));
-    $('ui-mode-lyrics')?.classList.toggle('active', $('btn-mode-lyrics')?.classList.contains('active'));
-    const scriptTxt = $('btn-script')?.textContent?.trim() || '繁';
-    $('ui-lang-simp')?.classList.toggle('active', scriptTxt === '繁');
-    $('ui-lang-trad')?.classList.toggle('active', scriptTxt === '简');
+    if($('ui-search-input') && document.activeElement !== $('ui-search-input')) $('ui-search-input').value = String(state.currentNo || '');
+    if($('search-input') && document.activeElement !== $('search-input')) $('search-input').value = String(state.currentNo || '');
+    $('ui-book-c')?.classList.toggle('active', state.currentBook === 'c');
+    $('ui-book-ts')?.classList.toggle('active', state.currentBook === 'ts');
+    $('ui-mode-score')?.classList.toggle('active', state.mode === 'score');
+    $('ui-mode-lyrics')?.classList.toggle('active', state.mode === 'lyrics');
+    $('ui-lang-simp')?.classList.toggle('active', state.script === 'simplified');
+    $('ui-lang-trad')?.classList.toggle('active', state.script === 'traditional');
     syncTitles();
   }
 
   function initBindings(){
-    $('ui-home')?.addEventListener('click', ()=>click('btn-back'));
-    $('ui-prev')?.addEventListener('click', ()=>click('btn-player-prev'));
-    $('ui-play')?.addEventListener('click', ()=>click('btn-player-play'));
-    $('ui-next')?.addEventListener('click', ()=>click('btn-player-next'));
+    $('ui-home')?.addEventListener('click', goHome);
+    $('ui-prev')?.addEventListener('click', ()=>{ goPrevSong(); });
+    $('ui-play')?.addEventListener('click', togglePlayPause);
+    $('ui-next')?.addEventListener('click', ()=>{ goNextSong(); });
     $('ui-speed')?.addEventListener('click', ()=>openPanel('panel-speed'));
     $('ui-key')?.addEventListener('click', ()=>openPanel('panel-key'));
     $('ui-mode')?.addEventListener('click', ()=>openPanel('panel-mode'));
@@ -1714,49 +1690,45 @@ function pad4(num) {
     qa('[data-close-panel]').forEach(btn=>btn.addEventListener('click', closePanels));
 
     $('ui-speed-range')?.addEventListener('input', e=>{
-      const s = $('tempo-slider'); if(!s) return; s.value = e.target.value; s.dispatchEvent(new Event('input',{bubbles:true})); s.dispatchEvent(new Event('change',{bubbles:true}));
+      setPlaybackSpeedPercent(e.target.value);
+      syncUI();
     });
     $('ui-speed-reset')?.addEventListener('click', ()=>{
-      const s = $('tempo-slider'); if(!s) return; s.value='100'; s.dispatchEvent(new Event('input',{bubbles:true})); s.dispatchEvent(new Event('change',{bubbles:true})); syncUI();
+      setPlaybackSpeedPercent(100);
+      syncUI();
     });
 
-    $('ui-key-plus')?.addEventListener('click', ()=>{ click('btn-transpose-plus'); setTimeout(syncUI,20); });
-    $('ui-key-minus')?.addEventListener('click', ()=>{ click('btn-transpose-minus'); setTimeout(syncUI,20); });
-    $('ui-key-reset')?.addEventListener('click', ()=>{
-      const txt = (getText('transpose-value')||'0').replace('+',''); const n = parseInt(txt,10)||0;
-      if(n>0){ for(let i=0;i<n;i++) click('btn-transpose-minus'); }
-      else if(n<0){ for(let i=0;i<Math.abs(n);i++) click('btn-transpose-plus'); }
-      setTimeout(syncUI,30);
-    });
+    $('ui-key-plus')?.addEventListener('click', ()=>{ changeTranspose(1); syncUI(); });
+    $('ui-key-minus')?.addEventListener('click', ()=>{ changeTranspose(-1); syncUI(); });
+    $('ui-key-reset')?.addEventListener('click', ()=>{ resetTranspose(); syncUI(); });
 
-    $('ui-mode-score')?.addEventListener('click', ()=>{ click('btn-mode-score'); setTimeout(syncUI,20); });
-    $('ui-mode-lyrics')?.addEventListener('click', ()=>{ click('btn-mode-lyrics'); setTimeout(syncUI,20); });
+    $('ui-mode-score')?.addEventListener('click', ()=>{ setMode('score'); syncUI(); });
+    $('ui-mode-lyrics')?.addEventListener('click', ()=>{ setMode('lyrics'); syncUI(); });
 
-    $('ui-font-plus')?.addEventListener('click', ()=>{ click('btn-score-font-plus'); setTimeout(syncUI,20); });
-    $('ui-font-minus')?.addEventListener('click', ()=>{ click('btn-score-font-minus'); setTimeout(syncUI,20); });
-    $('ui-spacing-plus')?.addEventListener('click', ()=>{ click('btn-spacing-plus'); setTimeout(syncUI,20); });
-    $('ui-spacing-minus')?.addEventListener('click', ()=>{ click('btn-spacing-minus'); setTimeout(syncUI,20); });
-    $('ui-chord-plus')?.addEventListener('click', ()=>{
-      viewerPrefs.chordFontSizePx = Math.min(getChordFontSizePx() + 1, 36);
-      saveViewerPrefs();
-      scheduleChordRewrite(10);
-      setTimeout(syncUI,20);
-    });
-    $('ui-chord-minus')?.addEventListener('click', ()=>{
-      viewerPrefs.chordFontSizePx = Math.max(getChordFontSizePx() - 1, 10);
-      saveViewerPrefs();
-      scheduleChordRewrite(10);
-      setTimeout(syncUI,20);
-    });
+    $('ui-font-plus')?.addEventListener('click', ()=>{ changeScoreFont(2); syncUI(); });
+    $('ui-font-minus')?.addEventListener('click', ()=>{ changeScoreFont(-2); syncUI(); });
+    $('ui-spacing-plus')?.addEventListener('click', ()=>{ changeSpacing(0.1); syncUI(); });
+    $('ui-spacing-minus')?.addEventListener('click', ()=>{ changeSpacing(-0.1); syncUI(); });
+    $('ui-chord-plus')?.addEventListener('click', ()=>{ changeChordFont(1); syncUI(); });
+    $('ui-chord-minus')?.addEventListener('click', ()=>{ changeChordFont(-1); syncUI(); });
 
-    $('ui-lang-simp')?.addEventListener('click', ()=>{ if(($('btn-script')?.textContent||'').trim() !== '繁') click('btn-script'); setTimeout(syncUI,20); });
-    $('ui-lang-trad')?.addEventListener('click', ()=>{ if(($('btn-script')?.textContent||'').trim() !== '简') click('btn-script'); setTimeout(syncUI,20); });
+    $('ui-lang-simp')?.addEventListener('click', ()=>{ setScriptMode('simplified'); syncUI(); });
+    $('ui-lang-trad')?.addEventListener('click', ()=>{ setScriptMode('traditional'); syncUI(); });
 
-    $('ui-book-c')?.addEventListener('click', ()=>{ click('btn-book-c'); setTimeout(syncUI,20); });
-    $('ui-book-ts')?.addEventListener('click', ()=>{ click('btn-book-ts'); setTimeout(syncUI,20); });
+    $('ui-book-c')?.addEventListener('click', ()=>{ setBook('c').then(syncUI); });
+    $('ui-book-ts')?.addEventListener('click', ()=>{ setBook('ts').then(syncUI); });
     $('ui-search-go')?.addEventListener('click', ()=>{
-      if($('search-input') && $('ui-search-input')) $('search-input').value = $('ui-search-input').value || '';
-      click('btn-search'); closePanels();
+      performSearch($('ui-search-input')?.value || '');
+      closePanels();
+      syncUI();
+    });
+    $('ui-search-input')?.addEventListener('keydown', e=>{
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch($('ui-search-input')?.value || '');
+        closePanels();
+        syncUI();
+      }
     });
 
     $('ui-staff-five')?.addEventListener('click', ()=>{
