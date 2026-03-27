@@ -61,7 +61,9 @@
   }
 
   function escapeHtml(str) {
-    return String(str || "").replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    return String(str || "").replace(/[&<>"']/g, function(ch) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+    });
   }
 
   function convertTextByScript(text) {
@@ -375,6 +377,7 @@
     const currentInput = String(inputEl?.value || '').trim();
     if (currentInput) state.searchDraft = currentInput;
     syncBookButtons();
+    clearSearchResults();
     syncUI();
 
     const value = String(state.searchDraft || currentInput || '').trim();
@@ -442,6 +445,7 @@
     renderSearchResults(results, value, targetBook);
     return results.length > 0;
   }
+
 
   function updateMetaRow(meta) {
     __currentMeta = meta || __currentMeta || {};
@@ -961,7 +965,7 @@ function pad4(num) {
   function normalizeSearchText(text) {
     return String(text || '')
       .toLowerCase()
-      .replace(/[\s\u3000]+/g, '')
+      .replace(/[\s　]+/g, '')
       .replace(/[，。、“”‘’？！：；（）()《》〈〉【】\[\]\-—_.,!?:;"'`~·]/g, '');
   }
 
@@ -1411,9 +1415,15 @@ function pad4(num) {
     const layer = $('core-panel-layer');
     if(!layer) return;
     qa('.core-panel', layer).forEach(p=>p.hidden=true);
-    if(!id){ layer.hidden = true; return; }
+    if(!id){
+      layer.hidden = true;
+      layer.setAttribute('aria-hidden','true');
+      return;
+    }
     layer.hidden = false;
-    const p = $(id); if(p) p.hidden = false;
+    layer.setAttribute('aria-hidden','false');
+    const p = $(id);
+    if(p) p.hidden = false;
   }
   function closePanels(){ openPanel(null); }
 
@@ -1460,14 +1470,14 @@ function pad4(num) {
     $('ui-prev')?.addEventListener('click', ()=>{ goPrevSong(); });
     $('ui-play')?.addEventListener('click', togglePlayPause);
     $('ui-next')?.addEventListener('click', ()=>{ goNextSong(); });
-    $('ui-speed')?.addEventListener('click', ()=>openPanel('panel-speed'));
-    $('ui-key')?.addEventListener('click', ()=>openPanel('panel-key'));
-    $('ui-mode')?.addEventListener('click', ()=>openPanel('panel-mode'));
-    $('ui-text')?.addEventListener('click', ()=>openPanel('panel-text'));
-    $('ui-track')?.addEventListener('click', ()=>{ openNewTrackPanel(); });
-    $('ui-staff')?.addEventListener('click', ()=>openPanel('panel-staff'));
-    $('ui-lang')?.addEventListener('click', ()=>openPanel('panel-lang'));
-    $('ui-search')?.addEventListener('click', ()=>openPanel('panel-search'));
+    $('ui-speed')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-speed'); });
+    $('ui-key')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-key'); });
+    $('ui-mode')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-mode'); });
+    $('ui-text')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-text'); });
+    $('ui-track')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openNewTrackPanel(); });
+    $('ui-staff')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-staff'); });
+    $('ui-lang')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-lang'); });
+    $('ui-search')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-search'); });
     qa('[data-close-panel]').forEach(btn=>btn.addEventListener('click', closePanels));
 
     $('ui-speed-range')?.addEventListener('input', e=>{
@@ -1498,18 +1508,17 @@ function pad4(num) {
     $('ui-lang-trad')?.addEventListener('click', ()=>{ setScriptMode('traditional'); syncUI(); });
 
     $('ui-book-c')?.addEventListener('click', async ()=>{
-      const ok = await setSearchBook('c', true);
-      if (ok) closePanels();
+      await setSearchBook('c', true);
       syncUI();
     });
     $('ui-book-ts')?.addEventListener('click', async ()=>{
-      const ok = await setSearchBook('ts', true);
-      if (ok) closePanels();
+      await setSearchBook('ts', true);
       syncUI();
     });
     $('ui-search-go')?.addEventListener('click', async ()=>{
       const ok = await performSearch($('ui-search-input')?.value || '');
-      if (ok) closePanels();
+      const v = String($('ui-search-input')?.value || '').trim();
+      if (ok && /^\d+$/.test(v)) closePanels();
       syncUI();
     });
     $('ui-search-input')?.addEventListener('input', e=>{
@@ -1518,8 +1527,9 @@ function pad4(num) {
     $('ui-search-input')?.addEventListener('keydown', async e=>{
       if (e.key === 'Enter') {
         e.preventDefault();
-        const ok = await performSearch($('ui-search-input')?.value || '');
-        if (ok) closePanels();
+        const v = String($('ui-search-input')?.value || '').trim();
+        const ok = await performSearch(v);
+        if (ok && /^\d+$/.test(v)) closePanels();
         syncUI();
       }
     });
@@ -1548,6 +1558,9 @@ function pad4(num) {
 
     $('core-panel-layer')?.addEventListener('click', (e)=>{
       if (e.target === $('core-panel-layer')) closePanels();
+    });
+    qa('.core-panel', $('core-panel-layer')).forEach((panel)=>{
+      panel.addEventListener('click', (e)=>{ e.stopPropagation(); });
     });
   }
 

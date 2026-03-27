@@ -187,7 +187,9 @@
   }
 
   function escapeHtml(str) {
-    return String(str || "").replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    return String(str || "").replace(/[&<>"']/g, function(ch) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+    });
   }
 
   function convertTextByScript(text) {
@@ -289,7 +291,7 @@
 
 
   function transposeChordSymbol(symbol, semitones, preferFlats) {
-    const raw = String(symbol || ').trim();
+    const raw = String(symbol || '').trim();
     if (!raw || !Number.isFinite(semitones) || semitones === 0) return raw;
     const m = raw.match(/^([A-G](?:#|b)?)([^/]*?)(?:\/([A-G](?:#|b)?))?$/);
     if (!m) return raw;
@@ -300,7 +302,7 @@
     if (bass && NOTE_TO_INDEX[bass] == null) return raw;
     const nextRoot = transposePitchName(root, semitones, preferFlats);
     const nextBass = bass ? transposePitchName(bass, semitones, preferFlats) : '';
-    return nextRoot + quality + (nextBass ? '/' + nextBass : ');
+    return nextRoot + quality + (nextBass ? '/' + nextBass : '');
   }
 
   function getChordFontSizePx() {
@@ -309,7 +311,7 @@
   }
 
   function looksLikeChordSymbol(text) {
-    const s = String(text || ').trim();
+    const s = String(text || '').trim();
     if (!s || s.length > 20) return false;
     if (!/^[A-G](?:#|b)?/.test(s)) return false;
     if (/[^A-Ga-g0-9#b\/()\-+susmajdimaugaddnoø°△mM ]/.test(s)) return false;
@@ -320,12 +322,12 @@
     const root = document.getElementById('alphaTab');
     if (!root) return;
     const semitones = getUserTranspose();
-    const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || ');
+    const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
     const chordFontPx = getChordFontSizePx();
     const nodes = root.querySelectorAll('text, tspan');
     nodes.forEach((el) => {
       if (el.children && el.children.length) return;
-      const current = (el.textContent || ').trim();
+      const current = (el.textContent || '').trim();
       if (!current) return;
       const original = el.getAttribute('data-orig-chord') || current;
       if (!looksLikeChordSymbol(original)) return;
@@ -498,12 +500,13 @@
   async function setSearchBook(book, autoSearch = false) {
     state.searchBook = (book === 'ts') ? 'ts' : 'c';
     const inputEl = document.getElementById('ui-search-input');
-    const currentInput = String(inputEl?.value || ').trim();
+    const currentInput = String(inputEl?.value || '').trim();
     if (currentInput) state.searchDraft = currentInput;
     syncBookButtons();
+    clearSearchResults();
     syncUI();
 
-    const value = String(state.searchDraft || currentInput || ').trim();
+    const value = String(state.searchDraft || currentInput || '').trim();
     if (autoSearch && value) {
       return await performSearch(value, state.searchBook);
     }
@@ -529,7 +532,7 @@
   }
 
   async function performSearch(raw, bookOverride = null) {
-    const value = String(raw || ').trim();
+    const value = String(raw || '').trim();
     state.searchDraft = value;
     if (!value) {
       clearSearchResults();
@@ -568,6 +571,7 @@
     renderSearchResults(results, value, targetBook);
     return results.length > 0;
   }
+
 
   function updateMetaRow(meta) {
     __currentMeta = meta || __currentMeta || {};
@@ -1085,10 +1089,10 @@ function pad4(num) {
   }
 
   function normalizeSearchText(text) {
-    return String(text || ')
+    return String(text || '')
       .toLowerCase()
-      .replace(/[\s\u3000]+/g, ')
-      .replace(/[，。、“”‘’？！：；（）()《》〈〉【】\[\]\-—_.,!?:;"'`~·]/g, ');
+      .replace(/[\s　]+/g, '')
+      .replace(/[，。、“”‘’？！：；（）()《》〈〉【】\[\]\-—_.,!?:;"'`~·]/g, '');
   }
 
   function flattenSongText(value, bucket) {
@@ -1183,7 +1187,7 @@ function pad4(num) {
   }
 
   async function searchSongsByKeyword(bookKey, rawQuery) {
-    const query = String(rawQuery || ').trim();
+    const query = String(rawQuery || '').trim();
     const norm = normalizeSearchText(query);
     if (!norm) return [];
     const songs = await ensureSearchCorpus(bookKey);
@@ -1194,7 +1198,7 @@ function pad4(num) {
       const titleHit = bundle.titleNorm.includes(norm);
       const bodyHit = !titleHit && bundle.bodyNorm.includes(norm);
       if (!titleHit && !bodyHit) return;
-      const sourceText = titleHit ? (bundle.titleText || ') : (bundle.bodyText || ');
+      const sourceText = titleHit ? (bundle.titleText || '') : (bundle.bodyText || '');
       const idx = sourceText.indexOf(query);
       let snippet = '';
       if (idx >= 0) {
@@ -1551,7 +1555,7 @@ function pad4(num) {
   function closePanels(){ openPanel(null); }
 
     function syncUI(){
-    const tempoMeta = (__currentMeta && __currentMeta.tempo != null && __currentMeta.tempo !== ') ? String(__currentMeta.tempo) : '--';
+    const tempoMeta = (__currentMeta && __currentMeta.tempo != null && __currentMeta.tempo !== '') ? String(__currentMeta.tempo) : '--';
     const keyMeta = computeDisplayedKeyName(__currentMeta || {});
     const capoMeta = String(getDisplayedCapoLabel());
     const speedPct = parseInt(viewerPrefs.playbackSpeedPercent, 10) || 100;
@@ -1578,8 +1582,8 @@ function pad4(num) {
     if($('ui-spacing-value')) $('ui-spacing-value').textContent = spacingText;
     if($('ui-chord-value')) $('ui-chord-value').textContent = chordText;
     const searchPanelOpen = $('panel-search') && !$('panel-search').hidden;
-    if($('ui-search-input') && document.activeElement !== $('ui-search-input') && !searchPanelOpen) $('ui-search-input').value = String(state.searchDraft || state.currentNo || ');
-    if($('search-input') && document.activeElement !== $('search-input')) $('search-input').value = String(state.searchDraft || state.currentNo || ');
+    if($('ui-search-input') && document.activeElement !== $('ui-search-input') && !searchPanelOpen) $('ui-search-input').value = String(state.searchDraft || state.currentNo || '');
+    if($('search-input') && document.activeElement !== $('search-input')) $('search-input').value = String(state.searchDraft || state.currentNo || '');
     $('ui-book-c')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'c');
     $('ui-book-ts')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'ts');
     $('ui-mode-score')?.classList.toggle('active', state.mode === 'score');
@@ -1631,28 +1635,28 @@ function pad4(num) {
     $('ui-lang-trad')?.addEventListener('click', ()=>{ setScriptMode('traditional'); syncUI(); });
 
     $('ui-book-c')?.addEventListener('click', async ()=>{
-      const ok = await setSearchBook('c', true);
-      if (ok) closePanels();
+      await setSearchBook('c', true);
       syncUI();
     });
     $('ui-book-ts')?.addEventListener('click', async ()=>{
-      const ok = await setSearchBook('ts', true);
-      if (ok) closePanels();
+      await setSearchBook('ts', true);
       syncUI();
     });
     $('ui-search-go')?.addEventListener('click', async ()=>{
-      const ok = await performSearch($('ui-search-input')?.value || ');
-      if (ok) closePanels();
+      const ok = await performSearch($('ui-search-input')?.value || '');
+      const v = String($('ui-search-input')?.value || '').trim();
+      if (ok && /^\d+$/.test(v)) closePanels();
       syncUI();
     });
     $('ui-search-input')?.addEventListener('input', e=>{
-      state.searchDraft = String(e.target?.value || ').trim();
+      state.searchDraft = String(e.target?.value || '').trim();
     });
     $('ui-search-input')?.addEventListener('keydown', async e=>{
       if (e.key === 'Enter') {
         e.preventDefault();
-        const ok = await performSearch($('ui-search-input')?.value || ');
-        if (ok) closePanels();
+        const v = String($('ui-search-input')?.value || '').trim();
+        const ok = await performSearch(v);
+        if (ok && /^\d+$/.test(v)) closePanels();
         syncUI();
       }
     });
