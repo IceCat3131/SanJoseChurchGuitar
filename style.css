@@ -698,3 +698,23 @@ flex: 1;
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== 最终版：隐藏旧UI，不影响轨道/功能 ===== */
+
+/* 这些是旧UI容器（安全隐藏） */
+.topbar,
+.card:not(.content-card),
+.player-bar,
+.meta-row,
+.adjust-row,
+.controls-row{
+  display:none !important;
+}
+
+/* 保留核心区域 */
+.content-card{
+  display:block !important;
+}
+.at-numbered-key-header {
+  display: none !important;
+}
