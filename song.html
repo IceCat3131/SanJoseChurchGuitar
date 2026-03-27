@@ -153,7 +153,8 @@
     lyricsFontSize: 24,
     data: { c: [], ts: [] },
     loadedRanges: { c: {}, ts: {} },
-    searchBook: "c"
+    searchBook: "c",
+    searchDraft: "1"
   };
 
   const DEFAULT_VIEWER_PREFS = {
@@ -490,11 +491,13 @@
 
   async function setSearchBook(book, autoSearch = false) {
     state.searchBook = (book === 'ts') ? 'ts' : 'c';
+    const inputEl = document.getElementById('ui-search-input');
+    const currentInput = String(inputEl?.value || '').trim();
+    if (currentInput) state.searchDraft = currentInput;
     syncBookButtons();
     syncUI();
 
-    const inputEl = document.getElementById('ui-search-input');
-    const value = String(inputEl?.value || '').trim();
+    const value = String(state.searchDraft || currentInput || '').trim();
     if (autoSearch && value) {
       return await performSearch(value, state.searchBook);
     }
@@ -521,6 +524,7 @@
 
   async function performSearch(raw, bookOverride = null) {
     const value = String(raw || '').trim();
+    state.searchDraft = value;
     if (!value) return false;
     const digitsMatch = value.match(/^(\d{1,4})$/);
     if (!digitsMatch) {
@@ -545,6 +549,7 @@
     state.searchBook = targetBook;
     state.currentBook = targetBook;
     state.currentNo = no;
+    state.searchDraft = String(no);
     updateURL();
     await loadAndRenderCurrentSong();
     return true;
@@ -1013,6 +1018,7 @@ function pad4(num) {
     state.currentBook = (book === "ts") ? "ts" : "c";
     state.currentNo = no;
     state.searchBook = state.currentBook;
+    state.searchDraft = String(state.currentNo || 1);
   }
 
   function getRangeIndex(no) {
@@ -1390,8 +1396,9 @@ function pad4(num) {
     if($('ui-font-value')) $('ui-font-value').textContent = fontText;
     if($('ui-spacing-value')) $('ui-spacing-value').textContent = spacingText;
     if($('ui-chord-value')) $('ui-chord-value').textContent = chordText;
-    if($('ui-search-input') && document.activeElement !== $('ui-search-input')) $('ui-search-input').value = String(state.currentNo || '');
-    if($('search-input') && document.activeElement !== $('search-input')) $('search-input').value = String(state.currentNo || '');
+    const searchPanelOpen = $('panel-search') && !$('panel-search').hidden;
+    if($('ui-search-input') && document.activeElement !== $('ui-search-input') && !searchPanelOpen) $('ui-search-input').value = String(state.searchDraft || state.currentNo || '');
+    if($('search-input') && document.activeElement !== $('search-input')) $('search-input').value = String(state.searchDraft || state.currentNo || '');
     $('ui-book-c')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'c');
     $('ui-book-ts')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'ts');
     $('ui-mode-score')?.classList.toggle('active', state.mode === 'score');
@@ -1456,6 +1463,9 @@ function pad4(num) {
       const ok = await performSearch($('ui-search-input')?.value || '');
       if (ok) closePanels();
       syncUI();
+    });
+    $('ui-search-input')?.addEventListener('input', e=>{
+      state.searchDraft = String(e.target?.value || '').trim();
     });
     $('ui-search-input')?.addEventListener('keydown', async e=>{
       if (e.key === 'Enter') {
