@@ -770,3 +770,13 @@ flex: 1;
     bottom:12px;
   }
 }
+
+/* keep old UI hidden while using rewritten track menu */
+.topbar,
+.card .search-bar,
+.player-bar,
+.meta-row,
+.adjust-row,
+.controls-row{
+  display:none !important;
+}
