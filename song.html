@@ -1071,10 +1071,28 @@ function pad4(num) {
     return findLocalSong(bookKey, no);
   }
 
+  function ensureAlphaTabHost() {
+    const container = document.getElementById("score-view");
+    if (!container) return null;
+
+    let atEl = document.getElementById("alphaTab");
+    if (!atEl) {
+      atEl = document.createElement('div');
+      atEl.id = 'alphaTab';
+      atEl.className = 'at-viewport';
+      container.innerHTML = '';
+      container.appendChild(atEl);
+      window.__atApi = null;
+    }
+    return atEl;
+  }
+
   function renderScore(bookKey, no) {
     const container = document.getElementById("score-view");
     // alphaTab 渲染容器（在 HTML 里我们放了 #alphaTab）
-    const atEl = document.getElementById("alphaTab");
+    const atEl = ensureAlphaTabHost();
+    if (!container || !atEl) return;
+    atEl.style.display = '';
 
     // 首次初始化 alphaTab API
     if (!window.__atApi) {
@@ -1124,6 +1142,11 @@ function pad4(num) {
 
         enableCursor(window.__atApi);
 
+        const liveHost = document.getElementById('alphaTab');
+        if (liveHost) liveHost.style.display = '';
+        const oldFallback = document.getElementById('score-fallback-image');
+        if (oldFallback) oldFallback.remove();
+
         renderVisibleTracks(window.__atApi);
         applyScoreTransposition(window.__atApi);
         applyPlaybackTrackVisibility(window.__atApi);
@@ -1140,6 +1163,9 @@ function pad4(num) {
     }
 
     // 加载 .gtz (JSON) -> 解 base64 -> load 到 alphaTab
+    const oldFallback = document.getElementById('score-fallback-image');
+    if (oldFallback) oldFallback.remove();
+
     const gtzPrefix = BOOKS[bookKey].gtzPrefix || BOOKS[bookKey].svgPrefix;
     const gtzUrl = `${gtzPrefix}${pad4(no)}_cn_g.gtz`; // 如 assets/c/c0001_cn_g.gtz
 
@@ -1148,10 +1174,14 @@ function pad4(num) {
       setPlayerStatus('加载失败: ' + (err && err.message ? err.message : err));
       // fallback: 如果没有 gtz，就尝试旧的 svg（便于过渡）
       try {
-        container.innerHTML = "";
+        const liveHost = ensureAlphaTabHost();
+        if (liveHost) liveHost.style.display = 'none';
+        const oldFallback = document.getElementById('score-fallback-image');
+        if (oldFallback) oldFallback.remove();
         const folderPrefix = BOOKS[bookKey].svgPrefix;
         const src = `${folderPrefix}${pad4(no)}_cn_g.svg`;
         const img = document.createElement("img");
+        img.id = 'score-fallback-image';
         img.alt = `${BOOKS[bookKey].label} 第 ${no} 首 吉他谱`;
         img.src = src;
         container.appendChild(img);
