@@ -636,8 +636,8 @@ flex: 1;
 .core-btn{border:none; background:transparent; color:var(--primary); font-weight:700; border-radius:999px; min-height:40px; padding:0 10px; cursor:pointer; white-space:nowrap;}
 .core-btn:hover{background:#edf4ff;}
 .core-btn-icon{font-size:22px; line-height:1;}
-.core-btn-pill{font-size:18px; background:#eef4ff;}
-.core-btn-capo{color:#374151; background:#f3f4f6; cursor:default;}
+.core-btn-pill{font-size:18px; background:#eef4ff; display:inline-flex; align-items:center; justify-content:center; min-width:56px; line-height:1; padding:0 12px;}
+.core-btn-capo{color:#374151; background:#f3f4f6; cursor:default; font-size:17px; font-weight:800; letter-spacing:0; min-width:68px; min-height:40px; padding:0 14px; vertical-align:middle;}
 .core-btn-mini{min-width:40px;}
 .core-btn-play{width:44px; height:44px; background:var(--primary); color:#fff; font-size:22px; box-shadow:0 6px 14px rgba(37,99,235,.24);}
 .core-ui-progress-wrap{padding-top:10px;}
