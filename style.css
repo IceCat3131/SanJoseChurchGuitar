@@ -780,3 +780,15 @@ flex: 1;
 .controls-row{
   display:none !important;
 }
+
+
+/* ===== hide numbered key header and tuning label ===== */
+.at-numbered-key-header {
+  display: none !important;
+}
+
+/* hide Guitar Standard Tuning text without disturbing layout */
+.at-surface-svg text {
+  font-style: italic;
+  fill: transparent !important;
+}
