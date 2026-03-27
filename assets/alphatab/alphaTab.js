@@ -56564,53 +56564,22 @@
                 }
                 return /[㐀-鿿]/.test(txt);
             };
-            const shiftNodeY = (node, deltaY) => {
-                if (!node || node.nodeType !== 1) {
-                    return;
-                }
-                if (isLyricTextNode(node)) {
-                    return;
-                }
-                const tag = node.tagName.toLowerCase();
-                if (tag === 'g') {
-                    const tf = node.getAttribute('transform') || '';
-                    if (/translate\(/.test(tf)) {
-                        node.setAttribute('transform', tf.replace(/translate\(\s*([\-\d.]+)[ ,]\s*([\-\d.]+)\s*\)/, (_m, x, y) => `translate(${x} ${parseFloat(y) + deltaY})`));
+            let shiftGroup = svg.querySelector(':scope > g.at-first-system-shift-group');
+            if (!shiftGroup) {
+                shiftGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                shiftGroup.setAttribute('class', 'at-first-system-shift-group');
+                shiftGroup.setAttribute('transform', 'translate(0 -20)');
+                const children = Array.from(svg.children);
+                for (const child of children) {
+                    if (child === tonicNode || child === accidentalNode) {
+                        continue;
                     }
-                    else {
-                        node.setAttribute('transform', `translate(0 ${deltaY}) ${tf}`.trim());
+                    if (isLyricTextNode(child)) {
+                        continue;
                     }
-                    return;
+                    shiftGroup.appendChild(child);
                 }
-                if (node.hasAttribute('y')) {
-                    const y = parseFloat(node.getAttribute('y'));
-                    if (!Number.isNaN(y)) {
-                        node.setAttribute('y', String(y + deltaY));
-                        return;
-                    }
-                }
-                if (node.hasAttribute('cy')) {
-                    const cy = parseFloat(node.getAttribute('cy'));
-                    if (!Number.isNaN(cy)) {
-                        node.setAttribute('cy', String(cy + deltaY));
-                        return;
-                    }
-                }
-                if (node.hasAttribute('transform')) {
-                    const tf = node.getAttribute('transform') || '';
-                    if (/translate\(/.test(tf)) {
-                        node.setAttribute('transform', tf.replace(/translate\(\s*([\-\d.]+)[ ,]\s*([\-\d.]+)\s*\)/, (_m, x, y) => `translate(${x} ${parseFloat(y) + deltaY})`));
-                    }
-                    else {
-                        node.setAttribute('transform', `translate(0 ${deltaY}) ${tf}`.trim());
-                    }
-                }
-            };
-            for (const child of Array.from(svg.children)) {
-                if (child === tonicNode || child === accidentalNode) {
-                    continue;
-                }
-                shiftNodeY(child, -20);
+                svg.insertBefore(shiftGroup, svg.firstChild);
             }
         }
         beginAppendRenderResults(renderResult) {
