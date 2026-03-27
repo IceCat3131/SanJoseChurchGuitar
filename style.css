@@ -688,3 +688,12 @@ flex: 1;
 /* v1-based menu behavior updates */
 .core-panel-actions-left{justify-content:flex-start;}
 .core-option-btn.active{background:var(--primary); color:#fff; border-color:transparent;}
+
+/* remove old duplicated UI block (big control panel) */
+.card .search-bar,
+.player-bar,
+.meta-row,
+.adjust-row,
+.controls-row{
+  display:none !important;
+}
