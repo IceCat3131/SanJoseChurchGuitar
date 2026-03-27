@@ -707,3 +707,7 @@ flex: 1;
 /* v3: menu stays open until 完成; staff toggle options */
 .core-panel-actions-left{justify-content:flex-start;}
 .core-option-btn.active{background:var(--primary); color:#fff; border-color:transparent;}
+
+/* v4: track panel via new toolbar button */
+#tracks-panel{z-index:9999;}
+#tracks-panel.hidden{display:none !important;}

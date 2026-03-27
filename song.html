@@ -1674,7 +1674,7 @@ function pad4(num) {
     $('ui-key')?.addEventListener('click', ()=>openPanel('panel-key'));
     $('ui-mode')?.addEventListener('click', ()=>openPanel('panel-mode'));
     $('ui-text')?.addEventListener('click', ()=>openPanel('panel-text'));
-    $('ui-track')?.addEventListener('click', ()=>click('btn-tracks'));
+    $('ui-track')?.addEventListener('click', ()=> { click('btn-tracks'); setTimeout(positionTracksPanel, 30); });
     $('ui-staff')?.addEventListener('click', ()=>openPanel('panel-staff'));
     $('ui-lang')?.addEventListener('click', ()=>openPanel('panel-lang'));
     $('ui-search')?.addEventListener('click', ()=>openPanel('panel-search'));
@@ -1740,6 +1740,7 @@ function pad4(num) {
     panel.style.right = '12px';
     panel.style.top = '168px';
     panel.style.zIndex = '9999';
+    panel.style.display = panel.classList.contains('hidden') ? '' : 'block';
   }
 
   document.addEventListener('DOMContentLoaded', ()=>{
