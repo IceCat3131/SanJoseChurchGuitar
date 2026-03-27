@@ -481,32 +481,10 @@
     applyViewerPrefsToScore();
   }
 
-  function rerenderScorePreserveScroll() {
-    const api = window.__atApi;
-    if (!api) return;
-    const y = window.scrollY || window.pageYOffset || 0;
-    try {
-      if (typeof window.renderVisibleTracks === 'function') {
-        window.renderVisibleTracks(api);
-      } else if (typeof api.render === 'function') {
-        api.render();
-      }
-    } catch (e) {
-      console.warn('rerenderScorePreserveScroll failed', e);
-    }
-    setTimeout(() => { try { window.scrollTo({ top: y, behavior: 'instant' }); } catch (e) { try { window.scrollTo(0, y); } catch (e2) {} } }, 0);
-    setTimeout(() => { try { window.scrollTo({ top: y, behavior: 'instant' }); } catch (e) { try { window.scrollTo(0, y); } catch (e2) {} } }, 120);
-  }
-
   function changeChordFont(delta) {
     viewerPrefs.chordFontSizePx = Math.max(10, Math.min(36, getChordFontSizePx() + delta));
     saveViewerPrefs();
-    if (window.__atApi) {
-      applyChordFont(window.__atApi, getChordFontSizePx());
-      rerenderScorePreserveScroll();
-    }
     scheduleChordRewrite(10);
-    scheduleChordRewrite(160);
     refreshAdjustUI();
   }
 
@@ -516,7 +494,6 @@
     viewerPrefs.chordFontSizePx = DEFAULT_VIEWER_PREFS.chordFontSizePx;
     saveViewerPrefs();
     applyViewerPrefsToScore();
-    rerenderScorePreserveScroll();
     refreshAdjustUI();
   }
 
@@ -612,7 +589,6 @@
   function applyViewerPrefsToScore() {
     if (!window.__atApi) return;
     applyLyricsFont(window.__atApi, viewerPrefs.scoreFontSizePx);
-    applyChordFont(window.__atApi, getChordFontSizePx());
     applyLyricSpacing(window.__atApi, viewerPrefs.scoreSpacingFactor);
     applyScoreTransposition(window.__atApi);
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
@@ -656,6 +632,104 @@
     return !!staff.showTablature;
   }
 
+  const TAB_CHORD_SHAPES = {
+    'C': [ { 5:3, 4:2, 3:0, 2:1, 1:0 } ],
+    'Cm': [ { 5:3, 4:5, 3:5, 2:4, 1:3 } ],
+    'C7': [ { 5:3, 4:2, 3:3, 2:1, 1:0 } ],
+    'Cm7': [ { 5:3, 4:5, 3:3, 2:4, 1:3 } ],
+    'Cmaj7': [ { 5:3, 4:2, 3:0, 2:0, 1:0 } ],
+    'Csus4': [ { 5:3, 4:3, 3:0, 2:1, 1:1 } ],
+    'D': [ { 4:0, 3:2, 2:3, 1:2 } ],
+    'Dm': [ { 4:0, 3:2, 2:3, 1:1 } ],
+    'D7': [ { 4:0, 3:2, 2:1, 1:2 } ],
+    'Dm7': [ { 4:0, 3:2, 2:1, 1:1 } ],
+    'Dmaj7': [ { 4:0, 3:2, 2:2, 1:2 } ],
+    'Dsus4': [ { 4:0, 3:2, 2:3, 1:3 } ],
+    'E': [ { 6:0, 5:2, 4:2, 3:1, 2:0, 1:0 } ],
+    'Em': [ { 6:0, 5:2, 4:2, 3:0, 2:0, 1:0 } ],
+    'E7': [ { 6:0, 5:2, 4:0, 3:1, 2:0, 1:0 } ],
+    'Em7': [ { 6:0, 5:2, 4:2, 3:0, 2:3, 1:0 }, { 6:0, 5:2, 4:0, 3:0, 2:0, 1:0 } ],
+    'Emaj7': [ { 6:0, 5:2, 4:1, 3:1, 2:0, 1:0 } ],
+    'Esus4': [ { 6:0, 5:2, 4:2, 3:2, 2:0, 1:0 } ],
+    'F': [ { 6:1, 5:3, 4:3, 3:2, 2:1, 1:1 } ],
+    'Fm': [ { 6:1, 5:3, 4:3, 3:1, 2:1, 1:1 } ],
+    'F7': [ { 6:1, 5:3, 4:1, 3:2, 2:1, 1:1 } ],
+    'Fmaj7': [ { 6:1, 5:3, 4:2, 3:2, 2:1, 1:0 } ],
+    'Fsus4': [ { 6:1, 5:3, 4:3, 3:3, 2:1, 1:1 } ],
+    'G': [ { 6:3, 5:2, 4:0, 3:0, 2:0, 1:3 }, { 6:3, 5:2, 4:0, 3:0, 2:3, 1:3 } ],
+    'Gm': [ { 6:3, 5:5, 4:5, 3:3, 2:3, 1:3 } ],
+    'G7': [ { 6:3, 5:2, 4:0, 3:0, 2:0, 1:1 } ],
+    'Gmaj7': [ { 6:3, 5:2, 4:0, 3:0, 2:0, 1:2 } ],
+    'Gsus4': [ { 6:3, 5:3, 4:0, 3:0, 2:1, 1:3 } ],
+    'A': [ { 5:0, 4:2, 3:2, 2:2, 1:0 } ],
+    'Am': [ { 5:0, 4:2, 3:2, 2:1, 1:0 } ],
+    'A7': [ { 5:0, 4:2, 3:0, 2:2, 1:0 } ],
+    'Am7': [ { 5:0, 4:2, 3:0, 2:1, 1:0 } ],
+    'Amaj7': [ { 5:0, 4:2, 3:1, 2:2, 1:0 } ],
+    'Asus4': [ { 5:0, 4:2, 3:2, 2:3, 1:0 } ],
+    'B': [ { 5:2, 4:4, 3:4, 2:4, 1:2 } ],
+    'Bm': [ { 5:2, 4:4, 3:4, 2:3, 1:2 } ],
+    'B7': [ { 5:2, 4:1, 3:2, 2:0, 1:2 } ],
+    'Bm7': [ { 5:2, 4:4, 3:2, 2:3, 1:2 } ],
+    'Bmaj7': [ { 5:2, 4:4, 3:3, 2:4, 1:2 } ],
+    'Bsus4': [ { 5:2, 4:4, 3:4, 2:5, 1:2 } ]
+  };
+
+  function normalizeChordDisplayKey(symbol) {
+    const s = String(symbol || '').trim();
+    if (!s) return null;
+    const main = s.split('/')[0].trim();
+    const m = main.match(/^([A-G])([#b♯♭]?)(.*)$/i);
+    if (!m) return null;
+    const root = m[1].toUpperCase() + (m[2] || '').replace('♯', '#').replace('♭', 'b');
+    let suffix = (m[3] || '').trim();
+    suffix = suffix.replace(/[()\s]/g, '');
+    const lower = suffix.toLowerCase();
+    if (!suffix) return root;
+    if (lower.startsWith('maj7')) return root + 'maj7';
+    if (lower.startsWith('maj')) return root;
+    if (lower.startsWith('min7')) return root + 'm7';
+    if (lower.startsWith('min')) return root + 'm';
+    if (lower.startsWith('m7')) return root + 'm7';
+    if (lower === 'm') return root + 'm';
+    if (lower.startsWith('m') && !lower.startsWith('maj')) return root + 'm';
+    if (lower.startsWith('sus4') || lower == 'sus') return root + 'sus4';
+    if (lower.startsWith('7sus4')) return root + 'sus4';
+    if (lower.startsWith('dim') || lower.startsWith('aug') || lower.startsWith('add') || lower.startsWith('6') || lower.startsWith('9') || lower.startsWith('11') || lower.startsWith('13')) return null;
+    if (lower.startsWith('7')) return root + '7';
+    return root;
+  }
+
+  function getBeatChordSymbol(beat) {
+    try {
+      return beat?.chord?.name || beat?.chord?.text || beat?.chord?.displayName || beat?.voice?.bar?.staff?.getChord?.(beat?.chordId)?.name || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function getChordShapesForSymbol(symbol) {
+    const key = normalizeChordDisplayKey(symbol);
+    if (!key) return null;
+    return TAB_CHORD_SHAPES[key] || null;
+  }
+
+  function shouldMaskNoteAsChordX(note, beatSymbol) {
+    if (!note || !Number.isFinite(note?.string) || !Number.isFinite(note?.fret) || note.fret < 0) return false;
+    const shapes = getChordShapesForSymbol(beatSymbol);
+    if (!Array.isArray(shapes) || !shapes.length) return false;
+    const stringNo = Number(note.string);
+    const displayFret = getDisplayedFretForCapo(note);
+    if (!Number.isFinite(displayFret)) return false;
+    const offset = getEffectiveCapo() + getUserTranspose();
+    for (const shape of shapes) {
+      if (!shape || !Object.prototype.hasOwnProperty.call(shape, stringNo)) continue;
+      const expected = Number(shape[stringNo]) + offset;
+      if (displayFret === expected) return true;
+    }
+    return false;
+  }
+
   function getDisplayedFretForCapo(note) {
     if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
 
@@ -678,7 +752,9 @@
 
     const offset = getEffectiveCapo() + getUserTranspose();
     const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
-    if (!offset || !lookup || !Array.isArray(lookup.staffSystems)) return;
+    if (!lookup || !Array.isArray(lookup.staffSystems)) return;
+
+    const activeChordByStaff = new Map();
 
     for (const system of lookup.staffSystems) {
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];
@@ -687,7 +763,12 @@
         for (const barBounds of barBoundsList) {
           if (!isTabBarBounds(barBounds)) continue;
           const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
+          const staffKey = String(barBounds?.bar?.staff?.index ?? barBounds?.bar?.staff?.track?.index ?? 'default');
           for (const beatBounds of beats) {
+            const beat = beatBounds?.beat || beatBounds?.voice?.beat || null;
+            const ownChordSymbol = getBeatChordSymbol(beat);
+            if (ownChordSymbol) activeChordByStaff.set(staffKey, ownChordSymbol);
+            const beatChordSymbol = ownChordSymbol || activeChordByStaff.get(staffKey) || null;
             const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
             for (const noteBounds of notes) {
               const note = noteBounds?.note;
@@ -698,10 +779,11 @@
               const bh = box.h ?? box.height ?? 16;
               const bx = box.x ?? 0;
               const by = box.y ?? 0;
+              const useChordX = shouldMaskNoteAsChordX(note, beatChordSymbol);
 
               const el = document.createElement('div');
               el.className = 'tab-capo-overlay-note';
-              el.textContent = String(displayFret);
+              el.textContent = useChordX ? 'X' : String(displayFret);
               el.style.position = 'absolute';
               el.style.left = `${bx}px`;
               el.style.top = `${by}px`;
@@ -713,7 +795,7 @@
               el.style.background = '#fff';
               el.style.color = '#111';
               el.style.fontWeight = '700';
-              el.style.fontSize = `${Math.max(12, Math.round(bh * 0.95))}px`;
+              el.style.fontSize = `${Math.max(12, Math.round(bh * (useChordX ? 0.9 : 0.95)))}px`;
               el.style.lineHeight = '1';
               el.style.borderRadius = '2px';
               el.style.boxSizing = 'border-box';
@@ -800,53 +882,25 @@
 
 
   // ===== 从 .gtz.state 还原“导出时的显示效果” =====
-  function ensureAlphaTabFontResources(api) {
-    if (!api) return null;
-    const settings = api.settings;
-    if (!settings.display) settings.display = {};
-    if (!settings.display.resources) settings.display.resources = {};
-    if (!settings.display.resources.elementFonts) settings.display.resources.elementFonts = new Map();
-    const FontCtor = window.alphaTab?.model?.Font || window.alphaTab?.Font;
-    const ne = window.alphaTab?.NotationElement;
-    if (!settings.display.resources.elementFonts || typeof settings.display.resources.elementFonts.set !== 'function' || !FontCtor || !ne) {
-      return null;
-    }
-    return { settings, FontCtor, ne };
-  }
-
-  function buildAlphaTabFont(px) {
-    const FontCtor = window.alphaTab?.model?.Font || window.alphaTab?.Font;
-    if (!FontCtor || !px) return null;
-    const fontObj = new FontCtor('Microsoft YaHei', px, window.alphaTab.model.FontStyle.Plain, window.alphaTab.model.FontWeight.Regular);
-    try { fontObj.families = ['Microsoft YaHei', 'Arial', 'sans-serif']; } catch (e) {}
-    return fontObj;
-  }
-
   function applyLyricsFont(api, px) {
     if (!api || !px) return;
     try {
-      const ctx = ensureAlphaTabFontResources(api);
-      if (!ctx) return;
-      const fontObj = buildAlphaTabFont(px);
-      if (!fontObj) return;
-      if (ctx.ne.EffectLyrics != null) ctx.settings.display.resources.elementFonts.set(ctx.ne.EffectLyrics, fontObj);
-      api.updateSettings();
+      const settings = api.settings;
+      if (!settings.display) settings.display = {};
+      if (!settings.display.resources) settings.display.resources = {};
+      if (!settings.display.resources.elementFonts) settings.display.resources.elementFonts = new Map();
+
+      const FontCtor = window.alphaTab?.model?.Font || window.alphaTab?.Font;
+      const ne = window.alphaTab?.NotationElement;
+
+      if (settings.display.resources.elementFonts && typeof settings.display.resources.elementFonts.set === 'function' && FontCtor && ne) {
+        const fontObj = new FontCtor('Microsoft YaHei', px, window.alphaTab.model.FontStyle.Plain, window.alphaTab.model.FontWeight.Regular);
+        try { fontObj.families = ['Microsoft YaHei', 'Arial', 'sans-serif']; } catch (e) {}
+        if (ne.EffectLyrics != null) settings.display.resources.elementFonts.set(ne.EffectLyrics, fontObj);
+        api.updateSettings();
+      }
     } catch (e) {
       console.warn('applyLyricsFont failed', e);
-    }
-  }
-
-  function applyChordFont(api, px) {
-    if (!api || !px) return;
-    try {
-      const ctx = ensureAlphaTabFontResources(api);
-      if (!ctx) return;
-      const fontObj = buildAlphaTabFont(px);
-      if (!fontObj) return;
-      if (ctx.ne.EffectChordNames != null) ctx.settings.display.resources.elementFonts.set(ctx.ne.EffectChordNames, fontObj);
-      api.updateSettings();
-    } catch (e) {
-      console.warn('applyChordFont failed', e);
     }
   }
 
@@ -1364,8 +1418,6 @@ function pad4(num) {
 
       window.__atApi.renderFinished.on(() => {
         scheduleTabCapoOverlay(40);
-        scheduleChordRewrite(40);
-        scheduleChordRewrite(180);
         try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode({ domOnly: true }); } catch (e) {}
       });
 
