@@ -1,252 +1,4 @@
 
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <title>诗歌</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <link rel="stylesheet" href="style.css" />
-  <script src="assets/alphatab/alphaTab.js"></script>
-  <!-- 简繁转换库：opencc-js（浏览器 UMD 完整版） -->
-  <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
-</head>
-<body>
-<div class="page">
-  <div class="page-inner">
-
-    <!-- 第 1 部分：返回首页 / 上一首 / 标题 / 下一首 -->
-    <div class="topbar">
-      <div class="topbar-left">
-        <button class="topbar-button" id="btn-back" aria-label="返回首页">
-  <svg viewBox="0 0 24 24" class="icon-home">
-    <path d="M3 10.5 12 3l9 7.5v9.5a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1v-9.5z"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round" />
-  </svg>
-</button>
-      </div>
-      <button class="topbar-button" id="btn-prev" aria-label="上一首">&lt;</button>
-      <div class="topbar-title" id="song-title">诗歌</div>
-      <button class="topbar-button" id="btn-next" aria-label="下一首">&gt;</button>
-    </div>
-
-
-    <div class="core-ui card" id="core-ui">
-      <div class="core-ui-toolbar">
-        <button class="core-btn core-btn-icon" id="ui-home" aria-label="首页">⌂</button>
-        <button class="core-btn core-btn-pill" id="ui-speed">95</button>
-        <button class="core-btn core-btn-pill" id="ui-key">--</button>
-        <div class="core-btn core-btn-pill core-btn-capo" id="ui-capo">CP0</div>
-        <button class="core-btn core-btn-pill" id="ui-mode">吉</button>
-        <button class="core-btn core-btn-icon" id="ui-prev" aria-label="上一首">⏮</button>
-        <button class="core-btn core-btn-play" id="ui-play" aria-label="播放">▶</button>
-        <button class="core-btn core-btn-icon" id="ui-next" aria-label="下一首">⏭</button>
-        <button class="core-btn core-btn-pill core-btn-mini" id="ui-text">字</button>
-        <button class="core-btn core-btn-pill core-btn-mini" id="ui-track">轨</button>
-        <button class="core-btn core-btn-pill core-btn-mini" id="ui-staff">谱</button>
-        <button class="core-btn core-btn-icon" id="ui-lang" aria-label="语言">🌐</button>
-        <button class="core-btn core-btn-icon" id="ui-search" aria-label="搜索">⌕</button>
-      </div>
-      <div class="core-ui-progress-wrap">
-        <input class="core-ui-progress" id="ui-progress" type="range" min="0" max="1000" value="0" />
-        <div class="core-ui-time" id="ui-time">00:00</div>
-      </div>
-      <div class="core-ui-title-wrap">
-        <div class="core-ui-title-main" id="ui-title-main">诗歌</div>
-        <div class="core-ui-title-sub" id="ui-title-sub"></div>
-      </div>
-      <div class="core-panel-layer" id="core-panel-layer" hidden>
-        <div class="core-panel" id="panel-speed" hidden>
-          <div class="core-panel-head"><span>速度</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
-          <div class="core-panel-body">
-            <input id="ui-speed-range" type="range" min="50" max="150" step="5" value="100" />
-            <div class="core-panel-value" id="ui-speed-value">100%</div>
-          </div>
-          <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-speed-reset">恢复</button></div>
-        </div>
-        <div class="core-panel" id="panel-key" hidden>
-          <div class="core-panel-head"><span>转调</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
-          <div class="core-panel-body core-panel-stepper">
-            <button type="button" class="core-step-btn" id="ui-key-minus">−</button>
-            <div class="core-panel-value" id="ui-key-value">0</div>
-            <button type="button" class="core-step-btn" id="ui-key-plus">+</button>
-          </div>
-          <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-key-reset">恢复</button></div>
-        </div>
-        <div class="core-panel" id="panel-mode" hidden>
-          <div class="core-panel-head"><span>内容</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
-          <div class="core-panel-actions core-panel-actions-left">
-            <button type="button" class="core-option-btn" id="ui-mode-score">吉他</button>
-            <button type="button" class="core-option-btn" id="ui-mode-lyrics">歌词</button>
-          </div>
-        </div>
-        <div class="core-panel" id="panel-text" hidden>
-          <div class="core-panel-head"><span>文字</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
-          <div class="core-text-grid">
-            <div class="core-control-card">
-              <div class="core-control-label">谱词字号</div>
-              <div class="core-panel-stepper"><button type="button" class="core-step-btn" id="ui-font-minus">−</button><div class="core-panel-value" id="ui-font-value">30</div><button type="button" class="core-step-btn" id="ui-font-plus">+</button></div>
-            </div>
-            <div class="core-control-card">
-              <div class="core-control-label">谱词距</div>
-              <div class="core-panel-stepper"><button type="button" class="core-step-btn" id="ui-spacing-minus">−</button><div class="core-panel-value" id="ui-spacing-value">2.0x</div><button type="button" class="core-step-btn" id="ui-spacing-plus">+</button></div>
-            </div>
-            <div class="core-control-card">
-              <div class="core-control-label">和弦字号</div>
-              <div class="core-panel-stepper"><button type="button" class="core-step-btn" id="ui-chord-minus">−</button><div class="core-panel-value" id="ui-chord-value">16</div><button type="button" class="core-step-btn" id="ui-chord-plus">+</button></div>
-            </div>
-          </div>
-        </div>
-        <div class="core-panel" id="panel-lang" hidden>
-          <div class="core-panel-head"><span>语言</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
-          <div class="core-panel-actions core-panel-actions-left">
-            <button type="button" class="core-option-btn" id="ui-lang-simp">简体</button>
-            <button type="button" class="core-option-btn" id="ui-lang-trad">繁体</button>
-          </div>
-        </div>
-        <div class="core-panel" id="panel-search" hidden>
-          <div class="core-panel-head"><span>搜索</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
-          <div class="core-book-row">
-            <button type="button" class="core-option-btn" id="ui-book-c">大本</button>
-            <button type="button" class="core-option-btn" id="ui-book-ts">小本</button>
-          </div>
-          <div class="core-search-row">
-            <input id="ui-search-input" class="core-search-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="输入编号，如31" />
-            <button type="button" class="core-option-btn core-primary" id="ui-search-go">搜索</button>
-          </div>
-        </div>
-        <div class="core-panel" id="panel-staff" hidden>
-          <div class="core-panel-head"><span>谱</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
-          <div class="core-panel-actions core-panel-actions-left">
-            <button type="button" class="core-option-btn" id="ui-staff-five">五线谱</button>
-            <button type="button" class="core-option-btn" id="ui-staff-jian">简谱</button>
-          </div>
-          <div class="core-panel-note">切换后实时生效，点完成收起。</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 第 2 部分：搜索框 -->
-    <div class="card">
-      <div class="search-bar">
-        <div class="search-book-toggle">
-          <button class="search-book-btn" data-book="c" id="btn-book-c">大本</button>
-          <div class="search-book-divider"></div>
-          <button class="search-book-btn" data-book="ts" id="btn-book-ts">小本</button>
-        </div>
-        <div class="search-input-wrap">
-          <input
-            id="search-input"
-            class="search-input"
-            type="text"
-            inputmode="numeric"
-            pattern="[0-9]*"
-            placeholder="输入编号，如31"
-          />
-          <button class="search-icon-btn" id="btn-search">
-            <span class="search-icon">🔍</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    
-    <!-- 播放条（放在搜索栏下方） -->
-    <div class="player-bar card" id="player-bar">
-      <div class="player-left">
-        <button class="player-btn" id="btn-player-prev" aria-label="上一首">⏮</button>
-        <button class="player-btn player-btn-primary" id="btn-player-play" aria-label="播放/暂停">▶</button>
-        <button class="player-btn" id="btn-player-next" aria-label="下一首">⏭</button>
-      </div>
-      <div class="player-mid">
-        <div class="player-time" id="player-time">00:00 / 00:00</div>
-        <input class="player-progress" id="player-progress" type="range" min="0" max="1000" value="0" />
-      </div>
-      <div class="player-right">
-        <div class="player-indicator" id="player-indicator"><span id="player-status">音源未加载</span></div>
-      </div>
-    </div>
-
-    <div class="meta-row card" id="meta-row">
-      <div class="meta-pill">速度 <span id="meta-tempo">--</span></div>
-      <div class="meta-pill">调 <span id="meta-key">--</span></div>
-      <div class="meta-pill">Capo <span id="meta-capo">0</span></div>
-      <div class="meta-pill">播放 <span id="meta-speed">100%</span></div>
-    </div>
-
-    <div class="adjust-row card">
-      <div class="adjust-group">
-        <span class="adjust-label">谱词字号</span>
-        <button class="mini-adjust-btn" id="btn-score-font-minus">−</button>
-        <span class="adjust-value" id="score-font-value">30</span>
-        <button class="mini-adjust-btn" id="btn-score-font-plus">+</button>
-      </div>
-      <div class="adjust-group">
-        <span class="adjust-label">谱词距</span>
-        <button class="mini-adjust-btn" id="btn-spacing-minus">−</button>
-        <span class="adjust-value" id="spacing-value">2.0x</span>
-        <button class="mini-adjust-btn" id="btn-spacing-plus">+</button>
-      </div>
-      <div class="adjust-group adjust-group-slider">
-        <span class="adjust-label">速度</span>
-        <input id="tempo-slider" class="tempo-slider" type="range" min="50" max="150" value="100" step="5" />
-        <span class="adjust-value" id="tempo-slider-value">100%</span>
-      </div>
-      <div class="adjust-group">
-        <span class="adjust-label">转调</span>
-        <button class="mini-adjust-btn" id="btn-transpose-minus">−</button>
-        <span class="adjust-value" id="transpose-value">0</span>
-        <button class="mini-adjust-btn" id="btn-transpose-plus">+</button>
-      </div>
-      <div class="adjust-group">
-        <span class="adjust-label">原始Capo</span>
-        <span class="adjust-value" id="capo-value">0</span>
-      </div>
-    </div>
-
-    <!-- 第 3 部分：+ / - / 吉他 / 歌词 / 简繁 -->
-    <div class="controls-row">
-      <div class="controls-left">
-        <button class="icon-plusminus-btn" id="btn-font-plus">+</button>
-        <button class="icon-plusminus-btn" id="btn-font-minus">−</button>
-        <div class="mode-toggle">
-          <button class="mode-btn active" id="btn-mode-score">吉他</button>
-          <button class="mode-btn" id="btn-mode-lyrics">歌词</button>
-        </div>
-      </div>
-      <!-- 简繁切换按钮：一个字，默认显示“繁”（当前歌词为简体） -->
-      <button class="script-toggle-btn" id="btn-script">繁</button>
-      <button class="script-toggle-btn" id="btn-tracks">轨</button>
-      <div id="tracks-panel" class="tracks-panel hidden" role="dialog" aria-label="轨道开关">
-        <div class="tracks-panel-inner">
-          <div class="tracks-panel-title">轨道</div>
-          <div class="tracks-panel-actions">
-            <button type="button" id="tracks-all">全选</button>
-            <button type="button" id="tracks-none">全不选</button>
-            <button type="button" id="tracks-close">关闭</button>
-          </div>
-          <div id="tracks-list" class="tracks-list"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 第 4 部分：内容 -->
-    <div class="content-card">
-      <div id="score-view" class="score-wrap" aria-hidden="false">
-        <div id="alphaTab" class="at-viewport"></div>
-      </div>
-      <div id="lyrics-view" class="lyrics-root" style="display: none;" aria-hidden="true">
-        <!-- 歌词 -->
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<script>
   const BOOKS = {
     c: {
       label: "大本诗歌",
@@ -1581,9 +1333,8 @@ function pad4(num) {
 
     await loadAndRenderCurrentSong();
   });
-</script>
 
-<script>
+
 // ===== 五线谱 / 简谱 切换（增量集成）=====
 (function(){
   function getStaffMode(){
@@ -1716,10 +1467,8 @@ function pad4(num) {
     }
   },300);
 })();
-</script>
 
 
-<script>
 (function(){
   function $(id){ return document.getElementById(id); }
   function qa(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
@@ -1878,25 +1627,8 @@ function pad4(num) {
     positionTracksPanel();
   });
 })();
-</script>
 
 
-<div id="new-track-panel" class="new-track-panel hidden" role="dialog" aria-label="轨道开关">
-  <div class="new-track-panel-inner">
-    <div class="new-track-panel-head">
-      <span>轨道</span>
-      <button type="button" class="new-track-close" id="new-track-close">完成</button>
-    </div>
-    <div class="new-track-panel-actions">
-      <button type="button" class="new-track-ghost" id="new-track-all">全选</button>
-      <button type="button" class="new-track-ghost" id="new-track-none">全不选</button>
-    </div>
-    <div id="new-track-list" class="new-track-list"></div>
-  </div>
-</div>
-
-
-<script>
 (function(){
   function trackEl(id){ return document.getElementById(id); }
 
@@ -2017,7 +1749,3 @@ function pad4(num) {
 
   window.openNewTrackPanel = openNewTrackPanel;
 })();
-</script>
-
-</body>
-</html>
