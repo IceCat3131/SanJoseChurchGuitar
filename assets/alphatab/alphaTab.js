@@ -74224,8 +74224,15 @@
             else {
                 this._noteString = '';
             }
+            const shouldForceX = !!(n && n.beat && n.beat.voice && n.beat.voice.bar && n.beat.voice.bar.staff && n.beat.voice.bar.staff.showTablature);
+            if (shouldForceX && this._noteString) {
+                this._noteString = this._noteString.replace(/[0-9]+(?:\.[0-9]+)?/g, 'X');
+            }
             if (n.isTrill) {
                 this._trillNoteString = `(${(n.trillFret - n.beat.voice.bar.staff.transpositionPitch).toString()})`;
+                if (n.beat?.voice?.bar?.staff?.showTablature) {
+                    this._trillNoteString = this._trillNoteString.replace(/[0-9]+(?:\.[0-9]+)?/g, 'X');
+                }
             }
             else if (!ModelUtils.isAlmostEqualTo(n.harmonicValue, 0)) {
                 switch (n.harmonicType) {
