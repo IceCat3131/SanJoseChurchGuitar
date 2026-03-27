@@ -229,9 +229,17 @@
   }
 
   function getEffectiveTranspose() {
-    // Capo 只作用于 6线谱（TAB）显示，
-    // 不再作用于五线谱 / 简谱 / 整体播放转调。
     return getUserTranspose();
+  }
+
+  function trackUsesTab(track) {
+    const staves = Array.isArray(track?.staves) ? track.staves : [];
+    return staves.some((staff) => !!staff?.showTablature);
+  }
+
+  function getTrackTransposeSemitones(track) {
+    const base = getUserTranspose();
+    return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -382,14 +390,18 @@
   function applyScoreTransposition(api) {
     if (!api || !api.settings) return;
     const tracks = getAllTracks(api);
-    const trackCount = tracks.length;
-    const semitones = getEffectiveTranspose();
+    const trackTranspositions = tracks.length
+      ? tracks.map((track) => getTrackTransposeSemitones(track))
+      : [getEffectiveTranspose()];
     try {
       if (!api.settings.notation) api.settings.notation = {};
-      api.settings.notation.transpositionPitches = trackCount > 0 ? Array(trackCount).fill(semitones) : [semitones];
+      api.settings.notation.transpositionPitches = trackTranspositions.slice();
       api.updateSettings();
       if (typeof api.changeTrackTranspositionPitch === 'function' && tracks.length) {
-        try { api.changeTrackTranspositionPitch(tracks, semitones); } catch (e) { console.warn('live transpose failed', e); }
+        tracks.forEach((track, i) => {
+          const semitones = trackTranspositions[i] || 0;
+          try { api.changeTrackTranspositionPitch([track], semitones); } catch (e) { console.warn('live transpose failed', e); }
+        });
       }
       try { api.render(); } catch (e) {}
       scheduleChordRewrite(120);
@@ -580,9 +592,9 @@
     if (!api || !root) return;
     root.innerHTML = '';
 
-    const capo = getEffectiveCapo();
+    const offset = getEffectiveCapo() + getUserTranspose();
     const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
-    if (!capo || !lookup || !Array.isArray(lookup.staffSystems)) return;
+    if (!offset || !lookup || !Array.isArray(lookup.staffSystems)) return;
 
     for (const system of lookup.staffSystems) {
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];
