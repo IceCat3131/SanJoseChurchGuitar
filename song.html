@@ -14,26 +14,6 @@
 <div class="page">
   <div class="page-inner">
 
-    <!-- 第 1 部分：返回首页 / 上一首 / 标题 / 下一首 -->
-    <div class="topbar">
-      <div class="topbar-left">
-        <button class="topbar-button" id="btn-back" aria-label="返回首页">
-  <svg viewBox="0 0 24 24" class="icon-home">
-    <path d="M3 10.5 12 3l9 7.5v9.5a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1v-9.5z"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round" />
-  </svg>
-</button>
-      </div>
-      <button class="topbar-button" id="btn-prev" aria-label="上一首">&lt;</button>
-      <div class="topbar-title" id="song-title">诗歌</div>
-      <button class="topbar-button" id="btn-next" aria-label="下一首">&gt;</button>
-    </div>
-
-
     <div class="core-ui card" id="core-ui">
       <div class="core-ui-toolbar">
         <button class="core-btn core-btn-icon" id="ui-home" aria-label="首页">⌂</button>
@@ -52,7 +32,7 @@
       </div>
       <div class="core-ui-progress-wrap">
         <input class="core-ui-progress" id="ui-progress" type="range" min="0" max="1000" value="0" />
-        <div class="core-ui-time" id="ui-time">00:00</div>
+        <div class="core-ui-time" id="ui-time">00:00 / 00:00</div>
       </div>
       <div class="core-ui-title-wrap">
         <div class="core-ui-title-main" id="ui-title-main">诗歌</div>
@@ -125,110 +105,6 @@
             <button type="button" class="core-option-btn" id="ui-staff-jian">简谱</button>
           </div>
           <div class="core-panel-note">切换后实时生效，点完成收起。</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 第 2 部分：搜索框 -->
-    <div class="card">
-      <div class="search-bar">
-        <div class="search-book-toggle">
-          <button class="search-book-btn" data-book="c" id="btn-book-c">大本</button>
-          <div class="search-book-divider"></div>
-          <button class="search-book-btn" data-book="ts" id="btn-book-ts">小本</button>
-        </div>
-        <div class="search-input-wrap">
-          <input
-            id="search-input"
-            class="search-input"
-            type="text"
-            inputmode="numeric"
-            pattern="[0-9]*"
-            placeholder="输入编号，如31"
-          />
-          <button class="search-icon-btn" id="btn-search">
-            <span class="search-icon">🔍</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    
-    <!-- 播放条（放在搜索栏下方） -->
-    <div class="player-bar card" id="player-bar">
-      <div class="player-left">
-        <button class="player-btn" id="btn-player-prev" aria-label="上一首">⏮</button>
-        <button class="player-btn player-btn-primary" id="btn-player-play" aria-label="播放/暂停">▶</button>
-        <button class="player-btn" id="btn-player-next" aria-label="下一首">⏭</button>
-      </div>
-      <div class="player-mid">
-        <div class="player-time" id="player-time">00:00 / 00:00</div>
-        <input class="player-progress" id="player-progress" type="range" min="0" max="1000" value="0" />
-      </div>
-      <div class="player-right">
-        <div class="player-indicator" id="player-indicator"><span id="player-status">音源未加载</span></div>
-      </div>
-    </div>
-
-    <div class="meta-row card" id="meta-row">
-      <div class="meta-pill">速度 <span id="meta-tempo">--</span></div>
-      <div class="meta-pill">调 <span id="meta-key">--</span></div>
-      <div class="meta-pill">Capo <span id="meta-capo">0</span></div>
-      <div class="meta-pill">播放 <span id="meta-speed">100%</span></div>
-    </div>
-
-    <div class="adjust-row card">
-      <div class="adjust-group">
-        <span class="adjust-label">谱词字号</span>
-        <button class="mini-adjust-btn" id="btn-score-font-minus">−</button>
-        <span class="adjust-value" id="score-font-value">30</span>
-        <button class="mini-adjust-btn" id="btn-score-font-plus">+</button>
-      </div>
-      <div class="adjust-group">
-        <span class="adjust-label">谱词距</span>
-        <button class="mini-adjust-btn" id="btn-spacing-minus">−</button>
-        <span class="adjust-value" id="spacing-value">2.0x</span>
-        <button class="mini-adjust-btn" id="btn-spacing-plus">+</button>
-      </div>
-      <div class="adjust-group adjust-group-slider">
-        <span class="adjust-label">速度</span>
-        <input id="tempo-slider" class="tempo-slider" type="range" min="50" max="150" value="100" step="5" />
-        <span class="adjust-value" id="tempo-slider-value">100%</span>
-      </div>
-      <div class="adjust-group">
-        <span class="adjust-label">转调</span>
-        <button class="mini-adjust-btn" id="btn-transpose-minus">−</button>
-        <span class="adjust-value" id="transpose-value">0</span>
-        <button class="mini-adjust-btn" id="btn-transpose-plus">+</button>
-      </div>
-      <div class="adjust-group">
-        <span class="adjust-label">原始Capo</span>
-        <span class="adjust-value" id="capo-value">0</span>
-      </div>
-    </div>
-
-    <!-- 第 3 部分：+ / - / 吉他 / 歌词 / 简繁 -->
-    <div class="controls-row">
-      <div class="controls-left">
-        <button class="icon-plusminus-btn" id="btn-font-plus">+</button>
-        <button class="icon-plusminus-btn" id="btn-font-minus">−</button>
-        <div class="mode-toggle">
-          <button class="mode-btn active" id="btn-mode-score">吉他</button>
-          <button class="mode-btn" id="btn-mode-lyrics">歌词</button>
-        </div>
-      </div>
-      <!-- 简繁切换按钮：一个字，默认显示“繁”（当前歌词为简体） -->
-      <button class="script-toggle-btn" id="btn-script">繁</button>
-      <button class="script-toggle-btn" id="btn-tracks">轨</button>
-      <div id="tracks-panel" class="tracks-panel hidden" role="dialog" aria-label="轨道开关">
-        <div class="tracks-panel-inner">
-          <div class="tracks-panel-title">轨道</div>
-          <div class="tracks-panel-actions">
-            <button type="button" id="tracks-all">全选</button>
-            <button type="button" id="tracks-none">全不选</button>
-            <button type="button" id="tracks-close">关闭</button>
-          </div>
-          <div id="tracks-list" class="tracks-list"></div>
         </div>
       </div>
     </div>
@@ -1113,41 +989,20 @@
   let __playbackState = { current: 0, total: 0, playing: false, progress: 0 };
   function setupPlayerBar(api) {
     if (__playerUi) return;
-    const btnPrev = document.getElementById("btn-player-prev");
-    const btnPlay = document.getElementById("btn-player-play");
-    const btnNext = document.getElementById("btn-player-next");
-    const timeEl = document.getElementById("player-time");
-    const progressEl = document.getElementById("player-progress");
-    const indicatorEl = document.getElementById("player-indicator");
+    const btnPrev = document.getElementById("ui-prev");
+    const btnPlay = document.getElementById("ui-play");
+    const btnNext = document.getElementById("ui-next");
+    const timeEl = document.getElementById("ui-time");
+    const progressEl = document.getElementById("ui-progress");
 
-    __playerUi = { btnPrev, btnPlay, btnNext, timeEl, progressEl, indicatorEl, isSeeking: false };
+    __playerUi = { btnPrev, btnPlay, btnNext, timeEl, progressEl, isSeeking: false };
 
-    // 复用页面已有上一首/下一首逻辑（按钮在顶部）
-    btnPrev.addEventListener("click", () => document.getElementById("btn-prev")?.click());
-    btnNext.addEventListener("click", () => document.getElementById("btn-next")?.click());
-    btnPlay.addEventListener("click", () => api.playPause());
-
-    // SoundFont 加载指示
-    api.soundFontLoad.on((e) => {
-      const pct = Math.floor((e.loaded / e.total) * 100);
-      indicatorEl.textContent = `<span id="player-status">音源未加载</span> ${pct}%`;
-      indicatorEl.style.display = "block";
-    });
-    api.playerReady.on(() => {
-      indicatorEl.style.display = "none";
-      btnPlay.disabled = false;
-      btnPrev.disabled = false;
-      btnNext.disabled = false;
-    });
-
-    // 播放状态变化：切换 ▶ / ⏸
     api.playerStateChanged.on((args) => {
       const playing = (args.state === alphaTab.synth.PlayerState.Playing);
       __playbackState.playing = playing;
-      btnPlay.textContent = playing ? "⏸" : "▶";
+      if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
     });
 
-    // 进度刷新
     let previousSec = -1;
     api.playerPositionChanged.on((args) => {
       const currentSec = Math.floor(args.currentTime / 1000);
@@ -1159,36 +1014,29 @@
       __playbackState.current = args.currentTime || 0;
       __playbackState.total = args.endTime || 0;
       __playbackState.progress = isFinite(v) ? v : 0;
-      if (!__playerUi.isSeeking) {
+      if (!__playerUi.isSeeking && progressEl) {
         progressEl.value = String(__playbackState.progress);
       }
-      timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
+      if (timeEl) timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
     });
 
-    // 拖动进度条进行 seek（通过 api.timePosition）
-    progressEl.addEventListener("input", () => {
-      __playerUi.isSeeking = true;
-      const v = parseInt(progressEl.value, 10);
-      // 这里拿不到 endTime，只能读最近一次 UI 上的总时长
-      const text = timeEl.textContent || "00:00 / 00:00";
-      const total = parseTimeFromText(text.split("/")[1] || "00:00");
-      const target = Math.floor(total * (v / 1000));
-      timeEl.textContent = `${msToMMSS(target)} / ${msToMMSS(total)}`;
-    });
+    if (progressEl) {
+      progressEl.addEventListener("input", () => {
+        __playerUi.isSeeking = true;
+        const v = parseInt(progressEl.value, 10);
+        const total = __playbackState.total || 0;
+        const target = Math.floor(total * (v / 1000));
+        if (timeEl) timeEl.textContent = `${msToMMSS(target)} / ${msToMMSS(total)}`;
+      });
 
-    progressEl.addEventListener("change", () => {
-      const v = parseInt(progressEl.value, 10);
-      const text = timeEl.textContent || "00:00 / 00:00";
-      const total = parseTimeFromText(text.split("/")[1] || "00:00");
-      const target = Math.floor(total * (v / 1000));
-      try { api.timePosition = target; } catch(e) {}
-      __playerUi.isSeeking = false;
-    });
-
-    // 初始禁用，直到 playerReady
-    btnPlay.disabled = true;
-    btnPrev.disabled = true;
-    btnNext.disabled = true;
+      progressEl.addEventListener("change", () => {
+        const v = parseInt(progressEl.value, 10);
+        const total = __playbackState.total || 0;
+        const target = Math.floor(total * (v / 1000));
+        try { api.timePosition = target; } catch(e) {}
+        __playerUi.isSeeking = false;
+      });
+    }
   }
 
   function parseTimeFromText(t) {
@@ -1206,11 +1054,11 @@
     __playbackState.total = total || 0;
     __playbackState.playing = !!playing;
     __playbackState.progress = 0;
-    const timeEl = document.getElementById("player-time");
-    const progressEl = document.getElementById("player-progress");
+    const timeEl = document.getElementById("ui-time");
+    const progressEl = document.getElementById("ui-progress");
     if (timeEl) timeEl.textContent = `${msToMMSS(current)} / ${msToMMSS(total)}`;
     if (progressEl) progressEl.value = "0";
-    const btnPlay = document.getElementById("btn-player-play");
+    const btnPlay = document.getElementById("ui-play");
     if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
   }
   // ===== /alphaTab + .gtz 加载 =====
@@ -1339,6 +1187,7 @@ function pad4(num) {
 
       window.__atApi.renderFinished.on(() => {
         scheduleTabCapoOverlay(40);
+        try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode(); } catch (e) {}
       });
 
       // 播放条绑定
@@ -1417,30 +1266,26 @@ function pad4(num) {
     const btnLyrics = document.getElementById("btn-mode-lyrics");
 
     if (mode === "score") {
-      scoreView.style.display = "";
-      scoreView.setAttribute("aria-hidden", "false");
-      lyricsView.style.display = "none";
-      lyricsView.setAttribute("aria-hidden", "true");
-      btnScore.classList.add("active");
-      btnLyrics.classList.remove("active");
+      if (scoreView) { scoreView.style.display = ""; scoreView.setAttribute("aria-hidden", "false"); }
+      if (lyricsView) { lyricsView.style.display = "none"; lyricsView.setAttribute("aria-hidden", "true"); }
+      if (btnScore) btnScore.classList.add("active");
+      if (btnLyrics) btnLyrics.classList.remove("active");
     } else {
-      scoreView.style.display = "none";
-      scoreView.setAttribute("aria-hidden", "true");
-      lyricsView.style.display = "";
-      lyricsView.setAttribute("aria-hidden", "false");
-      btnScore.classList.remove("active");
-      btnLyrics.classList.add("active");
+      if (scoreView) { scoreView.style.display = "none"; scoreView.setAttribute("aria-hidden", "true"); }
+      if (lyricsView) { lyricsView.style.display = ""; lyricsView.setAttribute("aria-hidden", "false"); }
+      if (btnScore) btnScore.classList.remove("active");
+      if (btnLyrics) btnLyrics.classList.add("active");
     }
   }
 
   function syncBookButtons() {
-    document.getElementById("btn-book-c").classList.toggle("active", state.currentBook === "c");
-    document.getElementById("btn-book-ts").classList.toggle("active", state.currentBook === "ts");
+    document.getElementById("btn-book-c")?.classList.toggle("active", state.currentBook === "c");
+    document.getElementById("btn-book-ts")?.classList.toggle("active", state.currentBook === "ts");
   }
 
   function syncScriptButton() {
     const btn = document.getElementById("btn-script");
-    // 当前歌词是简体 -> 按钮显示“繁”；当前歌词繁体 -> 按钮显示“简”
+    if (!btn) return;
     if (state.script === "simplified") {
       btn.textContent = "繁";
       btn.classList.remove("active");
@@ -1493,22 +1338,23 @@ function pad4(num) {
   }
 
   function handleSearch() {
-    performSearch(document.getElementById("search-input").value);
+    performSearch(document.getElementById("search-input")?.value || "");
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
     parseQuery();
-    document.getElementById("search-input").value = state.currentNo;  // ★ 显示当前编号
+    const legacySearchInput = document.getElementById("search-input");
+    if (legacySearchInput) legacySearchInput.value = state.currentNo;
     syncBookButtons();
     syncScriptButton(); // 默认：歌词简体，按钮显示“繁”
 
-    document.getElementById("btn-back").addEventListener("click", goHome);
+    document.getElementById("btn-back")?.addEventListener("click", goHome);
 
-    document.getElementById("btn-prev").addEventListener("click", () => {
+    document.getElementById("btn-prev")?.addEventListener("click", () => {
       goPrevSong();
     });
 
-    document.getElementById("btn-next").addEventListener("click", () => {
+    document.getElementById("btn-next")?.addEventListener("click", () => {
       goNextSong();
     });
 
@@ -1526,24 +1372,24 @@ function pad4(num) {
     });
 
     // 搜索
-    document.getElementById("btn-search").addEventListener("click", () => performSearch(document.getElementById("search-input").value));
-    document.getElementById("search-input").addEventListener("keydown", e => {
+    document.getElementById("btn-search")?.addEventListener("click", () => performSearch(document.getElementById("search-input")?.value));
+    document.getElementById("search-input")?.addEventListener("keydown", e => {
       if (e.key === "Enter") {
         e.preventDefault();
-        performSearch(document.getElementById("search-input").value);
+        performSearch(document.getElementById("search-input")?.value || "");
       }
     });
 
     // 吉他 / 歌词模式
-    document.getElementById("btn-mode-score").addEventListener("click", () => {
+    document.getElementById("btn-mode-score")?.addEventListener("click", () => {
       setMode("score");
     });
-    document.getElementById("btn-mode-lyrics").addEventListener("click", () => {
+    document.getElementById("btn-mode-lyrics")?.addEventListener("click", () => {
       setMode("lyrics");
     });
 
     // 简繁按钮：一个位置，文字互换
-    document.getElementById("btn-script").addEventListener("click", () => {
+    document.getElementById("btn-script")?.addEventListener("click", () => {
       setScriptMode(state.script === "simplified" ? "traditional" : "simplified");
     });
 
@@ -1552,7 +1398,7 @@ function pad4(num) {
     applyViewerPrefsToLyricsPage();
 
     // 字号 + / - ：歌词页调纯歌词字号；乐谱页调谱内歌词字号
-    document.getElementById("btn-font-plus").addEventListener("click", () => {
+    document.getElementById("btn-font-plus")?.addEventListener("click", () => {
       if (state.mode === 'lyrics') {
         viewerPrefs.pureLyricsFontSize = Math.min(viewerPrefs.pureLyricsFontSize + 3, 48);
         saveViewerPrefs();
@@ -1565,7 +1411,7 @@ function pad4(num) {
         applyViewerPrefsToScore();
       }
     });
-    document.getElementById("btn-font-minus").addEventListener("click", () => {
+    document.getElementById("btn-font-minus")?.addEventListener("click", () => {
       if (state.mode === 'lyrics') {
         viewerPrefs.pureLyricsFontSize = Math.max(viewerPrefs.pureLyricsFontSize - 3, 12);
         saveViewerPrefs();
@@ -1583,141 +1429,46 @@ function pad4(num) {
   });
 </script>
 
+
 <script>
-// ===== 五线谱 / 简谱 切换（增量集成）=====
 (function(){
   function getStaffMode(){
     try { return localStorage.getItem('staffMode') || 'five'; } catch(e) { return 'five'; }
   }
-  function setStaffMode(mode){
-    try { localStorage.setItem('staffMode', mode); } catch(e) {}
-  }
-  function updateStaffToggleUI(){
-    const btn = document.getElementById('btn-staff-toggle');
-    if (!btn) return;
-    btn.textContent = (getStaffMode() === 'jian') ? '五' : '简';
-  }
-  function ensureStaffToggleButton(){
-    if (document.getElementById('btn-staff-toggle')) return;
-    const host =
-      document.querySelector('.controls-row .controls-left') ||
-      document.querySelector('.controls-row') ||
-      document.body;
-    const btn = document.createElement('button');
-    btn.id = 'btn-staff-toggle';
-    btn.className = 'script-toggle-btn';
-    btn.style.marginLeft = '8px';
-    btn.addEventListener('click', function(){
-      const next = getStaffMode() === 'jian' ? 'five' : 'jian';
-      setStaffMode(next);
-      applyStaffMode();
-      updateStaffToggleUI();
+  function hideJianpu(){
+    document.querySelectorAll('#alphaTab .atj-keysig, #alphaTab .atj-jianpu, #alphaTab .atj-time-signature').forEach(el => {
+      el.style.display = 'none';
     });
-    host.appendChild(btn);
-    updateStaffToggleUI();
   }
-  window.applyStaffMode = function applyStaffMode(){
-    const api = window.__atApi;
-    if (!api || !api.score || !Array.isArray(api.score.tracks)) return;
+  function showJianpu(){
+    document.querySelectorAll('#alphaTab .atj-keysig, #alphaTab .atj-jianpu, #alphaTab .atj-time-signature').forEach(el => {
+      el.style.display = '';
+    });
+  }
+  function updateCoreStaffUI(){
     const mode = getStaffMode();
-    document.body.classList.toggle('jian-mode', mode === 'jian');
-
-    for (const track of api.score.tracks){
-      if (!track || !Array.isArray(track.staves)) continue;
-      for (const staff of track.staves){
-        // 只处理非TAB staff；TAB 保持原样
-        if (staff.showTablature) continue;
-        staff.showStandardNotation = (mode !== 'jian');
-        if ('showNumbered' in staff) staff.showNumbered = (mode === 'jian');
-        if ('showNumberedNotation' in staff) staff.showNumberedNotation = (mode === 'jian');
-      }
-    }
-    try { api.render(); } catch(e) { console.warn(e); }
+    document.getElementById('ui-staff-five')?.classList.toggle('active', mode === 'five');
+    document.getElementById('ui-staff-jian')?.classList.toggle('active', mode === 'jian');
+    document.getElementById('ui-staff') && (document.getElementById('ui-staff').textContent = mode === 'jian' ? '简' : '谱');
   }
-  document.addEventListener('DOMContentLoaded', function(){
-    ensureStaffToggleButton();
-    const t = setInterval(function(){
-      if (window.__atApi){
-        clearInterval(t);
-        try{
-          if (window.__atApi.renderFinished && window.__atApi.renderFinished.on){
-            window.__atApi.renderFinished.on(function(){
-              updateStaffToggleUI();
-            });
-          }
-        }catch(e){}
-        applyStaffMode();
-      }
-    }, 300);
+  function applyStaffMode(){
+    const mode = getStaffMode();
+    if (mode === 'jian') showJianpu(); else hideJianpu();
+    updateCoreStaffUI();
+  }
+  window.applyStaffMode = applyStaffMode;
+  document.addEventListener('DOMContentLoaded', () => {
+    updateCoreStaffUI();
+    setTimeout(applyStaffMode, 400);
   });
-})();
-
-// ===== 简谱首行 1=bA 微调（增量补丁）=====
-(function(){
-  function adjustJianKeyPosition(){
-    const isJian = document.body.classList.contains('jian-mode');
-    if (!isJian) return;
-
-    const svg = document.querySelector('#alphaTab svg');
-    if (!svg) return;
-
-    const texts = svg.querySelectorAll('text');
-    texts.forEach(el => {
-      const txt = (el.textContent || '').trim();
-      if (txt === '1=' || /^1\s*=/.test(txt)) {
-        const g = el.parentElement;
-        if (!g) return;
-        if (g.dataset.adjustedJianKey) return;
-        g.dataset.adjustedJianKey = "1";
-
-        const old = g.getAttribute('transform') || '';
-        const m = old.match(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/);
-        if (m) {
-          const x = parseFloat(m[1]);
-          const y = parseFloat(m[2]) - 30;
-          g.setAttribute('transform', `translate(${x} ${y})`);
-        } else {
-          g.setAttribute('transform', `${old} translate(0 -30)`);
-        }
-
-        let sib = g.nextElementSibling;
-        let count = 0;
-        while (sib && count < 4) {
-          const old2 = sib.getAttribute('transform') || '';
-          const m2 = old2.match(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/);
-          if (m2) {
-            const x2 = parseFloat(m2[1]);
-            const y2 = parseFloat(m2[2]) - 30;
-            sib.setAttribute('transform', `translate(${x2} ${y2})`);
-          } else {
-            sib.setAttribute('transform', `${old2} translate(0 -30)`);
-          }
-          sib = sib.nextElementSibling;
-          count++;
-        }
-      }
-    });
-  }
-  function run(){
-    setTimeout(adjustJianKeyPosition, 50);
-    setTimeout(adjustJianKeyPosition, 200);
-    setTimeout(adjustJianKeyPosition, 500);
-  }
-  document.addEventListener('DOMContentLoaded', run);
-  const t = setInterval(()=>{
-    if (window.__atApi){
+  const t = setInterval(() => {
+    if (window.__atApi) {
       clearInterval(t);
-      try{
-        if (window.__atApi.renderFinished){
-          window.__atApi.renderFinished.on(run);
-        }
-      }catch(e){}
-      run();
+      try { window.__atApi.renderFinished.on(() => setTimeout(applyStaffMode, 30)); } catch(e) {}
     }
-  },300);
+  }, 300);
 })();
 </script>
-
 
 <script>
 (function(){
@@ -1844,13 +1595,6 @@ function pad4(num) {
       try { localStorage.setItem('staffMode', 'jian'); } catch(e) {}
       if (typeof window.applyStaffMode === 'function') window.applyStaffMode();
       setTimeout(syncUI, 30);
-    });
-
-    $('ui-progress')?.addEventListener('input', ()=>{
-      if(!$('player-progress')) return; $('player-progress').value = $('ui-progress').value; $('player-progress').dispatchEvent(new Event('input',{bubbles:true}));
-    });
-    $('ui-progress')?.addEventListener('change', ()=>{
-      if(!$('player-progress')) return; $('player-progress').value = $('ui-progress').value; $('player-progress').dispatchEvent(new Event('change',{bubbles:true}));
     });
 
     document.addEventListener('click', (e)=>{
