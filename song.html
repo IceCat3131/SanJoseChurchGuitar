@@ -1429,9 +1429,18 @@ function pad4(num) {
     });
 
     document.addEventListener('click', (e)=>{
-      const insidePanel = e.target.closest('.core-panel-layer');
+      const layer = $('core-panel-layer');
+      if (layer && !layer.hidden && e.target === layer) {
+        closePanels();
+        return;
+      }
+      const insidePanel = e.target.closest('.core-panel');
       const insideToolbar = e.target.closest('.core-ui-toolbar');
       if(!insidePanel && !insideToolbar) closePanels();
+    });
+
+    $('core-panel-layer')?.addEventListener('click', (e)=>{
+      if (e.target === $('core-panel-layer')) closePanels();
     });
   }
 

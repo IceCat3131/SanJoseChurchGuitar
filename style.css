@@ -882,3 +882,226 @@ flex: 1;
     bottom:12px;
   }
 }
+
+
+/* ===== phase4 core panel beautify ===== */
+.core-panel-layer{
+  margin-top:16px;
+}
+.core-panel{
+  width:min(100%, 430px);
+  margin:0 auto;
+  padding:18px 20px;
+  border-radius:24px;
+  border:1px solid #e9eefb;
+  box-shadow:0 10px 28px rgba(15,23,42,.08);
+}
+.core-panel-head{
+  margin-bottom:14px;
+}
+.core-panel-head > span{
+  font-size:17px;
+  font-weight:800;
+}
+.core-panel-close,
+.core-panel-ghost,
+.core-option-btn,
+.core-step-btn,
+.new-track-close,
+.new-track-ghost{
+  min-height:36px;
+  border-radius:12px;
+  font-size:14px;
+}
+.core-panel-close,
+.core-panel-ghost,
+.new-track-close,
+.new-track-ghost{
+  background:#f1f5ff;
+}
+.core-option-btn{
+  min-width:64px;
+  padding:0 16px;
+}
+.core-panel-value{
+  min-width:44px;
+  font-size:20px;
+}
+.core-step-btn{
+  width:36px;
+  height:36px;
+  min-height:36px;
+  font-size:24px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.core-panel-actions{
+  gap:8px;
+}
+.core-panel-actions-left{
+  justify-content:center;
+}
+.core-book-row{
+  justify-content:center;
+  margin-bottom:14px;
+}
+.core-search-row{
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;
+}
+.core-search-input{
+  min-height:44px;
+}
+.core-panel-note{
+  margin-top:12px;
+  text-align:left;
+}
+
+#panel-speed{
+  width:min(100%, 520px);
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:
+    'head head'
+    'body actions';
+  gap:14px 12px;
+  align-items:center;
+}
+#panel-speed .core-panel-head{ grid-area:head; margin-bottom:0; }
+#panel-speed .core-panel-body{ grid-area:body; gap:16px; }
+#panel-speed .core-panel-actions{ grid-area:actions; margin-top:0; justify-content:flex-end; align-self:center; }
+#panel-speed .core-panel-value{ min-width:72px; text-align:right; }
+
+#panel-key{
+  width:min(100%, 430px);
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:
+    'head head'
+    'body actions';
+  gap:14px 12px;
+  align-items:center;
+}
+#panel-key .core-panel-head{ grid-area:head; margin-bottom:0; }
+#panel-key .core-panel-body{ grid-area:body; justify-content:center; }
+#panel-key .core-panel-actions{ grid-area:actions; margin-top:0; justify-content:flex-end; align-self:center; }
+
+#panel-mode,
+#panel-lang,
+#panel-staff{
+  width:min(100%, 360px);
+}
+#panel-mode .core-panel-actions,
+#panel-lang .core-panel-actions,
+#panel-staff .core-panel-actions{
+  margin-top:0;
+}
+
+#panel-text{
+  width:min(100%, 560px);
+}
+#panel-text .core-text-grid{
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:14px;
+}
+#panel-text .core-control-card{
+  background:#f7f9ff;
+  border:1px solid #edf1fb;
+  border-radius:16px;
+  padding:14px 10px;
+}
+#panel-text .core-control-label{
+  text-align:center;
+  margin-bottom:10px;
+}
+#panel-text .core-panel-stepper{
+  display:grid;
+  grid-template-columns:1fr;
+  justify-items:center;
+  gap:8px;
+}
+#panel-text .core-panel-value{
+  min-width:0;
+}
+#panel-text .core-panel-actions{
+  justify-content:center;
+}
+
+#panel-search{
+  width:min(100%, 430px);
+}
+#panel-search .core-panel-head{
+  margin-bottom:12px;
+}
+
+.new-track-panel{
+  left:50%;
+  right:auto;
+  transform:translateX(-50%);
+  top:172px;
+  width:min(360px, calc(100vw - 32px));
+}
+.new-track-panel-inner{
+  border-radius:24px;
+  padding:18px 18px 16px;
+  border:1px solid #e9eefb;
+  box-shadow:0 14px 32px rgba(15,23,42,.12);
+}
+.new-track-panel-head{
+  margin-bottom:12px;
+}
+.new-track-panel-actions{
+  justify-content:flex-start;
+  gap:8px;
+}
+.new-track-list{
+  gap:10px;
+}
+.new-track-item{
+  min-height:44px;
+  border:1px solid #eef1f7;
+}
+
+@media (max-width: 767px){
+  .core-panel{
+    width:100%;
+    padding:16px;
+  }
+  #panel-speed,
+  #panel-key{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      'head'
+      'body'
+      'actions';
+  }
+  #panel-speed .core-panel-body{
+    flex-wrap:wrap;
+    justify-content:flex-start;
+  }
+  #panel-speed .core-panel-value{
+    min-width:64px;
+    text-align:left;
+  }
+  #panel-speed .core-panel-actions,
+  #panel-key .core-panel-actions{
+    justify-content:flex-end;
+  }
+  #panel-text .core-text-grid{
+    grid-template-columns:1fr 1fr;
+  }
+  .new-track-panel{
+    left:16px;
+    right:16px;
+    width:auto;
+    top:auto;
+    bottom:14px;
+    transform:none;
+  }
+}
+@media (max-width: 520px){
+  #panel-text .core-text-grid{
+    grid-template-columns:1fr;
+  }
+}
