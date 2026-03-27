@@ -684,3 +684,7 @@ flex: 1;
   .core-search-row{grid-template-columns:1fr;}
   .tracks-panel{right:8px !important; left:8px !important; top:auto !important; bottom:12px !important;}
 }
+
+/* v1-based menu behavior updates */
+.core-panel-actions-left{justify-content:flex-start;}
+.core-option-btn.active{background:var(--primary); color:#fff; border-color:transparent;}
