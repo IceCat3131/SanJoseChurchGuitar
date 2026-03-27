@@ -796,7 +796,3 @@ flex: 1;
   display: none !important;
 }
 
-/* hide only the very first tiny top surface block that contains Guitar Standard Tuning */
-#alphaTab .at-surface > div:first-child {
-  display: none !important;
-}
