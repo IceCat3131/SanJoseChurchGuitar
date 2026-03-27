@@ -484,6 +484,7 @@
   function changeChordFont(delta) {
     viewerPrefs.chordFontSizePx = Math.max(10, Math.min(36, getChordFontSizePx() + delta));
     saveViewerPrefs();
+    if (window.__atApi) applyChordFont(window.__atApi, getChordFontSizePx());
     scheduleChordRewrite(10);
     refreshAdjustUI();
   }
@@ -589,6 +590,7 @@
   function applyViewerPrefsToScore() {
     if (!window.__atApi) return;
     applyLyricsFont(window.__atApi, viewerPrefs.scoreFontSizePx);
+    applyChordFont(window.__atApi, getChordFontSizePx());
     applyLyricSpacing(window.__atApi, viewerPrefs.scoreSpacingFactor);
     applyScoreTransposition(window.__atApi);
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
@@ -776,25 +778,53 @@
 
 
   // ===== 从 .gtz.state 还原“导出时的显示效果” =====
+  function ensureAlphaTabFontResources(api) {
+    if (!api) return null;
+    const settings = api.settings;
+    if (!settings.display) settings.display = {};
+    if (!settings.display.resources) settings.display.resources = {};
+    if (!settings.display.resources.elementFonts) settings.display.resources.elementFonts = new Map();
+    const FontCtor = window.alphaTab?.model?.Font || window.alphaTab?.Font;
+    const ne = window.alphaTab?.NotationElement;
+    if (!settings.display.resources.elementFonts || typeof settings.display.resources.elementFonts.set !== 'function' || !FontCtor || !ne) {
+      return null;
+    }
+    return { settings, FontCtor, ne };
+  }
+
+  function buildAlphaTabFont(px) {
+    const FontCtor = window.alphaTab?.model?.Font || window.alphaTab?.Font;
+    if (!FontCtor || !px) return null;
+    const fontObj = new FontCtor('Microsoft YaHei', px, window.alphaTab.model.FontStyle.Plain, window.alphaTab.model.FontWeight.Regular);
+    try { fontObj.families = ['Microsoft YaHei', 'Arial', 'sans-serif']; } catch (e) {}
+    return fontObj;
+  }
+
   function applyLyricsFont(api, px) {
     if (!api || !px) return;
     try {
-      const settings = api.settings;
-      if (!settings.display) settings.display = {};
-      if (!settings.display.resources) settings.display.resources = {};
-      if (!settings.display.resources.elementFonts) settings.display.resources.elementFonts = new Map();
-
-      const FontCtor = window.alphaTab?.model?.Font || window.alphaTab?.Font;
-      const ne = window.alphaTab?.NotationElement;
-
-      if (settings.display.resources.elementFonts && typeof settings.display.resources.elementFonts.set === 'function' && FontCtor && ne) {
-        const fontObj = new FontCtor('Microsoft YaHei', px, window.alphaTab.model.FontStyle.Plain, window.alphaTab.model.FontWeight.Regular);
-        try { fontObj.families = ['Microsoft YaHei', 'Arial', 'sans-serif']; } catch (e) {}
-        if (ne.EffectLyrics != null) settings.display.resources.elementFonts.set(ne.EffectLyrics, fontObj);
-        api.updateSettings();
-      }
+      const ctx = ensureAlphaTabFontResources(api);
+      if (!ctx) return;
+      const fontObj = buildAlphaTabFont(px);
+      if (!fontObj) return;
+      if (ctx.ne.EffectLyrics != null) ctx.settings.display.resources.elementFonts.set(ctx.ne.EffectLyrics, fontObj);
+      api.updateSettings();
     } catch (e) {
       console.warn('applyLyricsFont failed', e);
+    }
+  }
+
+  function applyChordFont(api, px) {
+    if (!api || !px) return;
+    try {
+      const ctx = ensureAlphaTabFontResources(api);
+      if (!ctx) return;
+      const fontObj = buildAlphaTabFont(px);
+      if (!fontObj) return;
+      if (ctx.ne.EffectChordNames != null) ctx.settings.display.resources.elementFonts.set(ctx.ne.EffectChordNames, fontObj);
+      api.updateSettings();
+    } catch (e) {
+      console.warn('applyChordFont failed', e);
     }
   }
 
