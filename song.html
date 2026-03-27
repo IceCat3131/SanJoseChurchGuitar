@@ -343,13 +343,19 @@
     return getSongCapo();
   }
 
+  function getDisplayedCapoLabel() {
+    return getSongCapo();
+  }
+
   function getUserTranspose() {
     const n = parseInt(viewerPrefs.transposeSemitones, 10);
     return Number.isFinite(n) ? Math.max(-11, Math.min(11, n)) : 0;
   }
 
   function getEffectiveTranspose() {
-    return getSongCapo() + getUserTranspose();
+    // Capo 只作用于 6线谱（TAB）显示与播放语义，
+    // 不再作用于五线谱 / 简谱，不参与它们的音高显示和播放转调计算。
+    return getUserTranspose();
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -501,6 +507,7 @@
     if (!api || !api.settings) return;
     const tracks = getAllTracks(api);
     const trackCount = tracks.length;
+    // 这里只应用“用户转调”，不再把 Capo 叠加到五线谱 / 简谱 / 整体播放
     const semitones = getEffectiveTranspose();
     try {
       if (!api.settings.notation) api.settings.notation = {};
@@ -526,7 +533,7 @@
     const speedEl = document.getElementById('meta-speed');
     if (tempoEl) tempoEl.textContent = (m.tempo != null && m.tempo !== '') ? String(m.tempo) : '--';
     if (keyEl) keyEl.textContent = computeDisplayedKeyName(m);
-    if (capoEl) capoEl.textContent = String(getEffectiveCapo());
+    if (capoEl) capoEl.textContent = String(getDisplayedCapoLabel());
     if (speedEl) speedEl.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
   }
 
@@ -547,7 +554,7 @@
       const t = getUserTranspose();
       f.textContent = t > 0 ? `+${t}` : String(t);
     }
-    if (g) g.textContent = String(getEffectiveCapo());
+    if (g) g.textContent = String(getDisplayedCapoLabel());
   }
 
   function applyViewerPrefsToScore() {
