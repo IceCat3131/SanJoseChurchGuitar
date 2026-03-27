@@ -481,11 +481,32 @@
     applyViewerPrefsToScore();
   }
 
+  function rerenderScorePreserveScroll() {
+    const api = window.__atApi;
+    if (!api) return;
+    const y = window.scrollY || window.pageYOffset || 0;
+    try {
+      if (typeof window.renderVisibleTracks === 'function') {
+        window.renderVisibleTracks(api);
+      } else if (typeof api.render === 'function') {
+        api.render();
+      }
+    } catch (e) {
+      console.warn('rerenderScorePreserveScroll failed', e);
+    }
+    setTimeout(() => { try { window.scrollTo({ top: y, behavior: 'instant' }); } catch (e) { try { window.scrollTo(0, y); } catch (e2) {} } }, 0);
+    setTimeout(() => { try { window.scrollTo({ top: y, behavior: 'instant' }); } catch (e) { try { window.scrollTo(0, y); } catch (e2) {} } }, 120);
+  }
+
   function changeChordFont(delta) {
     viewerPrefs.chordFontSizePx = Math.max(10, Math.min(36, getChordFontSizePx() + delta));
     saveViewerPrefs();
-    if (window.__atApi) applyChordFont(window.__atApi, getChordFontSizePx());
+    if (window.__atApi) {
+      applyChordFont(window.__atApi, getChordFontSizePx());
+      rerenderScorePreserveScroll();
+    }
     scheduleChordRewrite(10);
+    scheduleChordRewrite(160);
     refreshAdjustUI();
   }
 
@@ -495,6 +516,7 @@
     viewerPrefs.chordFontSizePx = DEFAULT_VIEWER_PREFS.chordFontSizePx;
     saveViewerPrefs();
     applyViewerPrefsToScore();
+    rerenderScorePreserveScroll();
     refreshAdjustUI();
   }
 
@@ -1342,6 +1364,8 @@ function pad4(num) {
 
       window.__atApi.renderFinished.on(() => {
         scheduleTabCapoOverlay(40);
+        scheduleChordRewrite(40);
+        scheduleChordRewrite(180);
         try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode({ domOnly: true }); } catch (e) {}
       });
 
