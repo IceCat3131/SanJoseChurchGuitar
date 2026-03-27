@@ -689,28 +689,7 @@ flex: 1;
 .core-panel-actions-left{justify-content:flex-start;}
 .core-option-btn.active{background:var(--primary); color:#fff; border-color:transparent;}
 
-/* chord font control */
-.core-text-grid{
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-@media (max-width: 767px){
-  .core-text-grid{
-    grid-template-columns: 1fr;
-  }
-}
-
-
-/* keep old duplicated UI hidden */
-.topbar,
-.card:not(.content-card),
-.player-bar,
-.meta-row,
-.adjust-row,
-.controls-row{
-  display:none !important;
-}
-
-/* rewritten track panel */
+/* rewrite track panel */
 #tracks-panel { display:none !important; }
 
 .new-track-panel{
@@ -790,4 +769,29 @@ flex: 1;
     top:auto;
     bottom:12px;
   }
+}
+
+/* keep old UI hidden while using rewritten track menu */
+.topbar,
+.card .search-bar,
+.player-bar,
+.meta-row,
+.adjust-row,
+.controls-row{
+  display:none !important;
+}
+
+
+/* ===== hide numbered key header and tuning label ===== */
+.at-numbered-key-header {
+  display: none !important;
+}
+
+
+
+/* ===== safer hide rules for numbered key header and top tuning label ===== */
+
+/* hide numbered key header like 1=bA */
+.at-numbered-key-header {
+  display: none !important;
 }
