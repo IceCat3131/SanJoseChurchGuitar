@@ -906,6 +906,8 @@
     applyPlaybackTrackVisibility(api);
   }
 
+  window.renderVisibleTracks = renderVisibleTracks;
+
   function buildTracksPanel(score) {
     const panel = document.getElementById('tracks-panel');
     const list = document.getElementById('tracks-list');
@@ -1438,26 +1440,53 @@ function pad4(num) {
   function getStaffMode(){
     try { return localStorage.getItem('staffMode') || 'five'; } catch(e) { return 'five'; }
   }
-  function hideJianpu(){
-    document.querySelectorAll('#alphaTab .atj-keysig, #alphaTab .atj-jianpu, #alphaTab .atj-time-signature').forEach(el => {
-      el.style.display = 'none';
-    });
-  }
-  function showJianpu(){
-    document.querySelectorAll('#alphaTab .atj-keysig, #alphaTab .atj-jianpu, #alphaTab .atj-time-signature').forEach(el => {
-      el.style.display = '';
-    });
-  }
   function updateCoreStaffUI(){
     const mode = getStaffMode();
     document.getElementById('ui-staff-five')?.classList.toggle('active', mode === 'five');
     document.getElementById('ui-staff-jian')?.classList.toggle('active', mode === 'jian');
     document.getElementById('ui-staff') && (document.getElementById('ui-staff').textContent = mode === 'jian' ? '简' : '谱');
   }
+  function applyStaffModeToTracks(score, mode){
+    if (!score || !Array.isArray(score.tracks)) return;
+    for (const track of score.tracks){
+      if (!track || !Array.isArray(track.staves)) continue;
+      for (const staff of track.staves){
+        if (!staff || staff.showTablature) continue;
+        staff.showStandardNotation = (mode !== 'jian');
+        if ('showNumbered' in staff) staff.showNumbered = (mode === 'jian');
+        if ('showNumberedNotation' in staff) staff.showNumberedNotation = (mode === 'jian');
+      }
+    }
+  }
+  function fixRenderedJianpuDom(mode){
+    const showJian = mode === 'jian';
+    document.body.classList.toggle('jian-mode', showJian);
+    document.querySelectorAll('#alphaTab .atj-keysig, #alphaTab .atj-jianpu, #alphaTab .atj-time-signature').forEach(el => {
+      el.style.display = showJian ? '' : 'none';
+    });
+  }
+  function rerenderForStaffMode(){
+    const api = window.__atApi;
+    if (!api) return;
+    const mode = getStaffMode();
+    applyStaffModeToTracks(window.__currentScore || api.score, mode);
+    applyStaffModeToTracks(api.score, mode);
+    try {
+      if (typeof window.renderVisibleTracks === 'function') {
+        window.renderVisibleTracks(api);
+      } else if (typeof api.render === 'function') {
+        api.render();
+      }
+    } catch (e) {
+      console.warn('rerenderForStaffMode failed', e);
+    }
+    setTimeout(() => fixRenderedJianpuDom(mode), 30);
+    setTimeout(() => fixRenderedJianpuDom(mode), 180);
+  }
   function applyStaffMode(){
     const mode = getStaffMode();
-    if (mode === 'jian') showJianpu(); else hideJianpu();
     updateCoreStaffUI();
+    rerenderForStaffMode();
   }
   window.applyStaffMode = applyStaffMode;
   document.addEventListener('DOMContentLoaded', () => {
@@ -1467,7 +1496,7 @@ function pad4(num) {
   const t = setInterval(() => {
     if (window.__atApi) {
       clearInterval(t);
-      try { window.__atApi.renderFinished.on(() => setTimeout(applyStaffMode, 30)); } catch(e) {}
+      try { window.__atApi.renderFinished.on(() => setTimeout(() => fixRenderedJianpuDom(getStaffMode()), 30)); } catch(e) {}
     }
   }, 300);
 })();
