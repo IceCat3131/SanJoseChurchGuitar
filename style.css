@@ -1188,3 +1188,11 @@ flex: 1;
     grid-template-columns:1fr;
   }
 }
+
+
+/* phase4 floating panels hotfix */
+.core-panel-layer[hidden]{display:none !important;}
+.core-panel-layer{position:fixed; inset:0; z-index:1200; pointer-events:auto;}
+.core-panel{position:absolute; left:50%; top:172px; transform:translateX(-50%); z-index:1201;}
+@media (max-width: 900px){ .core-panel{ top:146px; } }
+@media (max-width: 640px){ .core-panel{ top:132px; } }
