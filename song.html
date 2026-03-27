@@ -116,11 +116,7 @@
         </div>
         <div class="core-panel" id="panel-staff" hidden>
           <div class="core-panel-head"><span>谱</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
-          <div class="core-panel-actions core-panel-actions-left">
-            <button type="button" class="core-option-btn" id="ui-staff-five">五线谱</button>
-            <button type="button" class="core-option-btn" id="ui-staff-jian">简谱</button>
-          </div>
-          <div class="core-panel-note">切换后实时生效，点击完成收起。</div>
+          <div class="core-panel-note">简谱切换后续继续完善。当前不改变现有稳定功能。</div>
         </div>
       </div>
     </div>
@@ -1494,7 +1490,7 @@ function pad4(num) {
     host.appendChild(btn);
     updateStaffToggleUI();
   }
-  window.applyStaffMode = function applyStaffMode(){
+  function applyStaffMode(){
     const api = window.__atApi;
     if (!api || !api.score || !Array.isArray(api.score.tracks)) return;
     const mode = getStaffMode();
@@ -1674,18 +1670,7 @@ function pad4(num) {
     $('ui-key')?.addEventListener('click', ()=>openPanel('panel-key'));
     $('ui-mode')?.addEventListener('click', ()=>openPanel('panel-mode'));
     $('ui-text')?.addEventListener('click', ()=>openPanel('panel-text'));
-    $('ui-track')?.addEventListener('click', (e)=>{
-      e.preventDefault();
-      e.stopPropagation();
-      const panel = $('tracks-panel');
-      if (!panel) return;
-      const score = (window.__atApi && window.__atApi.score) ? window.__atApi.score : null;
-      if (score && typeof buildTracksPanel === 'function') {
-        try { buildTracksPanel(score); } catch(err) { console.warn(err); }
-      }
-      panel.classList.toggle('hidden');
-      positionTracksPanel();
-    });
+    $('ui-track')?.addEventListener('click', ()=>click('btn-tracks'));
     $('ui-staff')?.addEventListener('click', ()=>openPanel('panel-staff'));
     $('ui-lang')?.addEventListener('click', ()=>openPanel('panel-lang'));
     $('ui-search')?.addEventListener('click', ()=>openPanel('panel-search'));
@@ -1707,16 +1692,16 @@ function pad4(num) {
       setTimeout(syncUI,30);
     });
 
-    $('ui-mode-score')?.addEventListener('click', ()=>{ click('btn-mode-score'); setTimeout(syncUI,20); });
-    $('ui-mode-lyrics')?.addEventListener('click', ()=>{ click('btn-mode-lyrics'); setTimeout(syncUI,20); });
+    $('ui-mode-score')?.addEventListener('click', ()=>{ click('btn-mode-score'); setTimeout(()=>{syncUI(); closePanels();},20); });
+    $('ui-mode-lyrics')?.addEventListener('click', ()=>{ click('btn-mode-lyrics'); setTimeout(()=>{syncUI(); closePanels();},20); });
 
     $('ui-font-plus')?.addEventListener('click', ()=>{ click('btn-score-font-plus'); setTimeout(syncUI,20); });
     $('ui-font-minus')?.addEventListener('click', ()=>{ click('btn-score-font-minus'); setTimeout(syncUI,20); });
     $('ui-spacing-plus')?.addEventListener('click', ()=>{ click('btn-spacing-plus'); setTimeout(syncUI,20); });
     $('ui-spacing-minus')?.addEventListener('click', ()=>{ click('btn-spacing-minus'); setTimeout(syncUI,20); });
 
-    $('ui-lang-simp')?.addEventListener('click', ()=>{ if(($('btn-script')?.textContent||'').trim() !== '繁') click('btn-script'); setTimeout(syncUI,20); });
-    $('ui-lang-trad')?.addEventListener('click', ()=>{ if(($('btn-script')?.textContent||'').trim() !== '简') click('btn-script'); setTimeout(syncUI,20); });
+    $('ui-lang-simp')?.addEventListener('click', ()=>{ if(($('btn-script')?.textContent||'').trim() !== '繁') click('btn-script'); setTimeout(()=>{syncUI(); closePanels();},20); });
+    $('ui-lang-trad')?.addEventListener('click', ()=>{ if(($('btn-script')?.textContent||'').trim() !== '简') click('btn-script'); setTimeout(()=>{syncUI(); closePanels();},20); });
 
     $('ui-book-c')?.addEventListener('click', ()=>{ click('btn-book-c'); setTimeout(syncUI,20); });
     $('ui-book-ts')?.addEventListener('click', ()=>{ click('btn-book-ts'); setTimeout(syncUI,20); });
@@ -1725,22 +1710,18 @@ function pad4(num) {
       click('btn-search'); closePanels();
     });
 
-    $('ui-staff-five')?.addEventListener('click', ()=>{
-      try { localStorage.setItem('staffMode', 'five'); } catch(e) {}
-      if (typeof window.applyStaffMode === 'function') window.applyStaffMode();
-      setTimeout(syncUI, 30);
-    });
-    $('ui-staff-jian')?.addEventListener('click', ()=>{
-      try { localStorage.setItem('staffMode', 'jian'); } catch(e) {}
-      if (typeof window.applyStaffMode === 'function') window.applyStaffMode();
-      setTimeout(syncUI, 30);
-    });
-
     $('ui-progress')?.addEventListener('input', ()=>{
       if(!$('player-progress')) return; $('player-progress').value = $('ui-progress').value; $('player-progress').dispatchEvent(new Event('input',{bubbles:true}));
     });
     $('ui-progress')?.addEventListener('change', ()=>{
       if(!$('player-progress')) return; $('player-progress').value = $('ui-progress').value; $('player-progress').dispatchEvent(new Event('change',{bubbles:true}));
+    });
+
+    document.addEventListener('click', (e)=>{
+      const insidePanel = e.target.closest('.core-panel-layer');
+      const insideToolbar = e.target.closest('.core-ui-toolbar');
+      const insideTracks = e.target.closest('#tracks-panel');
+      if(!insidePanel && !insideToolbar && !insideTracks) closePanels();
     });
   }
 
@@ -1751,7 +1732,6 @@ function pad4(num) {
     panel.style.right = '12px';
     panel.style.top = '168px';
     panel.style.zIndex = '9999';
-    panel.style.display = panel.classList.contains('hidden') ? '' : 'block';
   }
 
   document.addEventListener('DOMContentLoaded', ()=>{
@@ -1762,11 +1742,6 @@ function pad4(num) {
     positionTracksPanel();
   });
 })();
-</script>
-
-
-<script>
-try { if (typeof buildTracksPanel === 'function') window.buildTracksPanel = buildTracksPanel; } catch(e) {}
 </script>
 
 </body>
