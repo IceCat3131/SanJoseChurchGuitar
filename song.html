@@ -40,7 +40,7 @@
       </div>
       <div class="core-panel-layer" id="core-panel-layer" hidden>
         <div class="core-panel" id="panel-speed" hidden>
-          <div class="core-panel-head"><span>速度</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>速度</span></div>
           <div class="core-panel-body">
             <input id="ui-speed-range" type="range" min="50" max="150" step="5" value="100" />
             <div class="core-panel-value" id="ui-speed-value">100%</div>
@@ -48,7 +48,7 @@
           <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-speed-reset">恢复</button></div>
         </div>
         <div class="core-panel" id="panel-key" hidden>
-          <div class="core-panel-head"><span>转调</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>转调</span></div>
           <div class="core-panel-body core-panel-stepper">
             <button type="button" class="core-step-btn" id="ui-key-minus">−</button>
             <div class="core-panel-value" id="ui-key-value">0</div>
@@ -57,14 +57,14 @@
           <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-key-reset">恢复</button></div>
         </div>
         <div class="core-panel" id="panel-mode" hidden>
-          <div class="core-panel-head"><span>内容</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>内容</span></div>
           <div class="core-panel-actions core-panel-actions-left">
             <button type="button" class="core-option-btn" id="ui-mode-score">吉他</button>
             <button type="button" class="core-option-btn" id="ui-mode-lyrics">歌词</button>
           </div>
         </div>
         <div class="core-panel" id="panel-text" hidden>
-          <div class="core-panel-head"><span>文字</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>文字</span></div>
           <div class="core-text-grid">
             <div class="core-control-card">
               <div class="core-control-label">谱词字号</div>
@@ -79,16 +79,17 @@
               <div class="core-panel-stepper"><button type="button" class="core-step-btn" id="ui-chord-minus">−</button><div class="core-panel-value" id="ui-chord-value">16</div><button type="button" class="core-step-btn" id="ui-chord-plus">+</button></div>
             </div>
           </div>
+          <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-text-reset">恢复</button></div>
         </div>
         <div class="core-panel" id="panel-lang" hidden>
-          <div class="core-panel-head"><span>语言</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>语言</span></div>
           <div class="core-panel-actions core-panel-actions-left">
             <button type="button" class="core-option-btn" id="ui-lang-simp">简体</button>
             <button type="button" class="core-option-btn" id="ui-lang-trad">繁体</button>
           </div>
         </div>
         <div class="core-panel" id="panel-search" hidden>
-          <div class="core-panel-head"><span>搜索</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>搜索</span></div>
           <div class="core-book-row">
             <button type="button" class="core-option-btn" id="ui-book-c">大本</button>
             <button type="button" class="core-option-btn" id="ui-book-ts">小本</button>
@@ -99,12 +100,12 @@
           </div>
         </div>
         <div class="core-panel" id="panel-staff" hidden>
-          <div class="core-panel-head"><span>谱</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>谱</span></div>
           <div class="core-panel-actions core-panel-actions-left">
             <button type="button" class="core-option-btn" id="ui-staff-five">五线谱</button>
             <button type="button" class="core-option-btn" id="ui-staff-jian">简谱</button>
           </div>
-          <div class="core-panel-note">切换后实时生效，点完成收起。</div>
+          <div class="core-panel-note">切换后实时生效，点面板外空白处收起。</div>
         </div>
       </div>
     </div>
@@ -151,7 +152,8 @@
     script: "simplified",
     lyricsFontSize: 24,
     data: { c: [], ts: [] },
-    loadedRanges: { c: {}, ts: {} }
+    loadedRanges: { c: {}, ts: {} },
+    searchBook: "c"
   };
 
   const DEFAULT_VIEWER_PREFS = {
@@ -477,6 +479,21 @@
     refreshAdjustUI();
   }
 
+  function resetTextSettings() {
+    viewerPrefs.scoreFontSizePx = DEFAULT_VIEWER_PREFS.scoreFontSizePx;
+    viewerPrefs.scoreSpacingFactor = DEFAULT_VIEWER_PREFS.scoreSpacingFactor;
+    viewerPrefs.chordFontSizePx = DEFAULT_VIEWER_PREFS.chordFontSizePx;
+    saveViewerPrefs();
+    applyViewerPrefsToScore();
+    refreshAdjustUI();
+  }
+
+  function setSearchBook(book) {
+    state.searchBook = (book === 'ts') ? 'ts' : 'c';
+    syncBookButtons();
+    syncUI();
+  }
+
   function setScriptMode(mode) {
     state.script = (mode === 'traditional') ? 'traditional' : 'simplified';
     syncScriptButton();
@@ -508,7 +525,10 @@
       alert('请输入正确的编号，如 31');
       return;
     }
-    goToNumber(no);
+    state.currentBook = (state.searchBook === 'ts') ? 'ts' : 'c';
+    state.currentNo = no;
+    updateURL();
+    loadAndRenderCurrentSong();
   }
 
 
@@ -1352,8 +1372,8 @@ function pad4(num) {
     if($('ui-chord-value')) $('ui-chord-value').textContent = chordText;
     if($('ui-search-input') && document.activeElement !== $('ui-search-input')) $('ui-search-input').value = String(state.currentNo || '');
     if($('search-input') && document.activeElement !== $('search-input')) $('search-input').value = String(state.currentNo || '');
-    $('ui-book-c')?.classList.toggle('active', state.currentBook === 'c');
-    $('ui-book-ts')?.classList.toggle('active', state.currentBook === 'ts');
+    $('ui-book-c')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'c');
+    $('ui-book-ts')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'ts');
     $('ui-mode-score')?.classList.toggle('active', state.mode === 'score');
     $('ui-mode-lyrics')?.classList.toggle('active', state.mode === 'lyrics');
     $('ui-lang-simp')?.classList.toggle('active', state.script === 'simplified');
@@ -1397,12 +1417,13 @@ function pad4(num) {
     $('ui-spacing-minus')?.addEventListener('click', ()=>{ changeSpacing(-0.1); syncUI(); });
     $('ui-chord-plus')?.addEventListener('click', ()=>{ changeChordFont(1); syncUI(); });
     $('ui-chord-minus')?.addEventListener('click', ()=>{ changeChordFont(-1); syncUI(); });
+    $('ui-text-reset')?.addEventListener('click', ()=>{ resetTextSettings(); syncUI(); });
 
     $('ui-lang-simp')?.addEventListener('click', ()=>{ setScriptMode('simplified'); syncUI(); });
     $('ui-lang-trad')?.addEventListener('click', ()=>{ setScriptMode('traditional'); syncUI(); });
 
-    $('ui-book-c')?.addEventListener('click', ()=>{ setBook('c').then(syncUI); });
-    $('ui-book-ts')?.addEventListener('click', ()=>{ setBook('ts').then(syncUI); });
+    $('ui-book-c')?.addEventListener('click', ()=>{ setSearchBook('c'); });
+    $('ui-book-ts')?.addEventListener('click', ()=>{ setSearchBook('ts'); });
     $('ui-search-go')?.addEventListener('click', ()=>{
       performSearch($('ui-search-input')?.value || '');
       closePanels();
@@ -1458,7 +1479,7 @@ function pad4(num) {
   <div class="new-track-panel-inner">
     <div class="new-track-panel-head">
       <span>轨道</span>
-      <button type="button" class="new-track-close" id="new-track-close">完成</button>
+      
     </div>
     <div class="new-track-panel-actions">
       <button type="button" class="new-track-ghost" id="new-track-all">全选</button>
