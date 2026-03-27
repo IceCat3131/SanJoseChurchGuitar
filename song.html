@@ -1248,13 +1248,16 @@ function pad4(num) {
 
   function updateTitle(song) {
     const titleEl = document.getElementById("song-title");
-    if (song && song.title) {
-      titleEl.textContent = song.title;
-      document.title = song.title + " - 召会诗歌吉他谱";
-    } else {
-      titleEl.textContent = `${BOOKS[state.currentBook].label} 第 ${state.currentNo} 首`;
-      document.title = titleEl.textContent;
-    }
+    const coreTitleEl = document.getElementById("ui-title-main");
+    const nextTitle = (song && song.title)
+      ? song.title
+      : `${BOOKS[state.currentBook].label} 第 ${state.currentNo} 首`;
+
+    if (titleEl) titleEl.textContent = nextTitle;
+    if (coreTitleEl) coreTitleEl.textContent = nextTitle;
+    document.title = (song && song.title)
+      ? song.title + " - 召会诗歌吉他谱"
+      : nextTitle;
   }
 
   function setMode(mode) {
