@@ -566,9 +566,8 @@
       return true;
     }
 
-    state.searchBook = targetBook;
-    const results = await searchSongsByKeyword(targetBook, value);
-    renderSearchResults(results, value, targetBook);
+    const results = await searchSongsByKeywordAll(value);
+    renderSearchResults(results, value, 'all');
     return results.length > 0;
   }
 
@@ -1155,10 +1154,11 @@ function pad4(num) {
     if (!box) return;
     box.innerHTML = '';
     const list = state.searchResults;
+    const searchScopeLabel = (bookKey === 'all') ? '大本 / 小本' : (BOOKS[bookKey]?.label || '当前歌本');
     if (!list.length) {
       const empty = document.createElement('div');
       empty.className = 'core-search-empty';
-      empty.textContent = `在${BOOKS[bookKey].label}中找不到“${query}”`;
+      empty.textContent = `在${searchScopeLabel}中找不到“${query}”`;
       box.appendChild(empty);
       box.hidden = false;
       return;
@@ -1218,6 +1218,14 @@ function pad4(num) {
     });
     hits.sort((a, b) => (a.rank - b.rank) || (a.no - b.no));
     return hits.slice(0, 50);
+  }
+
+  async function searchSongsByKeywordAll(rawQuery) {
+    const allBooks = ['c', 'ts'];
+    const groups = await Promise.all(allBooks.map(bookKey => searchSongsByKeyword(bookKey, rawQuery)));
+    const merged = groups.flat();
+    merged.sort((a, b) => (a.rank - b.rank) || (a.no - b.no) || a.book.localeCompare(b.book));
+    return merged.slice(0, 80);
   }
 
   function ensureAlphaTabHost() {
