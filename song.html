@@ -814,11 +814,11 @@
               const bh = box.h ?? box.height ?? 16;
               const bx = box.x ?? 0;
               const by = box.y ?? 0;
-              const useChordX = shouldMaskNoteAsChordX(note, beatChordSymbol);
+              const useChordX = true;
 
               const el = document.createElement('div');
               el.className = 'tab-capo-overlay-note';
-              el.textContent = useChordX ? 'X' : String(displayFret);
+              el.textContent = 'X';
               el.style.position = 'absolute';
               el.style.left = `${bx}px`;
               el.style.top = `${by}px`;
