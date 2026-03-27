@@ -605,9 +605,14 @@
 
   function getDisplayedFretForCapo(note) {
     if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
+
     const capo = getEffectiveCapo();
-    if (!capo) return null;
-    const displayed = note.fret - capo;
+    const transpose = getUserTranspose(); // 只用用户转调
+
+    // 关键修正：
+    // 原始fret + capo + transpose
+    const displayed = note.fret + capo + transpose;
+
     if (!Number.isFinite(displayed) || displayed < 0) return null;
     return displayed;
   }
