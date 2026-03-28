@@ -248,11 +248,28 @@
     return staves.some((staff) => !!staff?.showTablature);
   }
 
+  function neutralizeNativeCapoOnScore(score) {
+    if (!score || !Array.isArray(score.tracks)) return;
+    for (const track of score.tracks) {
+      const staves = Array.isArray(track?.staves) ? track.staves : [];
+      for (const staff of staves) {
+        if (!staff || !staff.showTablature) continue;
+        try { staff.capo = 0; } catch (e) {}
+        const bars = Array.isArray(staff.bars) ? staff.bars : [];
+        for (const bar of bars) {
+          if (bar?.staff) {
+            try { bar.staff.capo = 0; } catch (e) {}
+          }
+        }
+      }
+    }
+  }
+
   function getTrackTransposeSemitones(track) {
     const base = getUserTranspose();
-    // alphaTab 原生 staff.capo 已经会作用于 TAB 播放音高，
-    // 这里不要再给 TAB 轨重复叠加 capo，否则会变成 2×capo + transpose。
-    return base;
+    // 播放层统一公式：CAPO + 转调。
+    // alphaTab 内部的原生 capo 行为在这里统一清零，避免再次重复叠加。
+    return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -1426,6 +1443,8 @@ function pad4(num) {
       // 载入谱面后：还原歌词字号/行距/缩放/多轨
       window.__atApi.scoreLoaded.on((e) => {
         __currentScore = e.score || window.__atApi.score;
+        neutralizeNativeCapoOnScore(__currentScore);
+        neutralizeNativeCapoOnScore(window.__atApi.score);
         const st = window.__gtzState || {};
         __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
 
