@@ -250,7 +250,9 @@
 
   function getTrackTransposeSemitones(track) {
     const base = getUserTranspose();
-    return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
+    // alphaTab 原生 staff.capo 已经会作用于 TAB 播放音高，
+    // 这里不要再给 TAB 轨重复叠加 capo，否则会变成 2×capo + transpose。
+    return base;
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
