@@ -248,28 +248,9 @@
     return staves.some((staff) => !!staff?.showTablature);
   }
 
-  function neutralizeNativeCapoOnScore(score) {
-    if (!score || !Array.isArray(score.tracks)) return;
-    for (const track of score.tracks) {
-      const staves = Array.isArray(track?.staves) ? track.staves : [];
-      for (const staff of staves) {
-        if (!staff || !staff.showTablature) continue;
-        try { staff.capo = 0; } catch (e) {}
-        const bars = Array.isArray(staff.bars) ? staff.bars : [];
-        for (const bar of bars) {
-          if (bar?.staff) {
-            try { bar.staff.capo = 0; } catch (e) {}
-          }
-        }
-      }
-    }
-  }
-
   function getTrackTransposeSemitones(track) {
     const base = getUserTranspose();
-    // 播放层统一公式：CAPO + 转调。
-    // alphaTab 内部的原生 capo 行为在这里统一清零，避免再次重复叠加。
-    return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
+    return base;
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -435,7 +416,6 @@
       }
       try { api.render(); } catch (e) {}
       scheduleChordRewrite(120);
-      scheduleTabCapoOverlay(140);
     } catch (e) {
       console.warn('applyScoreTransposition failed', e);
     }
@@ -612,261 +592,9 @@
     applyScoreTransposition(window.__atApi);
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
     scheduleChordRewrite(30);
-    scheduleTabCapoOverlay(120);
   }
 
 
-  let __tabCapoOverlayTimer = null;
-
-  function ensureTabCapoOverlayRoot() {
-    const host = document.getElementById('alphaTab');
-    if (!host) return null;
-    host.style.position = host.style.position || 'relative';
-    let root = host.querySelector('.tab-capo-overlay-root');
-    if (!root) {
-      root = document.createElement('div');
-      root.className = 'tab-capo-overlay-root';
-      root.style.position = 'absolute';
-      root.style.left = '0';
-      root.style.top = '0';
-      root.style.right = '0';
-      root.style.bottom = '0';
-      root.style.pointerEvents = 'none';
-      root.style.zIndex = '20';
-      host.appendChild(root);
-    }
-    return root;
-  }
-
-  function clearTabCapoOverlay() {
-    const root = document.querySelector('#alphaTab .tab-capo-overlay-root');
-    if (root) root.innerHTML = '';
-  }
-
-  function isTabBarBounds(barBounds) {
-    const staff = barBounds?.bar?.staff;
-    if (!staff) return false;
-    // 只要这一条 staff 显示了 TAB，就允许 overlay；
-    // 不再要求它必须是“纯TAB无五线谱”的 staff。
-    return !!staff.showTablature;
-  }
-
-  const TAB_CHORD_SHAPES = {
-    'C': [ { 5:3, 4:2, 3:0, 2:1, 1:0 } ],
-    'Cm': [ { 5:3, 4:5, 3:5, 2:4, 1:3 } ],
-    'C7': [ { 5:3, 4:2, 3:3, 2:1, 1:0 } ],
-    'Cm7': [ { 5:3, 4:5, 3:3, 2:4, 1:3 } ],
-    'Cmaj7': [ { 5:3, 4:2, 3:0, 2:0, 1:0 } ],
-    'Csus4': [ { 5:3, 4:3, 3:0, 2:1, 1:1 } ],
-    'D': [ { 4:0, 3:2, 2:3, 1:2 } ],
-    'Dm': [ { 4:0, 3:2, 2:3, 1:1 } ],
-    'D7': [ { 4:0, 3:2, 2:1, 1:2 } ],
-    'Dm7': [ { 4:0, 3:2, 2:1, 1:1 } ],
-    'Dmaj7': [ { 4:0, 3:2, 2:2, 1:2 } ],
-    'Dsus4': [ { 4:0, 3:2, 2:3, 1:3 } ],
-    'E': [ { 6:0, 5:2, 4:2, 3:1, 2:0, 1:0 } ],
-    'Em': [ { 6:0, 5:2, 4:2, 3:0, 2:0, 1:0 } ],
-    'E7': [ { 6:0, 5:2, 4:0, 3:1, 2:0, 1:0 } ],
-    'Em7': [ { 6:0, 5:2, 4:2, 3:0, 2:3, 1:0 }, { 6:0, 5:2, 4:0, 3:0, 2:0, 1:0 } ],
-    'Emaj7': [ { 6:0, 5:2, 4:1, 3:1, 2:0, 1:0 } ],
-    'Esus4': [ { 6:0, 5:2, 4:2, 3:2, 2:0, 1:0 } ],
-    'F': [ { 6:1, 5:3, 4:3, 3:2, 2:1, 1:1 } ],
-    'Fm': [ { 6:1, 5:3, 4:3, 3:1, 2:1, 1:1 } ],
-    'F7': [ { 6:1, 5:3, 4:1, 3:2, 2:1, 1:1 } ],
-    'Fmaj7': [ { 6:1, 5:3, 4:2, 3:2, 2:1, 1:0 } ],
-    'Fsus4': [ { 6:1, 5:3, 4:3, 3:3, 2:1, 1:1 } ],
-    'G': [ { 6:3, 5:2, 4:0, 3:0, 2:0, 1:3 }, { 6:3, 5:2, 4:0, 3:0, 2:3, 1:3 } ],
-    'Gm': [ { 6:3, 5:5, 4:5, 3:3, 2:3, 1:3 } ],
-    'G7': [ { 6:3, 5:2, 4:0, 3:0, 2:0, 1:1 } ],
-    'Gmaj7': [ { 6:3, 5:2, 4:0, 3:0, 2:0, 1:2 } ],
-    'Gsus4': [ { 6:3, 5:3, 4:0, 3:0, 2:1, 1:3 } ],
-    'A': [ { 5:0, 4:2, 3:2, 2:2, 1:0 } ],
-    'Am': [ { 5:0, 4:2, 3:2, 2:1, 1:0 } ],
-    'A7': [ { 5:0, 4:2, 3:0, 2:2, 1:0 } ],
-    'Am7': [ { 5:0, 4:2, 3:0, 2:1, 1:0 } ],
-    'Amaj7': [ { 5:0, 4:2, 3:1, 2:2, 1:0 } ],
-    'Asus4': [ { 5:0, 4:2, 3:2, 2:3, 1:0 } ],
-    'B': [ { 5:2, 4:4, 3:4, 2:4, 1:2 } ],
-    'Bm': [ { 5:2, 4:4, 3:4, 2:3, 1:2 } ],
-    'B7': [ { 5:2, 4:1, 3:2, 2:0, 1:2 } ],
-    'Bm7': [ { 5:2, 4:4, 3:2, 2:3, 1:2 } ],
-    'Bmaj7': [ { 5:2, 4:4, 3:3, 2:4, 1:2 } ],
-    'Bsus4': [ { 5:2, 4:4, 3:4, 2:5, 1:2 } ]
-  };
-
-  function normalizeChordDisplayKey(symbol) {
-    const s = String(symbol || '').trim();
-    if (!s) return null;
-    const main = s.split('/')[0].trim();
-    const m = main.match(/^([A-G])([#b♯♭]?)(.*)$/i);
-    if (!m) return null;
-    const root = m[1].toUpperCase() + (m[2] || '').replace('♯', '#').replace('♭', 'b');
-    let suffix = (m[3] || '').trim();
-    suffix = suffix.replace(/[()\s]/g, '');
-    const lower = suffix.toLowerCase();
-    if (!suffix) return root;
-    if (lower.startsWith('maj7')) return root + 'maj7';
-    if (lower.startsWith('maj')) return root;
-    if (lower.startsWith('min7')) return root + 'm7';
-    if (lower.startsWith('min')) return root + 'm';
-    if (lower.startsWith('m7')) return root + 'm7';
-    if (lower === 'm') return root + 'm';
-    if (lower.startsWith('m') && !lower.startsWith('maj')) return root + 'm';
-    if (lower.startsWith('sus4') || lower == 'sus') return root + 'sus4';
-    if (lower.startsWith('7sus4')) return root + 'sus4';
-    if (lower.startsWith('dim') || lower.startsWith('aug') || lower.startsWith('add') || lower.startsWith('6') || lower.startsWith('9') || lower.startsWith('11') || lower.startsWith('13')) return null;
-    if (lower.startsWith('7')) return root + '7';
-    return root;
-  }
-
-  function getBeatChordSymbol(beat) {
-    try {
-      return beat?.chord?.name || beat?.chord?.text || beat?.chord?.displayName || beat?.voice?.bar?.staff?.getChord?.(beat?.chordId)?.name || null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function getChordShapesForSymbol(symbol) {
-    const key = normalizeChordDisplayKey(symbol);
-    if (!key) return null;
-    return TAB_CHORD_SHAPES[key] || null;
-  }
-
-  function getBeatBoundsX(beatBounds) {
-    const box = beatBounds?.visualBounds || beatBounds?.bounds || beatBounds;
-    const x = box?.x ?? beatBounds?.x ?? null;
-    return Number.isFinite(x) ? Number(x) : null;
-  }
-
-  function buildSystemChordTimeline(system) {
-    const timeline = [];
-    const masterBars = Array.isArray(system?.bars) ? system.bars : [];
-    for (const masterBar of masterBars) {
-      const barBoundsList = Array.isArray(masterBar?.bars) ? masterBar.bars : [];
-      for (const barBounds of barBoundsList) {
-        const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
-        for (const beatBounds of beats) {
-          const beat = beatBounds?.beat || beatBounds?.voice?.beat || null;
-          const symbol = getBeatChordSymbol(beat);
-          const x = getBeatBoundsX(beatBounds);
-          if (!symbol || x === null) continue;
-          timeline.push({ x, symbol });
-        }
-      }
-    }
-    timeline.sort((a, b) => a.x - b.x);
-    return timeline;
-  }
-
-  function getChordSymbolFromTimeline(timeline, beatBounds, fallbackSymbol = null) {
-    const x = getBeatBoundsX(beatBounds);
-    if (!Array.isArray(timeline) || !timeline.length || x === null) return fallbackSymbol;
-    let active = fallbackSymbol;
-    for (const item of timeline) {
-      if (!item || item.x > x) break;
-      if (item.symbol) active = item.symbol;
-    }
-    return active;
-  }
-
-  function shouldMaskNoteAsChordX(note, beatSymbol) {
-    if (!note || !Number.isFinite(note?.string) || !Number.isFinite(note?.fret) || note.fret < 0) return false;
-    const shapes = getChordShapesForSymbol(beatSymbol);
-    if (!Array.isArray(shapes) || !shapes.length) return false;
-    const stringNo = Number(note.string);
-    const displayFret = getDisplayedFretForCapo(note);
-    if (!Number.isFinite(displayFret)) return false;
-    const offset = getEffectiveCapo() + getUserTranspose();
-    for (const shape of shapes) {
-      if (!shape || !Object.prototype.hasOwnProperty.call(shape, stringNo)) continue;
-      const expected = Number(shape[stringNo]) + offset;
-      if (displayFret === expected) return true;
-    }
-    return false;
-  }
-
-  function getDisplayedFretForCapo(note) {
-    if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
-
-    const capo = getEffectiveCapo();
-    const transpose = getUserTranspose();
-
-    // 正确显示逻辑：
-    // TAB显示 = 原始品位 + Capo + 用户转调
-    const displayed = note.fret + capo + transpose;
-
-    if (!Number.isFinite(displayed) || displayed < 0) return null;
-    return displayed;
-  }
-
-  function renderTabCapoOverlay() {
-    const api = window.__atApi;
-    const root = ensureTabCapoOverlayRoot();
-    if (!api || !root) return;
-    root.innerHTML = '';
-
-    const offset = getEffectiveCapo() + getUserTranspose();
-    const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
-    if (!lookup || !Array.isArray(lookup.staffSystems)) return;
-
-    let lastGlobalChordSymbol = null;
-
-    for (const system of lookup.staffSystems) {
-      const systemChordTimeline = buildSystemChordTimeline(system);
-      const masterBars = Array.isArray(system?.bars) ? system.bars : [];
-      for (const masterBar of masterBars) {
-        const barBoundsList = Array.isArray(masterBar?.bars) ? masterBar.bars : [];
-        for (const barBounds of barBoundsList) {
-          if (!isTabBarBounds(barBounds)) continue;
-          const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
-          for (const beatBounds of beats) {
-            const beatChordSymbol = getChordSymbolFromTimeline(systemChordTimeline, beatBounds, lastGlobalChordSymbol) || null;
-            if (beatChordSymbol) lastGlobalChordSymbol = beatChordSymbol;
-            const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
-            for (const noteBounds of notes) {
-              const note = noteBounds?.note;
-              const displayFret = getDisplayedFretForCapo(note);
-              const box = noteBounds?.noteHeadBounds || noteBounds;
-              if (displayFret === null || !box) continue;
-              const bw = box.w ?? box.width ?? 16;
-              const bh = box.h ?? box.height ?? 16;
-              const bx = box.x ?? 0;
-              const by = box.y ?? 0;
-              const useChordX = true;
-
-              const el = document.createElement('div');
-              el.className = 'tab-capo-overlay-note';
-              el.textContent = 'X';
-              el.style.position = 'absolute';
-              el.style.left = `${bx}px`;
-              el.style.top = `${by}px`;
-              el.style.width = `${bw}px`;
-              el.style.height = `${bh}px`;
-              el.style.display = 'flex';
-              el.style.alignItems = 'center';
-              el.style.justifyContent = 'center';
-              el.style.background = '#fff';
-              el.style.color = '#111';
-              el.style.fontWeight = '700';
-              el.style.fontSize = `${Math.max(12, Math.round(bh * (useChordX ? 0.9 : 0.95)))}px`;
-              el.style.lineHeight = '1';
-              el.style.borderRadius = '2px';
-              el.style.boxSizing = 'border-box';
-              root.appendChild(el);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  function scheduleTabCapoOverlay(delay = 60) {
-    try { if (__tabCapoOverlayTimer) clearTimeout(__tabCapoOverlayTimer); } catch (e) {}
-    __tabCapoOverlayTimer = setTimeout(() => {
-      try { renderTabCapoOverlay(); } catch (e) { console.warn('renderTabCapoOverlay failed', e); }
-    }, delay);
-  }
 
 
   function applyViewerPrefsToLyricsPage() {
@@ -1443,8 +1171,6 @@ function pad4(num) {
       // 载入谱面后：还原歌词字号/行距/缩放/多轨
       window.__atApi.scoreLoaded.on((e) => {
         __currentScore = e.score || window.__atApi.score;
-        neutralizeNativeCapoOnScore(__currentScore);
-        neutralizeNativeCapoOnScore(window.__atApi.score);
         const st = window.__gtzState || {};
         __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
 
@@ -1469,11 +1195,9 @@ function pad4(num) {
         renderVisibleTracks(window.__atApi);
         applyScoreTransposition(window.__atApi);
         applyPlaybackTrackVisibility(window.__atApi);
-        scheduleTabCapoOverlay(180);
       });
 
       window.__atApi.renderFinished.on(() => {
-        scheduleTabCapoOverlay(40);
         try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode({ domOnly: true }); } catch (e) {}
       });
 
