@@ -14,6 +14,26 @@
 <div class="page">
   <div class="page-inner">
 
+    <!-- 第 1 部分：返回首页 / 上一首 / 标题 / 下一首 -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="topbar-button" id="btn-back" aria-label="返回首页">
+  <svg viewBox="0 0 24 24" class="icon-home">
+    <path d="M3 10.5 12 3l9 7.5v9.5a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1v-9.5z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+  </svg>
+</button>
+      </div>
+      <button class="topbar-button" id="btn-prev" aria-label="上一首">&lt;</button>
+      <div class="topbar-title" id="song-title">诗歌</div>
+      <button class="topbar-button" id="btn-next" aria-label="下一首">&gt;</button>
+    </div>
+
+
     <div class="core-ui card" id="core-ui">
       <div class="core-ui-toolbar">
         <button class="core-btn core-btn-icon" id="ui-home" aria-label="首页">⌂</button>
@@ -32,7 +52,7 @@
       </div>
       <div class="core-ui-progress-wrap">
         <input class="core-ui-progress" id="ui-progress" type="range" min="0" max="1000" value="0" />
-        <div class="core-ui-time" id="ui-time">00:00 / 00:00</div>
+        <div class="core-ui-time" id="ui-time">00:00</div>
       </div>
       <div class="core-ui-title-wrap">
         <div class="core-ui-title-main" id="ui-title-main">诗歌</div>
@@ -40,7 +60,7 @@
       </div>
       <div class="core-panel-layer" id="core-panel-layer" hidden>
         <div class="core-panel" id="panel-speed" hidden>
-          <div class="core-panel-head"><span>速度</span></div>
+          <div class="core-panel-head"><span>速度</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-panel-body">
             <input id="ui-speed-range" type="range" min="50" max="150" step="5" value="100" />
             <div class="core-panel-value" id="ui-speed-value">100%</div>
@@ -48,7 +68,7 @@
           <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-speed-reset">恢复</button></div>
         </div>
         <div class="core-panel" id="panel-key" hidden>
-          <div class="core-panel-head"><span>转调</span></div>
+          <div class="core-panel-head"><span>转调</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-panel-body core-panel-stepper">
             <button type="button" class="core-step-btn" id="ui-key-minus">−</button>
             <div class="core-panel-value" id="ui-key-value">0</div>
@@ -57,14 +77,14 @@
           <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-key-reset">恢复</button></div>
         </div>
         <div class="core-panel" id="panel-mode" hidden>
-          <div class="core-panel-head"><span>内容</span></div>
+          <div class="core-panel-head"><span>内容</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-panel-actions core-panel-actions-left">
             <button type="button" class="core-option-btn" id="ui-mode-score">吉他</button>
             <button type="button" class="core-option-btn" id="ui-mode-lyrics">歌词</button>
           </div>
         </div>
         <div class="core-panel" id="panel-text" hidden>
-          <div class="core-panel-head"><span>文字</span></div>
+          <div class="core-panel-head"><span>文字</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-text-grid">
             <div class="core-control-card">
               <div class="core-control-label">谱词字号</div>
@@ -79,34 +99,136 @@
               <div class="core-panel-stepper"><button type="button" class="core-step-btn" id="ui-chord-minus">−</button><div class="core-panel-value" id="ui-chord-value">16</div><button type="button" class="core-step-btn" id="ui-chord-plus">+</button></div>
             </div>
           </div>
-          <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-text-reset">恢复</button></div>
         </div>
         <div class="core-panel" id="panel-lang" hidden>
-          <div class="core-panel-head"><span>语言</span></div>
+          <div class="core-panel-head"><span>语言</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-panel-actions core-panel-actions-left">
             <button type="button" class="core-option-btn" id="ui-lang-simp">简体</button>
             <button type="button" class="core-option-btn" id="ui-lang-trad">繁体</button>
           </div>
         </div>
         <div class="core-panel" id="panel-search" hidden>
-          <div class="core-panel-head"><span>搜索</span></div>
+          <div class="core-panel-head"><span>搜索</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-book-row">
             <button type="button" class="core-option-btn" id="ui-book-c">大本</button>
             <button type="button" class="core-option-btn" id="ui-book-ts">小本</button>
           </div>
           <div class="core-search-row">
-            <input id="ui-search-input" class="core-search-input" type="text" inputmode="search" placeholder="输入编号、歌名或歌词关键词" />
+            <input id="ui-search-input" class="core-search-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="输入编号，如31" />
             <button type="button" class="core-option-btn core-primary" id="ui-search-go">搜索</button>
           </div>
-          <div id="ui-search-results" class="core-search-results" hidden></div>
         </div>
         <div class="core-panel" id="panel-staff" hidden>
-          <div class="core-panel-head"><span>谱</span></div>
+          <div class="core-panel-head"><span>谱</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-panel-actions core-panel-actions-left">
             <button type="button" class="core-option-btn" id="ui-staff-five">五线谱</button>
             <button type="button" class="core-option-btn" id="ui-staff-jian">简谱</button>
           </div>
-          <div class="core-panel-note">切换后实时生效，点面板外空白处收起。</div>
+          <div class="core-panel-note">切换后实时生效，点完成收起。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 第 2 部分：搜索框 -->
+    <div class="card">
+      <div class="search-bar">
+        <div class="search-book-toggle">
+          <button class="search-book-btn" data-book="c" id="btn-book-c">大本</button>
+          <div class="search-book-divider"></div>
+          <button class="search-book-btn" data-book="ts" id="btn-book-ts">小本</button>
+        </div>
+        <div class="search-input-wrap">
+          <input
+            id="search-input"
+            class="search-input"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            placeholder="输入编号，如31"
+          />
+          <button class="search-icon-btn" id="btn-search">
+            <span class="search-icon">🔍</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    
+    <!-- 播放条（放在搜索栏下方） -->
+    <div class="player-bar card" id="player-bar">
+      <div class="player-left">
+        <button class="player-btn" id="btn-player-prev" aria-label="上一首">⏮</button>
+        <button class="player-btn player-btn-primary" id="btn-player-play" aria-label="播放/暂停">▶</button>
+        <button class="player-btn" id="btn-player-next" aria-label="下一首">⏭</button>
+      </div>
+      <div class="player-mid">
+        <div class="player-time" id="player-time">00:00 / 00:00</div>
+        <input class="player-progress" id="player-progress" type="range" min="0" max="1000" value="0" />
+      </div>
+      <div class="player-right">
+        <div class="player-indicator" id="player-indicator"><span id="player-status">音源未加载</span></div>
+      </div>
+    </div>
+
+    <div class="meta-row card" id="meta-row">
+      <div class="meta-pill">速度 <span id="meta-tempo">--</span></div>
+      <div class="meta-pill">调 <span id="meta-key">--</span></div>
+      <div class="meta-pill">Capo <span id="meta-capo">0</span></div>
+      <div class="meta-pill">播放 <span id="meta-speed">100%</span></div>
+    </div>
+
+    <div class="adjust-row card">
+      <div class="adjust-group">
+        <span class="adjust-label">谱词字号</span>
+        <button class="mini-adjust-btn" id="btn-score-font-minus">−</button>
+        <span class="adjust-value" id="score-font-value">30</span>
+        <button class="mini-adjust-btn" id="btn-score-font-plus">+</button>
+      </div>
+      <div class="adjust-group">
+        <span class="adjust-label">谱词距</span>
+        <button class="mini-adjust-btn" id="btn-spacing-minus">−</button>
+        <span class="adjust-value" id="spacing-value">2.0x</span>
+        <button class="mini-adjust-btn" id="btn-spacing-plus">+</button>
+      </div>
+      <div class="adjust-group adjust-group-slider">
+        <span class="adjust-label">速度</span>
+        <input id="tempo-slider" class="tempo-slider" type="range" min="50" max="150" value="100" step="5" />
+        <span class="adjust-value" id="tempo-slider-value">100%</span>
+      </div>
+      <div class="adjust-group">
+        <span class="adjust-label">转调</span>
+        <button class="mini-adjust-btn" id="btn-transpose-minus">−</button>
+        <span class="adjust-value" id="transpose-value">0</span>
+        <button class="mini-adjust-btn" id="btn-transpose-plus">+</button>
+      </div>
+      <div class="adjust-group">
+        <span class="adjust-label">原始Capo</span>
+        <span class="adjust-value" id="capo-value">0</span>
+      </div>
+    </div>
+
+    <!-- 第 3 部分：+ / - / 吉他 / 歌词 / 简繁 -->
+    <div class="controls-row">
+      <div class="controls-left">
+        <button class="icon-plusminus-btn" id="btn-font-plus">+</button>
+        <button class="icon-plusminus-btn" id="btn-font-minus">−</button>
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="btn-mode-score">吉他</button>
+          <button class="mode-btn" id="btn-mode-lyrics">歌词</button>
+        </div>
+      </div>
+      <!-- 简繁切换按钮：一个字，默认显示“繁”（当前歌词为简体） -->
+      <button class="script-toggle-btn" id="btn-script">繁</button>
+      <button class="script-toggle-btn" id="btn-tracks">轨</button>
+      <div id="tracks-panel" class="tracks-panel hidden" role="dialog" aria-label="轨道开关">
+        <div class="tracks-panel-inner">
+          <div class="tracks-panel-title">轨道</div>
+          <div class="tracks-panel-actions">
+            <button type="button" id="tracks-all">全选</button>
+            <button type="button" id="tracks-none">全不选</button>
+            <button type="button" id="tracks-close">关闭</button>
+          </div>
+          <div id="tracks-list" class="tracks-list"></div>
         </div>
       </div>
     </div>
@@ -153,10 +275,7 @@
     script: "simplified",
     lyricsFontSize: 24,
     data: { c: [], ts: [] },
-    loadedRanges: { c: {}, ts: {} },
-    searchBook: "c",
-    searchDraft: "1",
-    searchResults: []
+    loadedRanges: { c: {}, ts: {} }
   };
 
   const DEFAULT_VIEWER_PREFS = {
@@ -184,12 +303,6 @@
       // 繁体（tw） -> 简体（cn）
       converterToSimplified = OpenCC.Converter({ from: "tw", to: "cn" });
     }
-  }
-
-  function escapeHtml(str) {
-    return String(str || "").replace(/[&<>"']/g, function(ch) {
-      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
-    });
   }
 
   function convertTextByScript(text) {
@@ -240,17 +353,9 @@
   }
 
   function getEffectiveTranspose() {
+    // Capo 只作用于 6线谱（TAB）显示，
+    // 不再作用于五线谱 / 简谱 / 整体播放转调。
     return getUserTranspose();
-  }
-
-  function trackUsesTab(track) {
-    const staves = Array.isArray(track?.staves) ? track.staves : [];
-    return staves.some((staff) => !!staff?.showTablature);
-  }
-
-  function getTrackTransposeSemitones(track) {
-    const base = getUserTranspose();
-    return base;
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -401,188 +506,54 @@
   function applyScoreTransposition(api) {
     if (!api || !api.settings) return;
     const tracks = getAllTracks(api);
-    const trackTranspositions = tracks.length
-      ? tracks.map((track) => getTrackTransposeSemitones(track))
-      : [getEffectiveTranspose()];
+    const trackCount = tracks.length;
+    const semitones = getEffectiveTranspose();
     try {
       if (!api.settings.notation) api.settings.notation = {};
-      api.settings.notation.transpositionPitches = trackTranspositions.slice();
+      api.settings.notation.transpositionPitches = trackCount > 0 ? Array(trackCount).fill(semitones) : [semitones];
       api.updateSettings();
       if (typeof api.changeTrackTranspositionPitch === 'function' && tracks.length) {
-        tracks.forEach((track, i) => {
-          const semitones = trackTranspositions[i] || 0;
-          try { api.changeTrackTranspositionPitch([track], semitones); } catch (e) { console.warn('live transpose failed', e); }
-        });
+        try { api.changeTrackTranspositionPitch(tracks, semitones); } catch (e) { console.warn('live transpose failed', e); }
       }
       try { api.render(); } catch (e) {}
       scheduleChordRewrite(120);
+      scheduleTabCapoOverlay(140);
     } catch (e) {
       console.warn('applyScoreTransposition failed', e);
     }
   }
 
-  function goHome() {
-    window.location.href = "index.html";
-  }
-
-  async function goPrevSong() {
-    await tryGoTo(-1);
-  }
-
-  async function goNextSong() {
-    await tryGoTo(1);
-  }
-
-  function togglePlayPause() {
-    try {
-      if (window.__atApi) window.__atApi.playPause();
-    } catch (e) {
-      console.warn('togglePlayPause failed', e);
-    }
-  }
-
-  function setPlaybackSpeedPercent(value) {
-    viewerPrefs.playbackSpeedPercent = Math.min(150, Math.max(50, parseInt(value, 10) || 100));
-    saveViewerPrefs();
-    refreshAdjustUI();
-    updateMetaRow();
-    try { if (window.__atApi) window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
-  }
-
-  function changeTranspose(delta) {
-    viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, getUserTranspose() + delta));
-    saveViewerPrefs();
-    refreshAdjustUI();
-    updateMetaRow();
-    applyViewerPrefsToScore();
-  }
-
-  function resetTranspose() {
-    viewerPrefs.transposeSemitones = 0;
-    saveViewerPrefs();
-    refreshAdjustUI();
-    updateMetaRow();
-    applyViewerPrefsToScore();
-  }
-
-  function changeScoreFont(delta) {
-    viewerPrefs.scoreFontSizePx = Math.max(14, Math.min(52, viewerPrefs.scoreFontSizePx + delta));
-    saveViewerPrefs();
-    refreshAdjustUI();
-    applyViewerPrefsToScore();
-  }
-
-  function changeSpacing(delta) {
-    const next = Math.round((viewerPrefs.scoreSpacingFactor + delta) * 10) / 10;
-    viewerPrefs.scoreSpacingFactor = Math.max(1.0, Math.min(3.5, next));
-    saveViewerPrefs();
-    refreshAdjustUI();
-    applyViewerPrefsToScore();
-  }
-
-  function changeChordFont(delta) {
-    viewerPrefs.chordFontSizePx = Math.max(10, Math.min(36, getChordFontSizePx() + delta));
-    saveViewerPrefs();
-    scheduleChordRewrite(10);
-    refreshAdjustUI();
-  }
-
-  function resetTextSettings() {
-    viewerPrefs.scoreFontSizePx = DEFAULT_VIEWER_PREFS.scoreFontSizePx;
-    viewerPrefs.scoreSpacingFactor = DEFAULT_VIEWER_PREFS.scoreSpacingFactor;
-    viewerPrefs.chordFontSizePx = DEFAULT_VIEWER_PREFS.chordFontSizePx;
-    saveViewerPrefs();
-    applyViewerPrefsToScore();
-    refreshAdjustUI();
-  }
-
-  async function setSearchBook(book, autoSearch = false) {
-    state.searchBook = (book === 'ts') ? 'ts' : 'c';
-    const inputEl = document.getElementById('ui-search-input');
-    const currentInput = String(inputEl?.value || '').trim();
-    if (currentInput) state.searchDraft = currentInput;
-    syncBookButtons();
-    clearSearchResults();
-    syncUI();
-
-    const value = String(state.searchDraft || currentInput || '').trim();
-    if (autoSearch && value) {
-      return await performSearch(value, state.searchBook);
-    }
-    return true;
-  }
-
-  function setScriptMode(mode) {
-    state.script = (mode === 'traditional') ? 'traditional' : 'simplified';
-    syncScriptButton();
-    getSong(state.currentBook, state.currentNo).then(song => {
-      if (song) renderLyrics(song);
-    });
-  }
-
-  async function setBook(book) {
-    const nextBook = (book === 'ts') ? 'ts' : 'c';
-    if (state.currentBook === nextBook) return true;
-    state.currentBook = nextBook;
-    syncBookButtons();
-    updateURL();
-    await loadAndRenderCurrentSong();
-    return true;
-  }
-
-  async function performSearch(raw, bookOverride = null) {
-    const value = String(raw || '').trim();
-    state.searchDraft = value;
-    if (!value) {
-      clearSearchResults();
-      return false;
-    }
-
-    const targetBook = (bookOverride === 'ts' || bookOverride === 'c')
-      ? bookOverride
-      : ((state.searchBook === 'ts') ? 'ts' : 'c');
-
-    const digitsMatch = value.match(/^(\d{1,4})$/);
-    if (digitsMatch) {
-      const no = parseInt(digitsMatch[1], 10);
-      if (!Number.isFinite(no) || no <= 0) {
-        clearSearchResults();
-        return false;
-      }
-      const song = await getSong(targetBook, no);
-      if (!song) {
-        renderSearchResults([], value, targetBook);
-        return false;
-      }
-
-      state.searchBook = targetBook;
-      state.currentBook = targetBook;
-      state.currentNo = no;
-      state.searchDraft = String(no);
-      clearSearchResults();
-      updateURL();
-      await loadAndRenderCurrentSong();
-      return true;
-    }
-
-    const results = await searchSongsByKeywordAll(value);
-    renderSearchResults(results, value, 'all');
-    return results.length > 0;
-  }
-
-
   function updateMetaRow(meta) {
     __currentMeta = meta || __currentMeta || {};
+    const m = __currentMeta || {};
+    const tempoEl = document.getElementById('meta-tempo');
+    const keyEl = document.getElementById('meta-key');
+    const capoEl = document.getElementById('meta-capo');
+    const speedEl = document.getElementById('meta-speed');
+    if (tempoEl) tempoEl.textContent = (m.tempo != null && m.tempo !== '') ? String(m.tempo) : '--';
+    if (keyEl) keyEl.textContent = computeDisplayedKeyName(m);
+    if (capoEl) capoEl.textContent = String(getDisplayedCapoLabel());
+    if (speedEl) speedEl.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
   }
 
   function refreshAdjustUI() {
-    return {
-      scoreFontSizePx: viewerPrefs.scoreFontSizePx,
-      scoreSpacingFactor: viewerPrefs.scoreSpacingFactor,
-      playbackSpeedPercent: viewerPrefs.playbackSpeedPercent,
-      transposeSemitones: getUserTranspose(),
-      capo: getDisplayedCapoLabel()
-    };
+    const a = document.getElementById('score-font-value');
+    const b = document.getElementById('spacing-value');
+    const c = document.getElementById('tempo-slider');
+    const d = document.getElementById('tempo-slider-value');
+    const e = document.getElementById('meta-speed');
+    const f = document.getElementById('transpose-value');
+    const g = document.getElementById('capo-value');
+    if (a) a.textContent = String(viewerPrefs.scoreFontSizePx);
+    if (b) b.textContent = `${viewerPrefs.scoreSpacingFactor.toFixed(1)}x`;
+    if (c) c.value = String(viewerPrefs.playbackSpeedPercent);
+    if (d) d.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
+    if (e) e.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
+    if (f) {
+      const t = getUserTranspose();
+      f.textContent = t > 0 ? `+${t}` : String(t);
+    }
+    if (g) g.textContent = String(getDisplayedCapoLabel());
   }
 
   function applyViewerPrefsToScore() {
@@ -592,9 +563,120 @@
     applyScoreTransposition(window.__atApi);
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
     scheduleChordRewrite(30);
+    scheduleTabCapoOverlay(120);
   }
 
 
+  let __tabCapoOverlayTimer = null;
+
+  function ensureTabCapoOverlayRoot() {
+    const host = document.getElementById('alphaTab');
+    if (!host) return null;
+    host.style.position = host.style.position || 'relative';
+    let root = host.querySelector('.tab-capo-overlay-root');
+    if (!root) {
+      root = document.createElement('div');
+      root.className = 'tab-capo-overlay-root';
+      root.style.position = 'absolute';
+      root.style.left = '0';
+      root.style.top = '0';
+      root.style.right = '0';
+      root.style.bottom = '0';
+      root.style.pointerEvents = 'none';
+      root.style.zIndex = '20';
+      host.appendChild(root);
+    }
+    return root;
+  }
+
+  function clearTabCapoOverlay() {
+    const root = document.querySelector('#alphaTab .tab-capo-overlay-root');
+    if (root) root.innerHTML = '';
+  }
+
+  function isTabBarBounds(barBounds) {
+    const staff = barBounds?.bar?.staff;
+    if (!staff) return false;
+    // 只要这一条 staff 显示了 TAB，就允许 overlay；
+    // 不再要求它必须是“纯TAB无五线谱”的 staff。
+    return !!staff.showTablature;
+  }
+
+  function getDisplayedFretForCapo(note) {
+    if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
+
+    const capo = getEffectiveCapo();
+    const transpose = getUserTranspose();
+
+    // 正确显示逻辑：
+    // TAB显示 = 原始品位 + Capo + 用户转调
+    const displayed = note.fret + capo + transpose;
+
+    if (!Number.isFinite(displayed) || displayed < 0) return null;
+    return displayed;
+  }
+
+  function renderTabCapoOverlay() {
+    const api = window.__atApi;
+    const root = ensureTabCapoOverlayRoot();
+    if (!api || !root) return;
+    root.innerHTML = '';
+
+    const capo = getEffectiveCapo();
+    const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
+    if (!capo || !lookup || !Array.isArray(lookup.staffSystems)) return;
+
+    for (const system of lookup.staffSystems) {
+      const masterBars = Array.isArray(system?.bars) ? system.bars : [];
+      for (const masterBar of masterBars) {
+        const barBoundsList = Array.isArray(masterBar?.bars) ? masterBar.bars : [];
+        for (const barBounds of barBoundsList) {
+          if (!isTabBarBounds(barBounds)) continue;
+          const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
+          for (const beatBounds of beats) {
+            const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
+            for (const noteBounds of notes) {
+              const note = noteBounds?.note;
+              const displayFret = getDisplayedFretForCapo(note);
+              const box = noteBounds?.noteHeadBounds || noteBounds;
+              if (displayFret === null || !box) continue;
+              const bw = box.w ?? box.width ?? 16;
+              const bh = box.h ?? box.height ?? 16;
+              const bx = box.x ?? 0;
+              const by = box.y ?? 0;
+
+              const el = document.createElement('div');
+              el.className = 'tab-capo-overlay-note';
+              el.textContent = String(displayFret);
+              el.style.position = 'absolute';
+              el.style.left = `${bx}px`;
+              el.style.top = `${by}px`;
+              el.style.width = `${bw}px`;
+              el.style.height = `${bh}px`;
+              el.style.display = 'flex';
+              el.style.alignItems = 'center';
+              el.style.justifyContent = 'center';
+              el.style.background = '#fff';
+              el.style.color = '#111';
+              el.style.fontWeight = '700';
+              el.style.fontSize = `${Math.max(12, Math.round(bh * 0.95))}px`;
+              el.style.lineHeight = '1';
+              el.style.borderRadius = '2px';
+              el.style.boxSizing = 'border-box';
+              root.appendChild(el);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function scheduleTabCapoOverlay(delay = 60) {
+    try { if (__tabCapoOverlayTimer) clearTimeout(__tabCapoOverlayTimer); } catch (e) {}
+    __tabCapoOverlayTimer = setTimeout(() => {
+      try { renderTabCapoOverlay(); } catch (e) { console.warn('renderTabCapoOverlay failed', e); }
+    }, delay);
+  }
 
 
   function applyViewerPrefsToLyricsPage() {
@@ -604,13 +686,48 @@
   }
 
   function bindViewerControls() {
-    return;
+    document.getElementById('btn-score-font-plus')?.addEventListener('click', () => {
+      viewerPrefs.scoreFontSizePx = Math.min(viewerPrefs.scoreFontSizePx + 2, 52);
+      saveViewerPrefs(); refreshAdjustUI(); applyViewerPrefsToScore();
+    });
+    document.getElementById('btn-score-font-minus')?.addEventListener('click', () => {
+      viewerPrefs.scoreFontSizePx = Math.max(viewerPrefs.scoreFontSizePx - 2, 14);
+      saveViewerPrefs(); refreshAdjustUI(); applyViewerPrefsToScore();
+    });
+    document.getElementById('btn-spacing-plus')?.addEventListener('click', () => {
+      viewerPrefs.scoreSpacingFactor = Math.min(Math.round((viewerPrefs.scoreSpacingFactor + 0.1) * 10) / 10, 3.5);
+      saveViewerPrefs(); refreshAdjustUI(); applyViewerPrefsToScore();
+    });
+    document.getElementById('btn-spacing-minus')?.addEventListener('click', () => {
+      viewerPrefs.scoreSpacingFactor = Math.max(Math.round((viewerPrefs.scoreSpacingFactor - 0.1) * 10) / 10, 1.0);
+      saveViewerPrefs(); refreshAdjustUI(); applyViewerPrefsToScore();
+    });
+    document.getElementById('tempo-slider')?.addEventListener('input', (ev) => {
+      viewerPrefs.playbackSpeedPercent = parseInt(ev.target.value, 10) || 100;
+      refreshAdjustUI();
+      updateMetaRow();
+      try { if (window.__atApi) window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
+    });
+    document.getElementById('tempo-slider')?.addEventListener('change', () => {
+      saveViewerPrefs();
+    });
+
+    document.getElementById('btn-transpose-plus')?.addEventListener('click', () => {
+      viewerPrefs.transposeSemitones = Math.min(getUserTranspose() + 1, 11);
+      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow(); applyViewerPrefsToScore();
+    });
+    document.getElementById('btn-transpose-minus')?.addEventListener('click', () => {
+      viewerPrefs.transposeSemitones = Math.max(getUserTranspose() - 1, -11);
+      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow(); applyViewerPrefsToScore();
+    });
+
   }
 
   
   
   function setPlayerStatus(text) {
-    return text || "";
+    const el = document.getElementById("player-status");
+    if (el) el.textContent = text || "";
   }
 // ===== alphaTab + .gtz 加载 =====
   function base64ToUint8Array(b64) {
@@ -812,14 +929,73 @@
     applyPlaybackTrackVisibility(api);
   }
 
-  window.renderVisibleTracks = renderVisibleTracks;
-
   function buildTracksPanel(score) {
-    return score;
+    const panel = document.getElementById('tracks-panel');
+    const list = document.getElementById('tracks-list');
+    if (!panel || !list || !score) return;
+
+    list.innerHTML = '';
+    const tracks = score.tracks || [];
+    const selected = new Set(Array.isArray(__visibleTrackIndices) && __visibleTrackIndices.length ? __visibleTrackIndices : tracks.map((_, i) => i));
+
+    tracks.forEach((t, i) => {
+      const row = document.createElement('label');
+      row.className = 'track-item';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = selected.has(i);
+      cb.addEventListener('change', () => {
+        const now = new Set(Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices : []);
+        if (!now.size) tracks.forEach((_, k) => now.add(k)); // 如果之前为空=全选
+        if (cb.checked) now.add(i); else now.delete(i);
+        __visibleTrackIndices = Array.from(now).sort((a,b)=>a-b);
+        renderVisibleTracks(window.__atApi);
+        // 同步应用“每行小节数”与缩放
+        scheduleResponsiveLayout(window.__atApi);
+      });
+
+      const name = document.createElement('div');
+      name.className = 'track-name';
+      name.textContent = (t.name || t.shortName || `Track ${i+1}`);
+
+      row.appendChild(cb);
+      row.appendChild(name);
+      list.appendChild(row);
+    });
+
+    // 面板按钮
+    const btnAll = document.getElementById('tracks-all');
+    const btnNone = document.getElementById('tracks-none');
+    const btnClose = document.getElementById('tracks-close');
+
+    if (btnAll) btnAll.onclick = () => {
+      __visibleTrackIndices = tracks.map((_, i) => i);
+      buildTracksPanel(__currentScore);
+      renderVisibleTracks(window.__atApi);
+    };
+    if (btnNone) btnNone.onclick = () => {
+      __visibleTrackIndices = [];
+      buildTracksPanel(__currentScore);
+      renderVisibleTracks(window.__atApi);
+    };
+    if (btnClose) btnClose.onclick = () => panel.classList.add('hidden');
   }
 
   function setupTracksButton() {
-    return;
+    const btn = document.getElementById('btn-tracks');
+    const panel = document.getElementById('tracks-panel');
+    if (!btn || !panel) return;
+
+    btn.addEventListener('click', () => {
+      if (!__currentScore) return;
+      buildTracksPanel(__currentScore);
+      panel.classList.toggle('hidden');
+    });
+
+    // 点击遮罩关闭
+    panel.addEventListener('click', (e) => {
+      if (e.target === panel) panel.classList.add('hidden');
+    });
   }
 
   // ===== 播放位置标记（长竖线光标） =====
@@ -833,57 +1009,80 @@
     } catch (e) {}
   }
   let __playerUi = null;
-  let __playbackState = { current: 0, total: 0, playing: false, progress: 0 };
   function setupPlayerBar(api) {
     if (__playerUi) return;
-    const btnPrev = document.getElementById("ui-prev");
-    const btnPlay = document.getElementById("ui-play");
-    const btnNext = document.getElementById("ui-next");
-    const timeEl = document.getElementById("ui-time");
-    const progressEl = document.getElementById("ui-progress");
+    const btnPrev = document.getElementById("btn-player-prev");
+    const btnPlay = document.getElementById("btn-player-play");
+    const btnNext = document.getElementById("btn-player-next");
+    const timeEl = document.getElementById("player-time");
+    const progressEl = document.getElementById("player-progress");
+    const indicatorEl = document.getElementById("player-indicator");
 
-    __playerUi = { btnPrev, btnPlay, btnNext, timeEl, progressEl, isSeeking: false };
+    __playerUi = { btnPrev, btnPlay, btnNext, timeEl, progressEl, indicatorEl, isSeeking: false };
 
-    api.playerStateChanged.on((args) => {
-      const playing = (args.state === alphaTab.synth.PlayerState.Playing);
-      __playbackState.playing = playing;
-      if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
+    // 复用页面已有上一首/下一首逻辑（按钮在顶部）
+    btnPrev.addEventListener("click", () => document.getElementById("btn-prev")?.click());
+    btnNext.addEventListener("click", () => document.getElementById("btn-next")?.click());
+    btnPlay.addEventListener("click", () => api.playPause());
+
+    // SoundFont 加载指示
+    api.soundFontLoad.on((e) => {
+      const pct = Math.floor((e.loaded / e.total) * 100);
+      indicatorEl.textContent = `<span id="player-status">音源未加载</span> ${pct}%`;
+      indicatorEl.style.display = "block";
+    });
+    api.playerReady.on(() => {
+      indicatorEl.style.display = "none";
+      btnPlay.disabled = false;
+      btnPrev.disabled = false;
+      btnNext.disabled = false;
     });
 
+    // 播放状态变化：切换 ▶ / ⏸
+    api.playerStateChanged.on((args) => {
+      const playing = (args.state === alphaTab.synth.PlayerState.Playing);
+      btnPlay.textContent = playing ? "⏸" : "▶";
+    });
+
+    // 进度刷新
     let previousSec = -1;
     api.playerPositionChanged.on((args) => {
       const currentSec = Math.floor(args.currentTime / 1000);
       if (currentSec === previousSec) return;
       previousSec = currentSec;
 
-      const max = Math.max(1, args.endTime);
-      const v = Math.floor((args.currentTime / max) * 1000);
-      __playbackState.current = args.currentTime || 0;
-      __playbackState.total = args.endTime || 0;
-      __playbackState.progress = isFinite(v) ? v : 0;
-      if (!__playerUi.isSeeking && progressEl) {
-        progressEl.value = String(__playbackState.progress);
+      if (!__playerUi.isSeeking) {
+        const max = Math.max(1, args.endTime);
+        const v = Math.floor((args.currentTime / max) * 1000);
+        progressEl.value = String(isFinite(v) ? v : 0);
       }
-      if (timeEl) timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
+      timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
     });
 
-    if (progressEl) {
-      progressEl.addEventListener("input", () => {
-        __playerUi.isSeeking = true;
-        const v = parseInt(progressEl.value, 10);
-        const total = __playbackState.total || 0;
-        const target = Math.floor(total * (v / 1000));
-        if (timeEl) timeEl.textContent = `${msToMMSS(target)} / ${msToMMSS(total)}`;
-      });
+    // 拖动进度条进行 seek（通过 api.timePosition）
+    progressEl.addEventListener("input", () => {
+      __playerUi.isSeeking = true;
+      const v = parseInt(progressEl.value, 10);
+      // 这里拿不到 endTime，只能读最近一次 UI 上的总时长
+      const text = timeEl.textContent || "00:00 / 00:00";
+      const total = parseTimeFromText(text.split("/")[1] || "00:00");
+      const target = Math.floor(total * (v / 1000));
+      timeEl.textContent = `${msToMMSS(target)} / ${msToMMSS(total)}`;
+    });
 
-      progressEl.addEventListener("change", () => {
-        const v = parseInt(progressEl.value, 10);
-        const total = __playbackState.total || 0;
-        const target = Math.floor(total * (v / 1000));
-        try { api.timePosition = target; } catch(e) {}
-        __playerUi.isSeeking = false;
-      });
-    }
+    progressEl.addEventListener("change", () => {
+      const v = parseInt(progressEl.value, 10);
+      const text = timeEl.textContent || "00:00 / 00:00";
+      const total = parseTimeFromText(text.split("/")[1] || "00:00");
+      const target = Math.floor(total * (v / 1000));
+      try { api.timePosition = target; } catch(e) {}
+      __playerUi.isSeeking = false;
+    });
+
+    // 初始禁用，直到 playerReady
+    btnPlay.disabled = true;
+    btnPrev.disabled = true;
+    btnNext.disabled = true;
   }
 
   function parseTimeFromText(t) {
@@ -897,15 +1096,11 @@
   }
 
   function setPlayerUI({ current, total, playing }) {
-    __playbackState.current = current || 0;
-    __playbackState.total = total || 0;
-    __playbackState.playing = !!playing;
-    __playbackState.progress = 0;
-    const timeEl = document.getElementById("ui-time");
-    const progressEl = document.getElementById("ui-progress");
+    const timeEl = document.getElementById("player-time");
+    const progressEl = document.getElementById("player-progress");
     if (timeEl) timeEl.textContent = `${msToMMSS(current)} / ${msToMMSS(total)}`;
     if (progressEl) progressEl.value = "0";
-    const btnPlay = document.getElementById("ui-play");
+    const btnPlay = document.getElementById("btn-player-play");
     if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
   }
   // ===== /alphaTab + .gtz 加载 =====
@@ -921,8 +1116,6 @@ function pad4(num) {
     if (!Number.isFinite(no) || no < 1) no = 1;
     state.currentBook = (book === "ts") ? "ts" : "c";
     state.currentNo = no;
-    state.searchBook = state.currentBook;
-    state.searchDraft = String(state.currentNo || 1);
   }
 
   function getRangeIndex(no) {
@@ -975,169 +1168,10 @@ function pad4(num) {
     return findLocalSong(bookKey, no);
   }
 
-  function normalizeSearchText(text) {
-    return String(text || '')
-      .toLowerCase()
-      .replace(/[\s　]+/g, '')
-      .replace(/[，。、“”‘’？！：；（）()《》〈〉【】\[\]\-—_.,!?:;"'`~·]/g, '');
-  }
-
-  function flattenSongText(value, bucket) {
-    if (value == null) return;
-    if (typeof value === 'string' || typeof value === 'number') {
-      const s = String(value).trim();
-      if (s) bucket.push(s);
-      return;
-    }
-    if (Array.isArray(value)) {
-      value.forEach(item => flattenSongText(item, bucket));
-      return;
-    }
-    if (typeof value === 'object') {
-      Object.values(value).forEach(item => flattenSongText(item, bucket));
-    }
-  }
-
-  function getSongSearchBundle(song) {
-    const titleParts = [];
-    const bodyParts = [];
-    flattenSongText(song?.title, titleParts);
-    flattenSongText(song?.full_title, titleParts);
-    flattenSongText(song?.big_title, titleParts);
-    flattenSongText(song?.subtitle, titleParts);
-    flattenSongText(song?.lyrics, bodyParts);
-    flattenSongText(song?.verses, bodyParts);
-    flattenSongText(song?.chorus, bodyParts);
-    flattenSongText(song?.content, bodyParts);
-    const titleText = titleParts.join(' ');
-    const bodyText = bodyParts.join(' ');
-    return {
-      titleText,
-      bodyText,
-      titleNorm: normalizeSearchText(titleText),
-      bodyNorm: normalizeSearchText(bodyText)
-    };
-  }
-
-  async function ensureSearchCorpus(bookKey) {
-    for (let i = 0; i < MAX_RANGES; i++) {
-      const ok = await loadRange(bookKey, i);
-      if (!ok) break;
-    }
-    return state.data[bookKey] || [];
-  }
-
-  function clearSearchResults() {
-    state.searchResults = [];
-    const box = document.getElementById('ui-search-results');
-    if (box) {
-      box.hidden = true;
-      box.innerHTML = '';
-    }
-  }
-
-  function renderSearchResults(items, query, bookKey) {
-    state.searchResults = Array.isArray(items) ? items.slice() : [];
-    const box = document.getElementById('ui-search-results');
-    if (!box) return;
-    box.innerHTML = '';
-    const list = state.searchResults;
-    const searchScopeLabel = (bookKey === 'all') ? '大本 / 小本' : (BOOKS[bookKey]?.label || '当前歌本');
-    if (!list.length) {
-      const empty = document.createElement('div');
-      empty.className = 'core-search-empty';
-      empty.textContent = `在${searchScopeLabel}中找不到“${query}”`;
-      box.appendChild(empty);
-      box.hidden = false;
-      return;
-    }
-    const frag = document.createDocumentFragment();
-    list.forEach(item => {
-      const row = document.createElement('button');
-      row.type = 'button';
-      row.className = 'core-search-result-item';
-      row.innerHTML = `<span class="core-search-result-title">${BOOKS[item.book].label} 第 ${item.no} 首｜${escapeHtml(item.title || '未命名')}</span>${item.snippet ? `<span class="core-search-result-snippet">${escapeHtml(item.snippet)}</span>` : ''}`;
-      row.addEventListener('click', async () => {
-        state.searchBook = item.book;
-        state.currentBook = item.book;
-        state.currentNo = item.no;
-        state.searchDraft = String(item.no);
-        clearSearchResults();
-        updateURL();
-        await loadAndRenderCurrentSong();
-        closePanels();
-        syncUI();
-      });
-      frag.appendChild(row);
-    });
-    box.appendChild(frag);
-    box.hidden = false;
-  }
-
-  async function searchSongsByKeyword(bookKey, rawQuery) {
-    const query = String(rawQuery || '').trim();
-    const norm = normalizeSearchText(query);
-    if (!norm) return [];
-    const songs = await ensureSearchCorpus(bookKey);
-    const hits = [];
-    songs.forEach(song => {
-      if (!song || !song.no) return;
-      const bundle = getSongSearchBundle(song);
-      const titleHit = bundle.titleNorm.includes(norm);
-      const bodyHit = !titleHit && bundle.bodyNorm.includes(norm);
-      if (!titleHit && !bodyHit) return;
-      const sourceText = titleHit ? (bundle.titleText || '') : (bundle.bodyText || '');
-      const idx = sourceText.indexOf(query);
-      let snippet = '';
-      if (idx >= 0) {
-        const start = Math.max(0, idx - 12);
-        const end = Math.min(sourceText.length, idx + query.length + 18);
-        snippet = sourceText.slice(start, end).replace(/\s+/g, ' ').trim();
-      } else if (sourceText) {
-        snippet = sourceText.slice(0, 36).replace(/\s+/g, ' ').trim();
-      }
-      hits.push({
-        book: bookKey,
-        no: song.no,
-        title: song.title || song.full_title || `${BOOKS[bookKey].label} 第 ${song.no} 首`,
-        snippet,
-        rank: titleHit ? 0 : 1
-      });
-    });
-    hits.sort((a, b) => (a.rank - b.rank) || (a.no - b.no));
-    return hits.slice(0, 50);
-  }
-
-  async function searchSongsByKeywordAll(rawQuery) {
-    const allBooks = ['c', 'ts'];
-    const groups = await Promise.all(allBooks.map(bookKey => searchSongsByKeyword(bookKey, rawQuery)));
-    const merged = groups.flat();
-    merged.sort((a, b) => (a.rank - b.rank) || (a.no - b.no) || a.book.localeCompare(b.book));
-    return merged.slice(0, 80);
-  }
-
-  function ensureAlphaTabHost() {
-    const container = document.getElementById("score-view");
-    if (!container) return null;
-
-    let atEl = document.getElementById("alphaTab");
-    if (!atEl) {
-      atEl = document.createElement('div');
-      atEl.id = 'alphaTab';
-      atEl.className = 'at-viewport';
-      container.innerHTML = '';
-      container.appendChild(atEl);
-      window.__atApi = null;
-    }
-    return atEl;
-  }
-
   function renderScore(bookKey, no) {
     const container = document.getElementById("score-view");
     // alphaTab 渲染容器（在 HTML 里我们放了 #alphaTab）
-    const atEl = ensureAlphaTabHost();
-    if (!container || !atEl) return;
-    atEl.style.display = '';
+    const atEl = document.getElementById("alphaTab");
 
     // 首次初始化 alphaTab API
     if (!window.__atApi) {
@@ -1187,18 +1221,14 @@ function pad4(num) {
 
         enableCursor(window.__atApi);
 
-        const liveHost = document.getElementById('alphaTab');
-        if (liveHost) liveHost.style.display = '';
-        const oldFallback = document.getElementById('score-fallback-image');
-        if (oldFallback) oldFallback.remove();
-
         renderVisibleTracks(window.__atApi);
         applyScoreTransposition(window.__atApi);
         applyPlaybackTrackVisibility(window.__atApi);
+        scheduleTabCapoOverlay(180);
       });
 
       window.__atApi.renderFinished.on(() => {
-        try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode({ domOnly: true }); } catch (e) {}
+        scheduleTabCapoOverlay(40);
       });
 
       // 播放条绑定
@@ -1206,9 +1236,6 @@ function pad4(num) {
     }
 
     // 加载 .gtz (JSON) -> 解 base64 -> load 到 alphaTab
-    const oldFallback = document.getElementById('score-fallback-image');
-    if (oldFallback) oldFallback.remove();
-
     const gtzPrefix = BOOKS[bookKey].gtzPrefix || BOOKS[bookKey].svgPrefix;
     const gtzUrl = `${gtzPrefix}${pad4(no)}_cn_g.gtz`; // 如 assets/c/c0001_cn_g.gtz
 
@@ -1217,14 +1244,10 @@ function pad4(num) {
       setPlayerStatus('加载失败: ' + (err && err.message ? err.message : err));
       // fallback: 如果没有 gtz，就尝试旧的 svg（便于过渡）
       try {
-        const liveHost = ensureAlphaTabHost();
-        if (liveHost) liveHost.style.display = 'none';
-        const oldFallback = document.getElementById('score-fallback-image');
-        if (oldFallback) oldFallback.remove();
+        container.innerHTML = "";
         const folderPrefix = BOOKS[bookKey].svgPrefix;
         const src = `${folderPrefix}${pad4(no)}_cn_g.svg`;
         const img = document.createElement("img");
-        img.id = 'score-fallback-image';
         img.alt = `${BOOKS[bookKey].label} 第 ${no} 首 吉他谱`;
         img.src = src;
         container.appendChild(img);
@@ -1265,15 +1288,14 @@ function pad4(num) {
   }
 
   function updateTitle(song) {
-    const coreTitleEl = document.getElementById("ui-title-main");
-    const nextTitle = (song && song.title)
-      ? song.title
-      : `${BOOKS[state.currentBook].label} 第 ${state.currentNo} 首`;
-
-    if (coreTitleEl) coreTitleEl.textContent = nextTitle;
-    document.title = (song && song.title)
-      ? song.title + " - 召会诗歌吉他谱"
-      : nextTitle;
+    const titleEl = document.getElementById("song-title");
+    if (song && song.title) {
+      titleEl.textContent = song.title;
+      document.title = song.title + " - 召会诗歌吉他谱";
+    } else {
+      titleEl.textContent = `${BOOKS[state.currentBook].label} 第 ${state.currentNo} 首`;
+      document.title = titleEl.textContent;
+    }
   }
 
   function setMode(mode) {
@@ -1281,21 +1303,41 @@ function pad4(num) {
     const scoreView = document.getElementById("score-view");
     const lyricsView = document.getElementById("lyrics-view");
 
+    const btnScore = document.getElementById("btn-mode-score");
+    const btnLyrics = document.getElementById("btn-mode-lyrics");
+
     if (mode === "score") {
-      if (scoreView) { scoreView.style.display = ""; scoreView.setAttribute("aria-hidden", "false"); }
-      if (lyricsView) { lyricsView.style.display = "none"; lyricsView.setAttribute("aria-hidden", "true"); }
+      scoreView.style.display = "";
+      scoreView.setAttribute("aria-hidden", "false");
+      lyricsView.style.display = "none";
+      lyricsView.setAttribute("aria-hidden", "true");
+      btnScore.classList.add("active");
+      btnLyrics.classList.remove("active");
     } else {
-      if (scoreView) { scoreView.style.display = "none"; scoreView.setAttribute("aria-hidden", "true"); }
-      if (lyricsView) { lyricsView.style.display = ""; lyricsView.setAttribute("aria-hidden", "false"); }
+      scoreView.style.display = "none";
+      scoreView.setAttribute("aria-hidden", "true");
+      lyricsView.style.display = "";
+      lyricsView.setAttribute("aria-hidden", "false");
+      btnScore.classList.remove("active");
+      btnLyrics.classList.add("active");
     }
   }
 
   function syncBookButtons() {
-    return;
+    document.getElementById("btn-book-c").classList.toggle("active", state.currentBook === "c");
+    document.getElementById("btn-book-ts").classList.toggle("active", state.currentBook === "ts");
   }
 
   function syncScriptButton() {
-    return;
+    const btn = document.getElementById("btn-script");
+    // 当前歌词是简体 -> 按钮显示“繁”；当前歌词繁体 -> 按钮显示“简”
+    if (state.script === "simplified") {
+      btn.textContent = "繁";
+      btn.classList.remove("active");
+    } else {
+      btn.textContent = "简";
+      btn.classList.add("active");
+    }
   }
 
   function updateURL() {
@@ -1341,218 +1383,380 @@ function pad4(num) {
   }
 
   function handleSearch() {
-    performSearch(document.getElementById("ui-search-input")?.value || "");
+    const raw = document.getElementById("search-input").value.trim();
+    if (!raw) return;
+    const digitsMatch = raw.match(/(\d{1,4})$/);
+    if (!digitsMatch) {
+      alert("请输入正确的编号，如 31");
+      return;
+    }
+    const no = parseInt(digitsMatch[1], 10);
+    if (!Number.isFinite(no)) {
+      alert("请输入正确的编号，如 31");
+      return;
+    }
+    goToNumber(no);
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
     parseQuery();
+    document.getElementById("search-input").value = state.currentNo;  // ★ 显示当前编号
+    syncBookButtons();
+    syncScriptButton(); // 默认：歌词简体，按钮显示“繁”
+
+    document.getElementById("btn-back").addEventListener("click", () => {
+      window.location.href = "index.html";
+    });
+
+    document.getElementById("btn-prev").addEventListener("click", () => {
+      tryGoTo(-1);
+    });
+
+    document.getElementById("btn-next").addEventListener("click", () => {
+      tryGoTo(1);
+    });
+
+    // 大本 / 小本切换
+    document.querySelectorAll(".search-book-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const book = btn.dataset.book;
+        if (state.currentBook === book) return;
+        state.currentBook = book;
+        syncBookButtons();
+        // 同编号若不存在，会在 loadAndRenderCurrentSong 里提示
+        updateURL();
+        await loadAndRenderCurrentSong();
+      });
+    });
+
+    // 搜索
+    document.getElementById("btn-search").addEventListener("click", handleSearch);
+    document.getElementById("search-input").addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleSearch();
+      }
+    });
+
+    // 吉他 / 歌词模式
+    document.getElementById("btn-mode-score").addEventListener("click", () => {
+      setMode("score");
+    });
+    document.getElementById("btn-mode-lyrics").addEventListener("click", () => {
+      setMode("lyrics");
+    });
+
+    // 简繁按钮：一个位置，文字互换
+    document.getElementById("btn-script").addEventListener("click", () => {
+      state.script = (state.script === "simplified") ? "traditional" : "simplified";
+      syncScriptButton();
+      // 重新渲染歌词，让转换生效
+      getSong(state.currentBook, state.currentNo).then(song => {
+        if (song) renderLyrics(song);
+      });
+    });
+
+    bindViewerControls();
+    refreshAdjustUI();
     applyViewerPrefsToLyricsPage();
+
+    // 字号 + / - ：歌词页调纯歌词字号；乐谱页调谱内歌词字号
+    document.getElementById("btn-font-plus").addEventListener("click", () => {
+      if (state.mode === 'lyrics') {
+        viewerPrefs.pureLyricsFontSize = Math.min(viewerPrefs.pureLyricsFontSize + 3, 48);
+        saveViewerPrefs();
+        applyViewerPrefsToLyricsPage();
+        getSong(state.currentBook, state.currentNo).then(song => { if (song) renderLyrics(song); });
+      } else {
+        viewerPrefs.scoreFontSizePx = Math.min(viewerPrefs.scoreFontSizePx + 2, 52);
+        saveViewerPrefs();
+        refreshAdjustUI();
+        applyViewerPrefsToScore();
+      }
+    });
+    document.getElementById("btn-font-minus").addEventListener("click", () => {
+      if (state.mode === 'lyrics') {
+        viewerPrefs.pureLyricsFontSize = Math.max(viewerPrefs.pureLyricsFontSize - 3, 12);
+        saveViewerPrefs();
+        applyViewerPrefsToLyricsPage();
+        getSong(state.currentBook, state.currentNo).then(song => { if (song) renderLyrics(song); });
+      } else {
+        viewerPrefs.scoreFontSizePx = Math.max(viewerPrefs.scoreFontSizePx - 2, 14);
+        saveViewerPrefs();
+        refreshAdjustUI();
+        applyViewerPrefsToScore();
+      }
+    });
+
     await loadAndRenderCurrentSong();
   });
 </script>
 
-
 <script>
+// ===== 五线谱 / 简谱 切换（增量集成）=====
 (function(){
   function getStaffMode(){
     try { return localStorage.getItem('staffMode') || 'five'; } catch(e) { return 'five'; }
   }
-  function updateCoreStaffUI(){
-    const mode = getStaffMode();
-    document.getElementById('ui-staff-five')?.classList.toggle('active', mode === 'five');
-    document.getElementById('ui-staff-jian')?.classList.toggle('active', mode === 'jian');
-    document.getElementById('ui-staff') && (document.getElementById('ui-staff').textContent = mode === 'jian' ? '简' : '谱');
+  function setStaffMode(mode){
+    try { localStorage.setItem('staffMode', mode); } catch(e) {}
   }
-  function applyStaffModeToTracks(score, mode){
-    if (!score || !Array.isArray(score.tracks)) return;
-    for (const track of score.tracks){
+  function updateStaffToggleUI(){
+    const btn = document.getElementById('btn-staff-toggle');
+    if (!btn) return;
+    btn.textContent = (getStaffMode() === 'jian') ? '五' : '简';
+  }
+  function ensureStaffToggleButton(){
+    if (document.getElementById('btn-staff-toggle')) return;
+    const host =
+      document.querySelector('.controls-row .controls-left') ||
+      document.querySelector('.controls-row') ||
+      document.body;
+    const btn = document.createElement('button');
+    btn.id = 'btn-staff-toggle';
+    btn.className = 'script-toggle-btn';
+    btn.style.marginLeft = '8px';
+    btn.addEventListener('click', function(){
+      const next = getStaffMode() === 'jian' ? 'five' : 'jian';
+      setStaffMode(next);
+      applyStaffMode();
+      updateStaffToggleUI();
+    });
+    host.appendChild(btn);
+    updateStaffToggleUI();
+  }
+  window.applyStaffMode = function applyStaffMode(){
+    const api = window.__atApi;
+    if (!api || !api.score || !Array.isArray(api.score.tracks)) return;
+    const mode = getStaffMode();
+    document.body.classList.toggle('jian-mode', mode === 'jian');
+
+    for (const track of api.score.tracks){
       if (!track || !Array.isArray(track.staves)) continue;
       for (const staff of track.staves){
-        if (!staff || staff.showTablature) continue;
+        // 只处理非TAB staff；TAB 保持原样
+        if (staff.showTablature) continue;
         staff.showStandardNotation = (mode !== 'jian');
         if ('showNumbered' in staff) staff.showNumbered = (mode === 'jian');
         if ('showNumberedNotation' in staff) staff.showNumberedNotation = (mode === 'jian');
       }
     }
+    try { api.render(); } catch(e) { console.warn(e); }
   }
-  function fixRenderedJianpuDom(mode){
-    const showJian = mode === 'jian';
-    document.body.classList.toggle('jian-mode', showJian);
-    document.querySelectorAll('#alphaTab .atj-keysig, #alphaTab .atj-jianpu, #alphaTab .atj-time-signature').forEach(el => {
-      el.style.display = showJian ? '' : 'none';
+  document.addEventListener('DOMContentLoaded', function(){
+    ensureStaffToggleButton();
+    const t = setInterval(function(){
+      if (window.__atApi){
+        clearInterval(t);
+        try{
+          if (window.__atApi.renderFinished && window.__atApi.renderFinished.on){
+            window.__atApi.renderFinished.on(function(){
+              updateStaffToggleUI();
+            });
+          }
+        }catch(e){}
+        applyStaffMode();
+      }
+    }, 300);
+  });
+})();
+
+// ===== 简谱首行 1=bA 微调（增量补丁）=====
+(function(){
+  function adjustJianKeyPosition(){
+    const isJian = document.body.classList.contains('jian-mode');
+    if (!isJian) return;
+
+    const svg = document.querySelector('#alphaTab svg');
+    if (!svg) return;
+
+    const texts = svg.querySelectorAll('text');
+    texts.forEach(el => {
+      const txt = (el.textContent || '').trim();
+      if (txt === '1=' || /^1\s*=/.test(txt)) {
+        const g = el.parentElement;
+        if (!g) return;
+        if (g.dataset.adjustedJianKey) return;
+        g.dataset.adjustedJianKey = "1";
+
+        const old = g.getAttribute('transform') || '';
+        const m = old.match(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/);
+        if (m) {
+          const x = parseFloat(m[1]);
+          const y = parseFloat(m[2]) - 30;
+          g.setAttribute('transform', `translate(${x} ${y})`);
+        } else {
+          g.setAttribute('transform', `${old} translate(0 -30)`);
+        }
+
+        let sib = g.nextElementSibling;
+        let count = 0;
+        while (sib && count < 4) {
+          const old2 = sib.getAttribute('transform') || '';
+          const m2 = old2.match(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/);
+          if (m2) {
+            const x2 = parseFloat(m2[1]);
+            const y2 = parseFloat(m2[2]) - 30;
+            sib.setAttribute('transform', `translate(${x2} ${y2})`);
+          } else {
+            sib.setAttribute('transform', `${old2} translate(0 -30)`);
+          }
+          sib = sib.nextElementSibling;
+          count++;
+        }
+      }
     });
   }
-  let __staffModeRendering = false;
-  function rerenderForStaffMode(){
-    const api = window.__atApi;
-    if (!api || __staffModeRendering) return;
-    const mode = getStaffMode();
-    applyStaffModeToTracks(window.__currentScore || api.score, mode);
-    applyStaffModeToTracks(api.score, mode);
-    __staffModeRendering = true;
-    try {
-      if (typeof window.renderVisibleTracks === 'function') {
-        window.renderVisibleTracks(api);
-      } else if (typeof api.render === 'function') {
-        api.render();
-      }
-    } catch (e) {
-      console.warn('rerenderForStaffMode failed', e);
-    } finally {
-      setTimeout(() => { __staffModeRendering = false; }, 0);
-    }
-    setTimeout(() => fixRenderedJianpuDom(mode), 30);
-    setTimeout(() => fixRenderedJianpuDom(mode), 180);
+  function run(){
+    setTimeout(adjustJianKeyPosition, 50);
+    setTimeout(adjustJianKeyPosition, 200);
+    setTimeout(adjustJianKeyPosition, 500);
   }
-  function applyStaffMode(options){
-    const opts = options || {};
-    const mode = getStaffMode();
-    updateCoreStaffUI();
-    if (opts.domOnly) {
-      fixRenderedJianpuDom(mode);
-      return;
-    }
-    rerenderForStaffMode();
-  }
-  window.applyStaffMode = applyStaffMode;
-  document.addEventListener('DOMContentLoaded', () => {
-    updateCoreStaffUI();
-    setTimeout(applyStaffMode, 400);
-  });
-  const t = setInterval(() => {
-    if (window.__atApi) {
+  document.addEventListener('DOMContentLoaded', run);
+  const t = setInterval(()=>{
+    if (window.__atApi){
       clearInterval(t);
-      try { window.__atApi.renderFinished.on(() => setTimeout(() => fixRenderedJianpuDom(getStaffMode()), 30)); } catch(e) {}
+      try{
+        if (window.__atApi.renderFinished){
+          window.__atApi.renderFinished.on(run);
+        }
+      }catch(e){}
+      run();
     }
-  }, 300);
+  },300);
 })();
 </script>
+
 
 <script>
 (function(){
   function $(id){ return document.getElementById(id); }
   function qa(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
+  function click(id){ const el=$(id); if(el) el.click(); }
   function openPanel(id){
     const layer = $('core-panel-layer');
     if(!layer) return;
     qa('.core-panel', layer).forEach(p=>p.hidden=true);
-    if(!id){
-      layer.hidden = true;
-      layer.setAttribute('aria-hidden','true');
-      return;
-    }
+    if(!id){ layer.hidden = true; return; }
     layer.hidden = false;
-    layer.setAttribute('aria-hidden','false');
-    const p = $(id);
-    if(p) p.hidden = false;
+    const p = $(id); if(p) p.hidden = false;
   }
   function closePanels(){ openPanel(null); }
 
-    function syncUI(){
-    const tempoMeta = (__currentMeta && __currentMeta.tempo != null && __currentMeta.tempo !== '') ? String(__currentMeta.tempo) : '--';
-    const keyMeta = computeDisplayedKeyName(__currentMeta || {});
-    const capoMeta = String(getDisplayedCapoLabel());
-    const speedPct = parseInt(viewerPrefs.playbackSpeedPercent, 10) || 100;
-    const transVal = getUserTranspose();
-    const transText = transVal > 0 ? `+${transVal}` : String(transVal);
-    const fontText = String(viewerPrefs.scoreFontSizePx);
-    const spacingText = `${viewerPrefs.scoreSpacingFactor.toFixed(1)}x`;
+  function syncTitles(){
+    const main = $('ui-title-main');
+    const sub = $('ui-title-sub');
+    const fallback = $('song-title')?.textContent?.trim() || '诗歌';
+    if(main) main.textContent = fallback;
+    if(typeof getSong === 'function' && window.state){
+      Promise.resolve(getSong(state.currentBook, state.currentNo)).then(song=>{
+        if(!song) return;
+        if(main) main.textContent = song.big_title || song.title || fallback;
+        if(sub) sub.textContent = (song.big_title && song.title) ? song.title : (song.full_title && song.full_title !== song.title ? song.full_title : '');
+      }).catch(()=>{});
+    }
+  }
+
+  function getText(id){ return $(id)?.textContent?.trim() || ''; }
+
+  function syncUI(){
+    const tempoMeta = getText('meta-tempo');
+    const keyMeta = getText('meta-key');
+    const capoMeta = getText('meta-capo');
+    const speedPctText = getText('meta-speed').replace('%','') || '100';
+    const transText = getText('transpose-value') || '0';
+    const fontText = getText('score-font-value') || '30';
+    const spacingText = getText('spacing-value') || '2.0x';
     const chordText = String(getChordFontSizePx());
-    const currentTime = msToMMSS(__playbackState.current || 0);
+    const playerTime = $('player-time')?.textContent || '00:00 / 00:00';
+    const currentTime = playerTime.split('/')[0].trim();
+    const speedPct = parseInt(speedPctText,10) || 100;
     const originalTempo = parseInt(tempoMeta,10);
     const displayTempo = Number.isFinite(originalTempo) ? Math.round(originalTempo * speedPct / 100) : speedPct;
 
     if($('ui-speed')) $('ui-speed').textContent = String(displayTempo || tempoMeta || '95');
     if($('ui-key')) $('ui-key').textContent = keyMeta || '--';
-    if($('ui-capo')) $('ui-capo').textContent = 'CP' + capoMeta;
-    if($('ui-mode')) $('ui-mode').textContent = state.mode === 'lyrics' ? '词' : '吉';
-    if($('ui-play')) $('ui-play').textContent = __playbackState.playing ? '⏸' : '▶';
-    if($('ui-time')) $('ui-time').textContent = currentTime;
-    if($('ui-progress')) $('ui-progress').value = String(__playbackState.progress || 0);
+    if($('ui-capo')) $('ui-capo').textContent = 'CP' + String(capoMeta || '0');
+    if($('ui-mode')) $('ui-mode').textContent = $('btn-mode-lyrics')?.classList.contains('active') ? '词' : '吉';
+    if($('ui-play')) $('ui-play').textContent = (($('btn-player-play')?.textContent||'▶').includes('⏸')) ? '⏸' : '▶';
+    if($('ui-time')) $('ui-time').textContent = currentTime || '00:00';
+    if($('ui-progress') && $('player-progress')) $('ui-progress').value = $('player-progress').value || '0';
     if($('ui-speed-range')) $('ui-speed-range').value = String(speedPct);
     if($('ui-speed-value')) $('ui-speed-value').textContent = speedPct + '%';
     if($('ui-key-value')) $('ui-key-value').textContent = transText;
     if($('ui-font-value')) $('ui-font-value').textContent = fontText;
     if($('ui-spacing-value')) $('ui-spacing-value').textContent = spacingText;
     if($('ui-chord-value')) $('ui-chord-value').textContent = chordText;
-    const searchPanelOpen = $('panel-search') && !$('panel-search').hidden;
-    if($('ui-search-input') && document.activeElement !== $('ui-search-input') && !searchPanelOpen) $('ui-search-input').value = String(state.searchDraft || state.currentNo || '');
-    if($('search-input') && document.activeElement !== $('search-input')) $('search-input').value = String(state.searchDraft || state.currentNo || '');
-    $('ui-book-c')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'c');
-    $('ui-book-ts')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'ts');
-    $('ui-mode-score')?.classList.toggle('active', state.mode === 'score');
-    $('ui-mode-lyrics')?.classList.toggle('active', state.mode === 'lyrics');
-    $('ui-lang-simp')?.classList.toggle('active', state.script === 'simplified');
-    $('ui-lang-trad')?.classList.toggle('active', state.script === 'traditional');
+    if($('ui-search-input') && $('search-input') && document.activeElement !== $('ui-search-input')) $('ui-search-input').value = $('search-input').value || '';
+    $('ui-book-c')?.classList.toggle('active', $('btn-book-c')?.classList.contains('active'));
+    $('ui-book-ts')?.classList.toggle('active', $('btn-book-ts')?.classList.contains('active'));
+    $('ui-mode-score')?.classList.toggle('active', $('btn-mode-score')?.classList.contains('active'));
+    $('ui-mode-lyrics')?.classList.toggle('active', $('btn-mode-lyrics')?.classList.contains('active'));
+    const scriptTxt = $('btn-script')?.textContent?.trim() || '繁';
+    $('ui-lang-simp')?.classList.toggle('active', scriptTxt === '繁');
+    $('ui-lang-trad')?.classList.toggle('active', scriptTxt === '简');
+    syncTitles();
   }
 
   function initBindings(){
-    $('ui-home')?.addEventListener('click', goHome);
-    $('ui-prev')?.addEventListener('click', ()=>{ goPrevSong(); });
-    $('ui-play')?.addEventListener('click', togglePlayPause);
-    $('ui-next')?.addEventListener('click', ()=>{ goNextSong(); });
-    $('ui-speed')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-speed'); });
-    $('ui-key')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-key'); });
-    $('ui-mode')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-mode'); });
-    $('ui-text')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-text'); });
-    $('ui-track')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openNewTrackPanel(); });
-    $('ui-staff')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-staff'); });
-    $('ui-lang')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-lang'); });
-    $('ui-search')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-search'); });
+    $('ui-home')?.addEventListener('click', ()=>click('btn-back'));
+    $('ui-prev')?.addEventListener('click', ()=>click('btn-player-prev'));
+    $('ui-play')?.addEventListener('click', ()=>click('btn-player-play'));
+    $('ui-next')?.addEventListener('click', ()=>click('btn-player-next'));
+    $('ui-speed')?.addEventListener('click', ()=>openPanel('panel-speed'));
+    $('ui-key')?.addEventListener('click', ()=>openPanel('panel-key'));
+    $('ui-mode')?.addEventListener('click', ()=>openPanel('panel-mode'));
+    $('ui-text')?.addEventListener('click', ()=>openPanel('panel-text'));
+    $('ui-track')?.addEventListener('click', ()=>{ openNewTrackPanel(); });
+    $('ui-staff')?.addEventListener('click', ()=>openPanel('panel-staff'));
+    $('ui-lang')?.addEventListener('click', ()=>openPanel('panel-lang'));
+    $('ui-search')?.addEventListener('click', ()=>openPanel('panel-search'));
     qa('[data-close-panel]').forEach(btn=>btn.addEventListener('click', closePanels));
 
     $('ui-speed-range')?.addEventListener('input', e=>{
-      setPlaybackSpeedPercent(e.target.value);
-      syncUI();
+      const s = $('tempo-slider'); if(!s) return; s.value = e.target.value; s.dispatchEvent(new Event('input',{bubbles:true})); s.dispatchEvent(new Event('change',{bubbles:true}));
     });
     $('ui-speed-reset')?.addEventListener('click', ()=>{
-      setPlaybackSpeedPercent(100);
-      syncUI();
+      const s = $('tempo-slider'); if(!s) return; s.value='100'; s.dispatchEvent(new Event('input',{bubbles:true})); s.dispatchEvent(new Event('change',{bubbles:true})); syncUI();
     });
 
-    $('ui-key-plus')?.addEventListener('click', ()=>{ changeTranspose(1); syncUI(); });
-    $('ui-key-minus')?.addEventListener('click', ()=>{ changeTranspose(-1); syncUI(); });
-    $('ui-key-reset')?.addEventListener('click', ()=>{ resetTranspose(); syncUI(); });
-
-    $('ui-mode-score')?.addEventListener('click', ()=>{ setMode('score'); syncUI(); });
-    $('ui-mode-lyrics')?.addEventListener('click', ()=>{ setMode('lyrics'); syncUI(); });
-
-    $('ui-font-plus')?.addEventListener('click', ()=>{ changeScoreFont(2); syncUI(); });
-    $('ui-font-minus')?.addEventListener('click', ()=>{ changeScoreFont(-2); syncUI(); });
-    $('ui-spacing-plus')?.addEventListener('click', ()=>{ changeSpacing(0.1); syncUI(); });
-    $('ui-spacing-minus')?.addEventListener('click', ()=>{ changeSpacing(-0.1); syncUI(); });
-    $('ui-chord-plus')?.addEventListener('click', ()=>{ changeChordFont(1); syncUI(); });
-    $('ui-chord-minus')?.addEventListener('click', ()=>{ changeChordFont(-1); syncUI(); });
-    $('ui-text-reset')?.addEventListener('click', ()=>{ resetTextSettings(); syncUI(); });
-
-    $('ui-lang-simp')?.addEventListener('click', ()=>{ setScriptMode('simplified'); syncUI(); });
-    $('ui-lang-trad')?.addEventListener('click', ()=>{ setScriptMode('traditional'); syncUI(); });
-
-    $('ui-book-c')?.addEventListener('click', async ()=>{
-      await setSearchBook('c', true);
-      syncUI();
+    $('ui-key-plus')?.addEventListener('click', ()=>{ click('btn-transpose-plus'); setTimeout(syncUI,20); });
+    $('ui-key-minus')?.addEventListener('click', ()=>{ click('btn-transpose-minus'); setTimeout(syncUI,20); });
+    $('ui-key-reset')?.addEventListener('click', ()=>{
+      const txt = (getText('transpose-value')||'0').replace('+',''); const n = parseInt(txt,10)||0;
+      if(n>0){ for(let i=0;i<n;i++) click('btn-transpose-minus'); }
+      else if(n<0){ for(let i=0;i<Math.abs(n);i++) click('btn-transpose-plus'); }
+      setTimeout(syncUI,30);
     });
-    $('ui-book-ts')?.addEventListener('click', async ()=>{
-      await setSearchBook('ts', true);
-      syncUI();
+
+    $('ui-mode-score')?.addEventListener('click', ()=>{ click('btn-mode-score'); setTimeout(syncUI,20); });
+    $('ui-mode-lyrics')?.addEventListener('click', ()=>{ click('btn-mode-lyrics'); setTimeout(syncUI,20); });
+
+    $('ui-font-plus')?.addEventListener('click', ()=>{ click('btn-score-font-plus'); setTimeout(syncUI,20); });
+    $('ui-font-minus')?.addEventListener('click', ()=>{ click('btn-score-font-minus'); setTimeout(syncUI,20); });
+    $('ui-spacing-plus')?.addEventListener('click', ()=>{ click('btn-spacing-plus'); setTimeout(syncUI,20); });
+    $('ui-spacing-minus')?.addEventListener('click', ()=>{ click('btn-spacing-minus'); setTimeout(syncUI,20); });
+    $('ui-chord-plus')?.addEventListener('click', ()=>{
+      viewerPrefs.chordFontSizePx = Math.min(getChordFontSizePx() + 1, 36);
+      saveViewerPrefs();
+      scheduleChordRewrite(10);
+      setTimeout(syncUI,20);
     });
-    $('ui-search-go')?.addEventListener('click', async ()=>{
-      const ok = await performSearch($('ui-search-input')?.value || '');
-      const v = String($('ui-search-input')?.value || '').trim();
-      if (ok && /^\d+$/.test(v)) closePanels();
-      syncUI();
+    $('ui-chord-minus')?.addEventListener('click', ()=>{
+      viewerPrefs.chordFontSizePx = Math.max(getChordFontSizePx() - 1, 10);
+      saveViewerPrefs();
+      scheduleChordRewrite(10);
+      setTimeout(syncUI,20);
     });
-    $('ui-search-input')?.addEventListener('input', e=>{
-      state.searchDraft = String(e.target?.value || '').trim();
-    });
-    $('ui-search-input')?.addEventListener('keydown', async e=>{
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const v = String($('ui-search-input')?.value || '').trim();
-        const ok = await performSearch(v);
-        if (ok && /^\d+$/.test(v)) closePanels();
-        syncUI();
-      }
+
+    $('ui-lang-simp')?.addEventListener('click', ()=>{ if(($('btn-script')?.textContent||'').trim() !== '繁') click('btn-script'); setTimeout(syncUI,20); });
+    $('ui-lang-trad')?.addEventListener('click', ()=>{ if(($('btn-script')?.textContent||'').trim() !== '简') click('btn-script'); setTimeout(syncUI,20); });
+
+    $('ui-book-c')?.addEventListener('click', ()=>{ click('btn-book-c'); setTimeout(syncUI,20); });
+    $('ui-book-ts')?.addEventListener('click', ()=>{ click('btn-book-ts'); setTimeout(syncUI,20); });
+    $('ui-search-go')?.addEventListener('click', ()=>{
+      if($('search-input') && $('ui-search-input')) $('search-input').value = $('ui-search-input').value || '';
+      click('btn-search'); closePanels();
     });
 
     $('ui-staff-five')?.addEventListener('click', ()=>{
@@ -1566,30 +1770,36 @@ function pad4(num) {
       setTimeout(syncUI, 30);
     });
 
-    document.addEventListener('click', (e)=>{
-      const layer = $('core-panel-layer');
-      if (layer && !layer.hidden && e.target === layer) {
-        closePanels();
-        return;
-      }
-      const insidePanel = e.target.closest('.core-panel');
-      const insideToolbar = e.target.closest('.core-ui-toolbar');
-      if(!insidePanel && !insideToolbar) closePanels();
+    $('ui-progress')?.addEventListener('input', ()=>{
+      if(!$('player-progress')) return; $('player-progress').value = $('ui-progress').value; $('player-progress').dispatchEvent(new Event('input',{bubbles:true}));
+    });
+    $('ui-progress')?.addEventListener('change', ()=>{
+      if(!$('player-progress')) return; $('player-progress').value = $('ui-progress').value; $('player-progress').dispatchEvent(new Event('change',{bubbles:true}));
     });
 
-    $('core-panel-layer')?.addEventListener('click', (e)=>{
-      if (e.target === $('core-panel-layer')) closePanels();
-    });
-    qa('.core-panel', $('core-panel-layer')).forEach((panel)=>{
-      panel.addEventListener('click', (e)=>{ e.stopPropagation(); });
+    document.addEventListener('click', (e)=>{
+      const insidePanel = e.target.closest('.core-panel-layer');
+      const insideToolbar = e.target.closest('.core-ui-toolbar');
+      const insideTracks = e.target.closest('#tracks-panel');
+      if(!insidePanel && !insideToolbar && !insideTracks) closePanels();
     });
   }
 
-    document.addEventListener('DOMContentLoaded', ()=>{
+  function positionTracksPanel(){
+    const panel = $('tracks-panel');
+    if(!panel) return;
+    panel.style.position = 'fixed';
+    panel.style.right = '12px';
+    panel.style.top = '168px';
+    panel.style.zIndex = '9999';
+  }
+
+  document.addEventListener('DOMContentLoaded', ()=>{
     initBindings();
     syncUI();
     setInterval(syncUI, 400);
     setTimeout(syncUI, 1200);
+    positionTracksPanel();
   });
 })();
 </script>
@@ -1599,7 +1809,7 @@ function pad4(num) {
   <div class="new-track-panel-inner">
     <div class="new-track-panel-head">
       <span>轨道</span>
-      
+      <button type="button" class="new-track-close" id="new-track-close">完成</button>
     </div>
     <div class="new-track-panel-actions">
       <button type="button" class="new-track-ghost" id="new-track-all">全选</button>
@@ -1725,6 +1935,8 @@ function pad4(num) {
       closeNewTrackPanel();
     });
 
+    const old = trackEl('tracks-panel');
+    if (old) old.classList.add('hidden');
   });
 
   window.openNewTrackPanel = openNewTrackPanel;
