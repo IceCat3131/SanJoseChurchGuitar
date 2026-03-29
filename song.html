@@ -1357,7 +1357,27 @@ function pad4(num) {
     window.history.replaceState({}, "", url.toString());
   }
 
-  async function loadAndRenderCurrentSong() {
+  function resetPerSongPlaybackControls() {
+    // 仅在切歌/跳歌时重置“当前歌曲专属”的两个参数：
+    // 1. 播放速度 -> 100%
+    // 2. 转调     -> 0
+    // 其它显示偏好（字号/间距/和弦字号）保持全局不动。
+    viewerPrefs.playbackSpeedPercent = DEFAULT_VIEWER_PREFS.playbackSpeedPercent;
+    viewerPrefs.transposeSemitones = DEFAULT_VIEWER_PREFS.transposeSemitones;
+    saveViewerPrefs();
+    refreshAdjustUI();
+    updateMetaRow();
+    if (window.__atApi) {
+      try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
+      applyScoreTransposition(window.__atApi);
+    }
+  }
+
+  async function loadAndRenderCurrentSong(options = {}) {
+    const { preservePlaybackControls = false } = options;
+    if (!preservePlaybackControls) {
+      resetPerSongPlaybackControls();
+    }
     const song = await getSong(state.currentBook, state.currentNo);
     if (!song) {
       alert("找不到这首诗歌的歌词数据。");
@@ -1399,7 +1419,7 @@ function pad4(num) {
   document.addEventListener("DOMContentLoaded", async () => {
     parseQuery();
     applyViewerPrefsToLyricsPage();
-    await loadAndRenderCurrentSong();
+    await loadAndRenderCurrentSong({ preservePlaybackControls: true });
   });
 </script>
 
