@@ -389,6 +389,7 @@
     try { if (__chordRewriteTimer) clearTimeout(__chordRewriteTimer); } catch (e) {}
     __chordRewriteTimer = setTimeout(() => {
       rewriteRenderedChordTexts();
+      scheduleChordTimelineRefresh(Math.max(30, delay));
     }, delay);
   }
 
@@ -399,6 +400,119 @@
       scheduleChordRewrite(30);
     });
     __chordObserver.observe(root, { childList: true, subtree: true, characterData: false });
+  }
+
+  let __chordTimeline = [];
+  let __chordTimelineTimer = null;
+  let __currentChordPlayback = null;
+
+  function getSvgTextAnchorX(el) {
+    if (!el) return null;
+    try {
+      if (typeof el.getStartPositionOfChar === 'function' && (el.textContent || '').length) {
+        const pt = el.getStartPositionOfChar(0);
+        if (pt && Number.isFinite(pt.x)) return pt.x;
+      }
+    } catch (e) {}
+    try {
+      const box = el.getBBox();
+      if (box && Number.isFinite(box.x)) return box.x;
+    } catch (e) {}
+    try {
+      const rect = el.getBoundingClientRect();
+      if (rect && Number.isFinite(rect.left)) return rect.left;
+    } catch (e) {}
+    return null;
+  }
+
+  function extractRenderedChordNodes() {
+    const root = document.getElementById('alphaTab');
+    if (!root) return [];
+    const out = [];
+    root.querySelectorAll('text, tspan').forEach((el) => {
+      if (el.children && el.children.length) return;
+      const text = String(el.getAttribute('data-orig-chord') || el.textContent || '').trim();
+      if (!looksLikeChordSymbol(text)) return;
+      const x = getSvgTextAnchorX(el);
+      if (!Number.isFinite(x)) return;
+      out.push({ chord: text, x, element: el });
+    });
+    out.sort((a, b) => a.x - b.x);
+    return out;
+  }
+
+  function buildChordTimelineFromRenderedDom() {
+    const items = extractRenderedChordNodes();
+    if (!items.length) return [];
+    const minX = items[0].x;
+    const maxX = items[items.length - 1].x;
+    const span = Math.max(1, maxX - minX);
+    const total = Math.max(1, __playbackState.total || 0);
+    return items.map((item, index) => {
+      const ratio = span <= 1 ? 0 : ((item.x - minX) / span);
+      const time = Math.max(0, Math.min(total, Math.round(total * ratio)));
+      return {
+        index,
+        chord: item.chord,
+        x: item.x,
+        time,
+        element: item.element
+      };
+    });
+  }
+
+  function clearChordPlaybackHighlight() {
+    document.querySelectorAll('#alphaTab [data-current-chord-playback="1"]').forEach((el) => {
+      el.removeAttribute('data-current-chord-playback');
+    });
+  }
+
+  function setCurrentChordPlayback(chordItem) {
+    __currentChordPlayback = chordItem || null;
+    if (chordItem && chordItem.chord) {
+      document.body.setAttribute('data-current-chord', chordItem.chord);
+    } else {
+      document.body.removeAttribute('data-current-chord');
+    }
+    clearChordPlaybackHighlight();
+    if (chordItem && chordItem.element) {
+      try { chordItem.element.setAttribute('data-current-chord-playback', '1'); } catch (e) {}
+    }
+  }
+
+  function getCurrentChordAtTime(ms) {
+    const items = Array.isArray(__chordTimeline) ? __chordTimeline : [];
+    if (!items.length) return null;
+    const t = Math.max(0, Number(ms) || 0);
+    let current = items[0];
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].time <= t) current = items[i];
+      else break;
+    }
+    return current || null;
+  }
+
+  function updateCurrentChordFromPlayback(ms) {
+    const next = getCurrentChordAtTime(ms);
+    if (!next && __currentChordPlayback) {
+      setCurrentChordPlayback(null);
+      return;
+    }
+    if (!next) return;
+    if (!__currentChordPlayback || __currentChordPlayback.index !== next.index || __currentChordPlayback.chord !== next.chord) {
+      setCurrentChordPlayback(next);
+    }
+  }
+
+  function refreshChordTimelineFromDom() {
+    __chordTimeline = buildChordTimelineFromRenderedDom();
+    window.__chordTimeline = __chordTimeline.slice();
+    updateCurrentChordFromPlayback(__playbackState.current || 0);
+  }
+
+  function scheduleChordTimelineRefresh(delay = 120) {
+    try { if (__chordTimelineTimer) clearTimeout(__chordTimelineTimer); } catch (e) {}
+    __chordTimelineTimer = setTimeout(refreshChordTimelineFromDom, delay);
   }
 
   function computeDisplayedKeyName(meta) {
@@ -676,6 +790,9 @@
   async function loadGtzIntoAlphaTab(api, gtzUrl) {
     try { api.stop(); } catch(e) {}
     setPlayerUI({ current: 0, total: 0, playing: false });
+    __chordTimeline = [];
+    window.__chordTimeline = [];
+    setCurrentChordPlayback(null);
 
     const res = await fetch(gtzUrl);
     if (!res.ok) throw new Error(`HTTP ${res.status} ${gtzUrl}`);
@@ -917,6 +1034,7 @@
         progressEl.value = String(__playbackState.progress);
       }
       if (timeEl) timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
+      updateCurrentChordFromPlayback(args.currentTime || 0);
     });
 
     if (progressEl) {
@@ -959,6 +1077,7 @@
     if (progressEl) progressEl.value = "0";
     const btnPlay = document.getElementById("ui-play");
     if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
+    if (!total) setCurrentChordPlayback(null);
   }
   // ===== /alphaTab + .gtz 加载 =====
 
@@ -1247,10 +1366,14 @@ function pad4(num) {
         renderVisibleTracks(window.__atApi);
         applyScoreTransposition(window.__atApi);
         applyPlaybackTrackVisibility(window.__atApi);
+        ensureChordObserver();
+        scheduleChordTimelineRefresh(260);
       });
 
       window.__atApi.renderFinished.on(() => {
         try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode({ domOnly: true }); } catch (e) {}
+        ensureChordObserver();
+        scheduleChordTimelineRefresh(120);
       });
 
       // 播放条绑定
