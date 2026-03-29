@@ -403,8 +403,11 @@
   }
 
   let __chordTimeline = [];
+  let __chordTimelineRaw = [];
+  let __meterTimeline = [];
   let __chordTimelineTimer = null;
   let __currentChordPlayback = null;
+  let __lastDecodedScoreXml = '';
 
   function getSvgTextAnchorX(el) {
     if (!el) return null;
@@ -461,6 +464,204 @@
     });
   }
 
+  function decodeBase64ToText(b64) {
+    const bytes = base64ToUint8Array(b64);
+    try {
+      return new TextDecoder('utf-8').decode(bytes);
+    } catch (e) {
+      let out = '';
+      for (let i = 0; i < bytes.length; i++) out += String.fromCharCode(bytes[i]);
+      try { return decodeURIComponent(escape(out)); } catch (e2) { return out; }
+    }
+  }
+
+  function normalizeHarmonyKind(kindValue) {
+    const kind = String(kindValue || '').trim();
+    if (!kind || kind === 'major') return '';
+    const map = {
+      'minor': 'm',
+      'augmented': 'aug',
+      'diminished': 'dim',
+      'dominant': '7',
+      'major-seventh': 'maj7',
+      'minor-seventh': 'm7',
+      'diminished-seventh': 'dim7',
+      'augmented-seventh': 'aug7',
+      'half-diminished': 'm7b5',
+      'major-minor': 'm(maj7)',
+      'major-sixth': '6',
+      'minor-sixth': 'm6',
+      'dominant-ninth': '9',
+      'major-ninth': 'maj9',
+      'minor-ninth': 'm9',
+      'dominant-11th': '11',
+      'major-11th': 'maj11',
+      'minor-11th': 'm11',
+      'dominant-13th': '13',
+      'major-13th': 'maj13',
+      'minor-13th': 'm13',
+      'suspended-second': 'sus2',
+      'suspended-fourth': 'sus4',
+      'power': '5'
+    };
+    return map[kind] || kind;
+  }
+
+  function buildChordSymbolFromHarmonyNode(harmonyEl) {
+    if (!harmonyEl) return '';
+    const rootStep = harmonyEl.querySelector('root > root-step')?.textContent?.trim() || '';
+    if (!rootStep) return '';
+    const rootAlter = parseInt(harmonyEl.querySelector('root > root-alter')?.textContent || '0', 10) || 0;
+    const kindText = harmonyEl.querySelector('kind')?.textContent || '';
+    const degreeNodes = Array.from(harmonyEl.querySelectorAll('degree'));
+    const bassStep = harmonyEl.querySelector('bass > bass-step')?.textContent?.trim() || '';
+    const bassAlter = parseInt(harmonyEl.querySelector('bass > bass-alter')?.textContent || '0', 10) || 0;
+
+    const accidental = (n) => n === 1 ? '#' : (n === -1 ? 'b' : '');
+    let symbol = rootStep + accidental(rootAlter) + normalizeHarmonyKind(kindText);
+
+    degreeNodes.forEach((deg) => {
+      const value = (deg.querySelector('degree-value')?.textContent || '').trim();
+      const alter = parseInt(deg.querySelector('degree-alter')?.textContent || '0', 10) || 0;
+      const type = (deg.querySelector('degree-type')?.textContent || '').trim();
+      if (!value || !type) return;
+      const alt = alter === 1 ? '#' : (alter === -1 ? 'b' : '');
+      if (type === 'add') symbol += 'add' + alt + value;
+      else if (type === 'alter') symbol += alt + value;
+      else if (type === 'subtract') symbol += 'no' + value;
+    });
+
+    if (bassStep) symbol += '/' + bassStep + accidental(bassAlter);
+    return symbol;
+  }
+
+  function getMeasureTickLengthFromTime(beats, beatType, divisions) {
+    const b = parseInt(beats, 10) || 0;
+    const bt = parseInt(beatType, 10) || 4;
+    const div = parseInt(divisions, 10) || 1;
+    if (!b || !bt || !div) return 0;
+    return Math.round((b * 4 * div) / bt);
+  }
+
+  function buildChordTimelineFromXmlText(xmlText) {
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(xmlText, 'application/xml');
+    if (xml.querySelector('parsererror')) {
+      throw new Error('scoreBase64 不是可解析的 MusicXML');
+    }
+
+    const part = xml.querySelector('score-partwise > part, part');
+    if (!part) return { chords: [], meters: [], totalUnits: 0 };
+
+    let divisions = 1;
+    let measureUnitsStart = 0;
+    let beats = 4;
+    let beatType = 4;
+    const chords = [];
+    const meters = [];
+
+    Array.from(part.querySelectorAll(':scope > measure')).forEach((measureEl, measureIndex) => {
+      const attrDiv = measureEl.querySelector('attributes > divisions');
+      if (attrDiv) {
+        const nextDiv = parseInt(attrDiv.textContent, 10);
+        if (Number.isFinite(nextDiv) && nextDiv > 0) divisions = nextDiv;
+      }
+      const timeEl = measureEl.querySelector('attributes > time');
+      if (timeEl) {
+        const nextBeats = parseInt(timeEl.querySelector('beats')?.textContent || beats, 10);
+        const nextBeatType = parseInt(timeEl.querySelector('beat-type')?.textContent || beatType, 10);
+        if (Number.isFinite(nextBeats) && nextBeats > 0) beats = nextBeats;
+        if (Number.isFinite(nextBeatType) && nextBeatType > 0) beatType = nextBeatType;
+      }
+
+      const measureTickLength = getMeasureTickLengthFromTime(beats, beatType, divisions);
+      meters.push({
+        measure: measureIndex + 1,
+        beats,
+        beatType,
+        divisions,
+        startUnits: measureUnitsStart,
+        measureTickLength
+      });
+
+      let cursor = 0;
+      Array.from(measureEl.children).forEach((node) => {
+        const tag = node.tagName;
+        if (tag === 'note') {
+          const duration = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0;
+          if (node.querySelector('chord')) {
+            return;
+          }
+          cursor += duration;
+          return;
+        }
+        if (tag === 'backup') {
+          const duration = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0;
+          cursor = Math.max(0, cursor - duration);
+          return;
+        }
+        if (tag === 'forward') {
+          const duration = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0;
+          cursor += duration;
+          return;
+        }
+        if (tag === 'harmony') {
+          const offset = parseInt(node.querySelector('offset')?.textContent || '0', 10) || 0;
+          const posInMeasure = Math.max(0, cursor + offset);
+          const chordRaw = buildChordSymbolFromHarmonyNode(node);
+          if (!chordRaw) return;
+          chords.push({
+            measure: measureIndex + 1,
+            beat: divisions ? (posInMeasure / divisions) : 0,
+            startUnits: measureUnitsStart + posInMeasure,
+            chordRaw
+          });
+        }
+      });
+
+      measureUnitsStart += measureTickLength || cursor;
+    });
+
+    chords.sort((a, b) => a.startUnits - b.startUnits || a.measure - b.measure);
+    return { chords, meters, totalUnits: measureUnitsStart };
+  }
+
+  function rebuildDisplayChordTimelineFromRaw() {
+    const raw = Array.isArray(__chordTimelineRaw) ? __chordTimelineRaw : [];
+    const totalUnits = raw.totalUnits || window.__scoreTotalUnits || 0;
+    const totalMs = Math.max(0, Number(__playbackState.total) || 0);
+    if (!raw.length || !totalUnits || !totalMs) return [];
+    const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
+    const semitones = getUserTranspose();
+    return raw.map((item, index) => ({
+      index,
+      measure: item.measure,
+      beat: item.beat,
+      startUnits: item.startUnits,
+      time: Math.max(0, Math.min(totalMs, Math.round((item.startUnits / totalUnits) * totalMs))),
+      chordRaw: item.chordRaw,
+      chord: semitones === 0 ? item.chordRaw : transposeChordSymbol(item.chordRaw, semitones, preferFlats),
+      source: 'gtz'
+    }));
+  }
+
+  function rebuildChordTimelines() {
+    const gtzDisplay = rebuildDisplayChordTimelineFromRaw();
+    if (gtzDisplay.length) {
+      __chordTimeline = gtzDisplay;
+      window.__chordTimeline = __chordTimeline.slice();
+      window.__chordTimelineRaw = Array.isArray(__chordTimelineRaw) ? __chordTimelineRaw.slice() : [];
+      window.__meterTimeline = Array.isArray(__meterTimeline) ? __meterTimeline.slice() : [];
+      updateCurrentChordFromPlayback(__playbackState.current || 0);
+      return;
+    }
+    __chordTimeline = buildChordTimelineFromRenderedDom();
+    window.__chordTimeline = __chordTimeline.slice();
+    window.__chordTimelineRaw = Array.isArray(__chordTimelineRaw) ? __chordTimelineRaw.slice() : [];
+    window.__meterTimeline = Array.isArray(__meterTimeline) ? __meterTimeline.slice() : [];
+    updateCurrentChordFromPlayback(__playbackState.current || 0);
+  }
+
   function clearChordPlaybackHighlight() {
     document.querySelectorAll('#alphaTab [data-current-chord-playback="1"]').forEach((el) => {
       el.removeAttribute('data-current-chord-playback');
@@ -505,9 +706,7 @@
   }
 
   function refreshChordTimelineFromDom() {
-    __chordTimeline = buildChordTimelineFromRenderedDom();
-    window.__chordTimeline = __chordTimeline.slice();
-    updateCurrentChordFromPlayback(__playbackState.current || 0);
+    rebuildChordTimelines();
   }
 
   function scheduleChordTimelineRefresh(delay = 120) {
@@ -791,7 +990,12 @@
     try { api.stop(); } catch(e) {}
     setPlayerUI({ current: 0, total: 0, playing: false });
     __chordTimeline = [];
+    __chordTimelineRaw = [];
+    __meterTimeline = [];
+    __lastDecodedScoreXml = '';
     window.__chordTimeline = [];
+    window.__chordTimelineRaw = [];
+    window.__meterTimeline = [];
     setCurrentChordPlayback(null);
 
     const res = await fetch(gtzUrl);
@@ -805,6 +1009,25 @@
     else if (gtz?.score?.data) scoreB64 = gtz.score.data;
     else if (gtz?.scoreBase64) scoreB64 = gtz.scoreBase64;
     if (!scoreB64) throw new Error('gtz 格式错误：缺少谱面数据');
+
+    try {
+      const decodedXml = decodeBase64ToText(scoreB64);
+      __lastDecodedScoreXml = decodedXml;
+      const parsed = buildChordTimelineFromXmlText(decodedXml);
+      __chordTimelineRaw = Array.isArray(parsed?.chords) ? parsed.chords.slice() : [];
+      __chordTimelineRaw.totalUnits = Number(parsed?.totalUnits) || 0;
+      __meterTimeline = Array.isArray(parsed?.meters) ? parsed.meters.slice() : [];
+      window.__chordTimelineRaw = __chordTimelineRaw.slice();
+      window.__meterTimeline = __meterTimeline.slice();
+      window.__scoreTotalUnits = Number(parsed?.totalUnits) || 0;
+    } catch (e) {
+      console.warn('GTZ chord timeline parse failed, fallback to DOM', e);
+      __chordTimelineRaw = [];
+      __meterTimeline = [];
+      window.__chordTimelineRaw = [];
+      window.__meterTimeline = [];
+      window.__scoreTotalUnits = 0;
+    }
 
     const st = gtz?.state || null;
     const vs = gtz?.viewerState || null;
