@@ -7,369 +7,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="stylesheet" href="style.css" />
   <script src="assets/alphatab/alphaTab.js"></script>
-<script>
-// ===== GTZ 和弦时间轴 + 节拍/节奏跟随 =====
-window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
-window.__chordTimelineRaw = [];
-window.__measureTimelineRaw = [];
-window.__chordTimeline = [];
-window.__rhythmState = { meter: '--', patternId: '--', steps: [], stepsPerBar: 0 };
-
-function decodeBase64ToText(b64) {
-  const binary = atob(b64);
-  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-}
-
-function mapHarmonyKindToSuffix(kindEl) {
-  if (!kindEl) return '';
-  const textAttr = String(kindEl.getAttribute('text') || '').trim();
-  if (textAttr) return textAttr;
-  const v = String(kindEl.textContent || '').trim();
-  const map = {
-    'major': '',
-    'minor': 'm',
-    'augmented': 'aug',
-    'diminished': 'dim',
-    'dominant': '7',
-    'major-seventh': 'maj7',
-    'minor-seventh': 'm7',
-    'diminished-seventh': 'dim7',
-    'augmented-seventh': 'aug7',
-    'half-diminished': 'm7b5',
-    'major-minor': 'm(maj7)',
-    'major-sixth': '6',
-    'minor-sixth': 'm6',
-    'dominant-ninth': '9',
-    'major-ninth': 'maj9',
-    'minor-ninth': 'm9',
-    'dominant-11th': '11',
-    'major-11th': 'maj11',
-    'minor-11th': 'm11',
-    'dominant-13th': '13',
-    'major-13th': 'maj13',
-    'minor-13th': 'm13',
-    'suspended-second': 'sus2',
-    'suspended-fourth': 'sus4',
-    'power': '5',
-    'none': ''
-  };
-  return Object.prototype.hasOwnProperty.call(map, v) ? map[v] : v;
-}
-
-function buildChordSymbolFromHarmony(harmonyEl) {
-  if (!harmonyEl) return '';
-  const rootStep = String(harmonyEl.querySelector('root > root-step')?.textContent || '').trim();
-  if (!rootStep) return '';
-  const rootAlter = String(harmonyEl.querySelector('root > root-alter')?.textContent || '').trim();
-  const bassStep = String(harmonyEl.querySelector('bass > bass-step')?.textContent || '').trim();
-  const bassAlter = String(harmonyEl.querySelector('bass > bass-alter')?.textContent || '').trim();
-  const kindEl = harmonyEl.querySelector('kind');
-
-  let root = rootStep;
-  if (rootAlter === '1') root += '#';
-  else if (rootAlter === '-1') root += 'b';
-
-  let bass = bassStep;
-  if (bass) {
-    if (bassAlter === '1') bass += '#';
-    else if (bassAlter === '-1') bass += 'b';
-  }
-
-  const suffix = mapHarmonyKindToSuffix(kindEl);
-  return root + suffix + (bass ? ('/' + bass) : '');
-}
-
-function getTimeSignatureText(beats, beatType) {
-  if (!Number.isFinite(beats) || !Number.isFinite(beatType) || !beats || !beatType) return '--';
-  return String(beats) + '/' + String(beatType);
-}
-
-function buildMusicTimelineFromXML(xmlText) {
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(xmlText, 'application/xml');
-  const part = xml.querySelector('score-partwise > part, score-timewise > part');
-  if (!part) throw new Error('未找到 MusicXML part');
-
-  let divisions = 1;
-  let beats = 4;
-  let beatType = 4;
-  let currentStartTicks = 0;
-  let timeSignatures = [];
-  let chords = [];
-  let measures = [];
-
-  part.querySelectorAll(':scope > measure').forEach((measureEl, idx) => {
-    const measureNo = parseInt(measureEl.getAttribute('number') || '', 10) || (idx + 1);
-
-    const divEl = measureEl.querySelector(':scope > attributes > divisions');
-    if (divEl) {
-      const nextDiv = parseInt(divEl.textContent || '1', 10);
-      if (Number.isFinite(nextDiv) && nextDiv > 0) divisions = nextDiv;
-    }
-
-    const beatsEl = measureEl.querySelector(':scope > attributes > time > beats');
-    const beatTypeEl = measureEl.querySelector(':scope > attributes > time > beat-type');
-    if (beatsEl && beatTypeEl) {
-      const nextBeats = parseInt(beatsEl.textContent || '4', 10);
-      const nextBeatType = parseInt(beatTypeEl.textContent || '4', 10);
-      if (Number.isFinite(nextBeats) && nextBeats > 0) beats = nextBeats;
-      if (Number.isFinite(nextBeatType) && nextBeatType > 0) beatType = nextBeatType;
-    }
-
-    const meterText = getTimeSignatureText(beats, beatType);
-    timeSignatures.push({ measure: measureNo, meter: meterText, divisions });
-
-    let pos = 0;
-    let maxPos = 0;
-
-    Array.from(measureEl.children).forEach((node) => {
-      const name = node.nodeName;
-      if (name === 'note') {
-        const dur = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0;
-        pos += dur;
-        if (pos > maxPos) maxPos = pos;
-        return;
-      }
-      if (name === 'backup') {
-        const dur = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0;
-        pos = Math.max(0, pos - dur);
-        return;
-      }
-      if (name === 'forward') {
-        const dur = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0;
-        pos += dur;
-        if (pos > maxPos) maxPos = pos;
-        return;
-      }
-      if (name === 'harmony') {
-        const offset = parseInt(node.querySelector('offset')?.textContent || '0', 10) || 0;
-        const tick = Math.max(0, pos + offset);
-        const chordRaw = buildChordSymbolFromHarmony(node);
-        if (chordRaw) {
-          chords.push({
-            measure: measureNo,
-            beat: tick / divisions,
-            tickFromScoreStart: currentStartTicks + tick,
-            tickInMeasure: tick,
-            divisions,
-            meter: meterText,
-            chordRaw
-          });
-        }
-      }
-    });
-
-    let nominalMeasureTicks = 0;
-    if (Number.isFinite(beats) && Number.isFinite(beatType) && beatType > 0) {
-      nominalMeasureTicks = Math.round((beats * 4 / beatType) * divisions);
-    }
-    const durationTicks = Math.max(maxPos, nominalMeasureTicks, 1);
-    measures.push({
-      measure: measureNo,
-      startTicks: currentStartTicks,
-      durationTicks,
-      endTicks: currentStartTicks + durationTicks,
-      divisions,
-      beats,
-      beatType,
-      meter: meterText
-    });
-    currentStartTicks += durationTicks;
-  });
-
-  return {
-    chords,
-    measures,
-    timeSignatures,
-    totalTicks: currentStartTicks
-  };
-}
-
-function remapTimelineTimesIfNeeded() {
-  const raw = window.__musicTimelineRaw;
-  const totalMs = Math.max(0, __playbackState.total || 0);
-  if (!raw || !raw.totalTicks || !totalMs) return;
-  if (raw.__mappedTotalMs === totalMs) return;
-
-  const tickToMs = (ticks) => Math.round((ticks / raw.totalTicks) * totalMs);
-
-  window.__measureTimelineRaw = (raw.measures || []).map(m => ({
-    ...m,
-    startMs: tickToMs(m.startTicks),
-    endMs: tickToMs(m.endTicks),
-    durationMs: Math.max(1, tickToMs(m.endTicks) - tickToMs(m.startTicks))
-  }));
-  window.__chordTimelineRaw = (raw.chords || []).map(c => ({
-    ...c,
-    timeMs: tickToMs(c.tickFromScoreStart)
-  }));
-  raw.__mappedTotalMs = totalMs;
-  rebuildDisplayChordTimeline();
-  rebuildRhythmState();
-}
-
-function rebuildDisplayChordTimeline() {
-  const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
-  const semitones = getUserTranspose();
-  const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
-  window.__chordTimeline = raw.map((c, i) => ({
-    ...c,
-    index: i,
-    chordDisplay: semitones ? transposeChordSymbol(c.chordRaw, semitones, preferFlats) : c.chordRaw
-  }));
-  updateRhythmPlayback(__playbackState.current || 0);
-}
-
-function getDefaultPatternForMeter(meter) {
-  const patterns = {
-    '4/4': { id: 'arpeggio_53231323', name: '分解 53231323', steps: ['5','3','2','3','1','3','2','3'], accent: [1,0,0,0,1,0,0,0] },
-    '3/4': { id: 'arpeggio_532123', name: '分解 532123', steps: ['5','3','2','1','2','3'], accent: [1,0,0,1,0,0] },
-    '6/8': { id: 'arpeggio_632123', name: '分解 632123', steps: ['6','3','2','1','2','3'], accent: [1,0,0,1,0,0] },
-    '6/4': { id: 'arpeggio_12', name: '分解 12格', steps: ['5','3','2','3','1','3','2','3','1','3','2','3'], accent: [1,0,0,0,0,0,1,0,0,0,0,0] },
-    '3/2': { id: 'arpeggio_half_6', name: '分解 6格', steps: ['5','3','2','1','2','3'], accent: [1,0,0,1,0,0] },
-    '2/4': { id: 'strum_4', name: '扫弦 ↓ · ↑ ·', steps: ['↓','·','↑','·'], accent: [1,0,1,0] },
-    '9/8': { id: 'compound_9', name: '分解 9格', steps: ['6','3','2','1','2','3','2','3','1'], accent: [1,0,0,1,0,0,1,0,0] },
-    '4/2': { id: 'half_8', name: '分解 8格', steps: ['5','3','2','3','1','3','2','3'], accent: [1,0,0,0,1,0,0,0] },
-    '9/4': { id: 'simple_9', name: '扫弦 9格', steps: ['↓','·','↑','·','↓','·','↑','·','↓'], accent: [1,0,0,1,0,0,1,0,0] }
-  };
-  return patterns[meter] || patterns['4/4'];
-}
-
-function ensureRhythmHud() {
-  const hud = document.getElementById('rhythm-hud');
-  if (!hud) return null;
-  hud.hidden = false;
-  return hud;
-}
-
-function hideRhythmHud() {
-  const hud = document.getElementById('rhythm-hud');
-  if (hud) hud.hidden = true;
-}
-
-function rebuildRhythmState() {
-  const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
-  if (!measures.length) {
-    hideRhythmHud();
-    window.__rhythmState = { meter: '--', patternId: '--', patternName: '--', steps: [], stepsPerBar: 0 };
-    return;
-  }
-  ensureRhythmHud();
-  const meter = measures[0].meter || '--';
-  const pattern = getDefaultPatternForMeter(meter);
-  window.__rhythmState = {
-    meter,
-    patternId: pattern.id,
-    patternName: pattern.name,
-    steps: pattern.steps.slice(),
-    accent: (pattern.accent || []).slice(),
-    stepsPerBar: pattern.steps.length
-  };
-  renderRhythmSteps(pattern.steps, pattern.accent || []);
-  const metaEl = document.getElementById('rhythm-meta');
-  const patternNameEl = document.getElementById('rhythm-pattern-name');
-  if (metaEl) metaEl.textContent = `拍号 ${meter} · ${pattern.steps.length} 格/小节`;
-  if (patternNameEl) patternNameEl.textContent = pattern.name;
-}
-
-function renderRhythmSteps(steps, accent) {
-  const box = document.getElementById('rhythm-steps');
-  if (!box) return;
-  box.style.gridTemplateColumns = `repeat(${steps.length}, minmax(0, 1fr))`;
-  box.innerHTML = steps.map((step, i) =>
-    `<div class="rhythm-step" data-rhythm-step="${i}" data-accent="${accent && accent[i] ? 1 : 0}">${escapeHtml(step)}</div>`
-  ).join('');
-}
-
-function getCurrentDisplayChordAtMs(ms) {
-  const items = Array.isArray(window.__chordTimeline) ? window.__chordTimeline : [];
-  if (!items.length) return null;
-  const t = Math.max(0, Number(ms) || 0);
-  let current = items[0];
-  for (let i = 0; i < items.length; i++) {
-    if ((items[i].timeMs || 0) <= t) current = items[i];
-    else break;
-  }
-  return current || null;
-}
-
-function getCurrentMeasureAtMs(ms) {
-  const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
-  const t = Math.max(0, Number(ms) || 0);
-  for (let i = 0; i < measures.length; i++) {
-    const m = measures[i];
-    if (t >= (m.startMs || 0) && t < (m.endMs || 0)) return m;
-  }
-  return measures[measures.length - 1] || null;
-}
-
-function getCurrentRhythmStepAtMs(ms) {
-  const measure = getCurrentMeasureAtMs(ms);
-  const state = window.__rhythmState || {};
-  if (!measure || !state.stepsPerBar) return -1;
-  const start = measure.startMs || 0;
-  const dur = Math.max(1, measure.durationMs || 1);
-  const ratio = Math.min(0.999999, Math.max(0, ((ms || 0) - start) / dur));
-  return Math.max(0, Math.min(state.stepsPerBar - 1, Math.floor(ratio * state.stepsPerBar)));
-}
-
-function updateRhythmPlayback(ms) {
-  const hud = document.getElementById('rhythm-hud');
-  if (!hud || hud.hidden) return;
-  const chord = getCurrentDisplayChordAtMs(ms);
-  const currentChordEl = document.getElementById('rhythm-current-chord');
-  if (currentChordEl) currentChordEl.textContent = chord?.chordDisplay || '--';
-
-  const stepIdx = getCurrentRhythmStepAtMs(ms);
-  document.querySelectorAll('.rhythm-step[data-rhythm-step]').forEach((el) => {
-    el.setAttribute('data-active', String(parseInt(el.getAttribute('data-rhythm-step'), 10) === stepIdx ? 1 : 0));
-  });
-
-  const measure = getCurrentMeasureAtMs(ms);
-  const metaEl = document.getElementById('rhythm-meta');
-  if (metaEl && measure) metaEl.textContent = `拍号 ${measure.meter} · 第 ${measure.measure} 小节`;
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  ensureRhythmHud();
-  hideRhythmHud();
-});
-// ===== /GTZ 和弦时间轴 + 节拍/节奏跟随 =====
-
-</script>
   <!-- 简繁转换库：opencc-js（浏览器 UMD 完整版） -->
   <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
-
-  <style>
-    .rhythm-hud{margin:12px 0 14px;padding:12px 14px;border-radius:16px;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.06)}
-    .rhythm-hud[hidden]{display:none!important}
-    .rhythm-hud-top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-    .rhythm-hud-title{font-size:14px;font-weight:700}
-    .rhythm-hud-meta{font-size:12px;opacity:.7}
-    .rhythm-hud-chord{font-size:24px;font-weight:800;line-height:1.1}
-    .rhythm-hud-sub{font-size:12px;opacity:.72;margin-top:2px}
-    .rhythm-steps{display:grid;gap:8px;margin-top:12px}
-    .rhythm-step{min-height:40px;border-radius:12px;border:1px solid rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;background:#fafafa}
-    .rhythm-step[data-active="1"]{border-color:#111;background:#111;color:#fff}
-    .rhythm-step[data-accent="1"]{box-shadow:inset 0 0 0 1px rgba(0,0,0,.10)}
-    #alphaTab .at-cursors{z-index:2000!important}
-    #alphaTab .at-cursor-bar{background:rgba(37,99,235,.22)!important;border-left:2px solid rgba(37,99,235,.85)!important;box-shadow:0 0 0 1px rgba(37,99,235,.12) inset!important}
-    #alphaTab .at-cursor-beat{background:rgba(59,130,246,.18)!important;border:1px solid rgba(59,130,246,.55)!important;border-radius:6px!important;box-shadow:0 0 0 1px rgba(59,130,246,.08) inset!important}
-    #alphaTab .at-highlight text,
-    #alphaTab .at-highlight tspan,
-    #alphaTab .at-highlight path,
-    #alphaTab .at-highlight rect,
-    #alphaTab .at-highlight ellipse,
-    #alphaTab .at-highlight polygon,
-    #alphaTab .at-highlight line{
-      fill:#2563eb!important;
-      stroke:#2563eb!important;
-      color:#2563eb!important;
-    }
-    @media (max-width:640px){.rhythm-step{min-height:34px;font-size:13px}.rhythm-hud-chord{font-size:22px}}
-  </style>
-
 </head>
 <body>
 <div class="page">
@@ -474,19 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <!-- 第 4 部分：内容 -->
     <div class="content-card">
-      <div id="rhythm-hud" class="rhythm-hud" hidden>
-        <div class="rhythm-hud-top">
-          <div>
-            <div class="rhythm-hud-title">节奏跟随</div>
-            <div class="rhythm-hud-meta" id="rhythm-meta">--</div>
-          </div>
-          <div style="text-align:right">
-            <div class="rhythm-hud-chord" id="rhythm-current-chord">--</div>
-            <div class="rhythm-hud-sub" id="rhythm-pattern-name">--</div>
-          </div>
-        </div>
-        <div class="rhythm-steps" id="rhythm-steps"></div>
-      </div>
       <div id="score-view" class="score-wrap" aria-hidden="false">
         <div id="alphaTab" class="at-viewport"></div>
       </div>
@@ -841,6 +467,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
       try { api.render(); } catch (e) {}
+      rebuildDisplayChordTimeline();
+      syncRhythmToPlayback(__playbackState.current || 0);
       scheduleChordRewrite(120);
     } catch (e) {
       console.warn('applyScoreTransposition failed', e);
@@ -881,8 +509,6 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshAdjustUI();
     updateMetaRow();
     applyViewerPrefsToScore();
-    rebuildDisplayChordTimeline();
-    updateRhythmPlayback(__playbackState.current || 0);
   }
 
   function resetTranspose() {
@@ -891,8 +517,6 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshAdjustUI();
     updateMetaRow();
     applyViewerPrefsToScore();
-    rebuildDisplayChordTimeline();
-    updateRhythmPlayback(__playbackState.current || 0);
   }
 
   function changeScoreFont(delta) {
@@ -1078,29 +702,415 @@ document.addEventListener('DOMContentLoaded', () => {
     window.__gtzMeta = gtz?.meta || null;
     updateMetaRow(window.__gtzMeta || null);
 
-    try {
-      const xmlText = decodeBase64ToText(scoreB64);
-      const parsed = buildMusicTimelineFromXML(xmlText);
-      window.__musicTimelineRaw = parsed;
-      window.__chordTimelineRaw = parsed.chords.slice();
-      window.__measureTimelineRaw = parsed.measures.slice();
-      rebuildDisplayChordTimeline();
-      rebuildRhythmState();
-    } catch (e) {
-      console.warn('GTZ时间轴解析失败:', e);
-      window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
-      window.__chordTimelineRaw = [];
-      window.__measureTimelineRaw = [];
-      window.__chordTimeline = [];
-      hideRhythmHud();
-    }
-
     const bytes = base64ToUint8Array(scoreB64);
     api.load(bytes);
+    try {
+      __gtzXmlText = decodeBase64ToText(scoreB64);
+      const parsed = parseMusicXmlStructures(__gtzXmlText);
+      __chordTimelineRaw = parsed.chordTimeline;
+      __measureTimelineRaw = parsed.measureTimeline;
+      window.__gtzXmlText = __gtzXmlText;
+      window.__chordTimelineRaw = __chordTimelineRaw.slice();
+      window.__measureTimelineRaw = __measureTimelineRaw.slice();
+      rebuildDisplayChordTimeline();
+      updateRhythmStateFromSong();
+      updateRhythmUi();
+    } catch (e) {
+      console.warn('GTZ 节奏解析失败', e);
+      __gtzXmlText = '';
+      __chordTimelineRaw = [];
+      __chordTimeline = [];
+      __measureTimelineRaw = [];
+      window.__chordTimelineRaw = [];
+      window.__chordTimeline = [];
+      window.__measureTimelineRaw = [];
+    }
 
     setPlayerStatus('谱面已加载');
     return gtz;
   }
+
+
+  // ===== GTZ 拍号 / 和弦 / 节奏引擎 =====
+  let __gtzXmlText = '';
+  let __chordTimelineRaw = [];
+  let __chordTimeline = [];
+  let __measureTimelineRaw = [];
+  let __rhythmState = {
+    meter: '',
+    patternId: '',
+    stepsPerBar: 0,
+    activeStepIndex: -1,
+    currentMeasure: 0,
+    currentChord: '',
+    engineReady: false
+  };
+
+  const RHYTHM_LIBRARY = {
+    '4/4': {
+      defaultPatternId: 'arpeggio_53231323',
+      patterns: {
+        arpeggio_53231323: { id: 'arpeggio_53231323', label: '53231323', type: 'arpeggio', stepsPerBar: 8, display: ['5','3','2','3','1','3','2','3'] },
+        arpeggio_53212323: { id: 'arpeggio_53212323', label: '53212323', type: 'arpeggio', stepsPerBar: 8, display: ['5','3','2','1','2','3','2','3'] },
+        arpeggio_63231323: { id: 'arpeggio_63231323', label: '63231323', type: 'arpeggio', stepsPerBar: 8, display: ['6','3','2','3','1','3','2','3'] },
+        strum_ddUUDU:      { id: 'strum_ddUUDU',      label: '↓↓↑↑↓↑',   type: 'strum',    stepsPerBar: 8, display: ['↓','·','↓','·','↑','↑','↓','↑'] }
+      }
+    },
+    '3/4': {
+      defaultPatternId: 'arpeggio_532123',
+      patterns: {
+        arpeggio_532123:   { id: 'arpeggio_532123',   label: '532123',   type: 'arpeggio', stepsPerBar: 6, display: ['5','3','2','1','2','3'] },
+        strum_ddu:         { id: 'strum_ddu',         label: '↓↓↑',      type: 'strum',    stepsPerBar: 6, display: ['↓','·','↓','·','↑','·'] }
+      }
+    },
+    '2/4': {
+      defaultPatternId: 'arpeggio_5323',
+      patterns: {
+        arpeggio_5323:     { id: 'arpeggio_5323',     label: '5323',     type: 'arpeggio', stepsPerBar: 4, display: ['5','3','2','3'] },
+        strum_du:          { id: 'strum_du',          label: '↓↑',       type: 'strum',    stepsPerBar: 4, display: ['↓','·','↑','·'] }
+      }
+    },
+    '6/8': {
+      defaultPatternId: 'arpeggio_632123',
+      patterns: {
+        arpeggio_632123:   { id: 'arpeggio_632123',   label: '632123',   type: 'arpeggio', stepsPerBar: 6, display: ['6','3','2','1','2','3'] },
+        strum_ddu_du:      { id: 'strum_ddu_du',      label: '↓ ↓↑ ↓↑',  type: 'strum',    stepsPerBar: 6, display: ['↓','·','↓','↑','↓','↑'] }
+      }
+    },
+    '9/8': {
+      defaultPatternId: 'arpeggio_632123123',
+      patterns: {
+        arpeggio_632123123:{ id: 'arpeggio_632123123',label:'632123123', type:'arpeggio', stepsPerBar: 9, display:['6','3','2','1','2','3','1','2','3'] }
+      }
+    },
+    '6/4': {
+      defaultPatternId: 'arpeggio_632123123123',
+      patterns: {
+        arpeggio_632123123123:{ id:'arpeggio_632123123123', label:'632123123123', type:'arpeggio', stepsPerBar: 12, display:['6','3','2','1','2','3','1','2','3','1','2','3'] }
+      }
+    },
+    '3/2': {
+      defaultPatternId: 'arpeggio_532123',
+      patterns: {
+        arpeggio_532123:   { id: 'arpeggio_532123', label: '532123', type: 'arpeggio', stepsPerBar: 6, display: ['5','3','2','1','2','3'] }
+      }
+    },
+    '4/2': {
+      defaultPatternId: 'arpeggio_5323132353212323',
+      patterns: {
+        arpeggio_5323132353212323:{ id:'arpeggio_5323132353212323', label:'53231323 53212323', type:'arpeggio', stepsPerBar: 16, display:['5','3','2','3','1','3','2','3','5','3','2','1','2','3','2','3'] }
+      }
+    },
+    '9/4': {
+      defaultPatternId: 'arpeggio_632123123',
+      patterns: {
+        arpeggio_632123123:{ id:'arpeggio_632123123', label:'632123123', type:'arpeggio', stepsPerBar: 9, display:['6','3','2','1','2','3','1','2','3'] }
+      }
+    }
+  };
+
+  function decodeBase64ToText(b64) {
+    const binary = atob(b64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  function normalizeChordKind(kindText) {
+    const s = String(kindText || '').trim();
+    if (!s || s === 'major') return '';
+    const map = {
+      'minor': 'm',
+      'dominant': '7',
+      'dominant-seventh': '7',
+      'major-seventh': 'maj7',
+      'minor-seventh': 'm7',
+      'diminished': 'dim',
+      'augmented': 'aug',
+      'suspended-second': 'sus2',
+      'suspended-fourth': 'sus4',
+      'half-diminished': 'm7b5'
+    };
+    return map[s] || s.replace(/\s+/g, '');
+  }
+
+  function parseHarmonyNode(node) {
+    const root = node.querySelector('root-step')?.textContent?.trim() || '';
+    if (!root) return '';
+    const alter = node.querySelector('root-alter')?.textContent?.trim() || '';
+    const kind = normalizeChordKind(node.querySelector('kind')?.textContent || '');
+    const bassStep = node.querySelector('bass-step')?.textContent?.trim() || '';
+    const bassAlter = node.querySelector('bass-alter')?.textContent?.trim() || '';
+    let chord = root;
+    if (alter === '1') chord += '#';
+    else if (alter === '-1') chord += 'b';
+    chord += kind;
+    if (bassStep) {
+      let bass = bassStep;
+      if (bassAlter === '1') bass += '#';
+      else if (bassAlter === '-1') bass += 'b';
+      chord += '/' + bass;
+    }
+    return chord;
+  }
+
+  function parseMusicXmlStructures(xmlText) {
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(xmlText, 'application/xml');
+    if (xml.querySelector('parsererror')) throw new Error('MusicXML 解析失败');
+
+    const measureNodes = Array.from(xml.querySelectorAll('part > measure'));
+    let divisions = 1;
+    let currentMeter = '4/4';
+    let cumulativeUnits = 0;
+    let chordTimeline = [];
+    let measureTimeline = [];
+
+    measureNodes.forEach((measureNode, idx) => {
+      const attrDiv = measureNode.querySelector('attributes > divisions');
+      if (attrDiv) {
+        const n = parseInt(attrDiv.textContent || '1', 10);
+        if (Number.isFinite(n) && n > 0) divisions = n;
+      }
+      const beatsEl = measureNode.querySelector('attributes > time > beats');
+      const beatTypeEl = measureNode.querySelector('attributes > time > beat-type');
+      if (beatsEl && beatTypeEl) {
+        currentMeter = `${beatsEl.textContent.trim()}/${beatTypeEl.textContent.trim()}`;
+      }
+
+      const measureStartUnits = cumulativeUnits;
+      let cursorUnits = 0;
+
+      Array.from(measureNode.children).forEach((child) => {
+        const tag = child.tagName;
+        if (tag === 'harmony') {
+          const chordRaw = parseHarmonyNode(child);
+          if (chordRaw) {
+            chordTimeline.push({
+              index: chordTimeline.length,
+              measure: idx + 1,
+              meter: currentMeter,
+              divisions,
+              offsetUnits: cursorUnits,
+              startUnits: measureStartUnits + cursorUnits,
+              chordRaw
+            });
+          }
+          return;
+        }
+        if (tag === 'forward') {
+          const dur = parseInt(child.querySelector('duration')?.textContent || '0', 10) || 0;
+          cursorUnits += dur;
+          return;
+        }
+        if (tag === 'backup') {
+          const dur = parseInt(child.querySelector('duration')?.textContent || '0', 10) || 0;
+          cursorUnits = Math.max(0, cursorUnits - dur);
+          return;
+        }
+        if (tag === 'note') {
+          const dur = parseInt(child.querySelector('duration')?.textContent || '0', 10) || 0;
+          cursorUnits += dur;
+        }
+      });
+
+      const measureDurationUnits = Math.max(cursorUnits, parseInt(measureNode.querySelector('attributes > measure-style')?.textContent || '0', 10) || cursorUnits);
+      measureTimeline.push({
+        measure: idx + 1,
+        meter: currentMeter,
+        divisions,
+        startUnits: measureStartUnits,
+        durationUnits: measureDurationUnits,
+        endUnits: measureStartUnits + measureDurationUnits
+      });
+      cumulativeUnits += measureDurationUnits;
+    });
+
+    if (!measureTimeline.length) {
+      measureTimeline.push({ measure: 1, meter: currentMeter, divisions, startUnits: 0, durationUnits: 1, endUnits: 1 });
+    }
+
+    return { chordTimeline, measureTimeline };
+  }
+
+  function finalizeGtzhTimelines(totalMs) {
+    const totalUnits = Math.max(1, (__measureTimelineRaw.length ? __measureTimelineRaw[__measureTimelineRaw.length - 1].endUnits : 1));
+    const unitToMs = totalMs > 0 ? (totalMs / totalUnits) : 0;
+    __measureTimelineRaw = __measureTimelineRaw.map((m) => ({
+      ...m,
+      startMs: Math.round(m.startUnits * unitToMs),
+      durationMs: Math.max(1, Math.round(m.durationUnits * unitToMs)),
+      endMs: Math.round(m.endUnits * unitToMs)
+    }));
+    __chordTimelineRaw = __chordTimelineRaw.map((c, idx, arr) => {
+      const startMs = Math.round(c.startUnits * unitToMs);
+      const nextStartUnits = idx + 1 < arr.length ? arr[idx + 1].startUnits : totalUnits;
+      const endMs = Math.round(nextStartUnits * unitToMs);
+      const measureObj = __measureTimelineRaw.find((m) => m.measure === c.measure) || __measureTimelineRaw[0];
+      const beat = measureObj && measureObj.divisions ? (c.offsetUnits / measureObj.divisions) : 0;
+      return {
+        ...c,
+        beat,
+        startMs,
+        endMs,
+        durationMs: Math.max(1, endMs - startMs)
+      };
+    });
+    rebuildDisplayChordTimeline();
+    updateRhythmStateFromSong();
+    updateRhythmUi();
+  }
+
+  function rebuildDisplayChordTimeline() {
+    const semitones = getUserTranspose();
+    const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
+    __chordTimeline = __chordTimelineRaw.map((item) => ({
+      ...item,
+      chordDisplay: semitones === 0 ? item.chordRaw : transposeChordSymbol(item.chordRaw, semitones, preferFlats)
+    }));
+    window.__chordTimelineRaw = __chordTimelineRaw.slice();
+    window.__chordTimeline = __chordTimeline.slice();
+    window.__measureTimelineRaw = __measureTimelineRaw.slice();
+  }
+
+  function getPrimaryMeter() {
+    return (__measureTimelineRaw[0] && __measureTimelineRaw[0].meter) || '4/4';
+  }
+
+  function getRhythmLibraryForMeter(meter) {
+    return RHYTHM_LIBRARY[meter] || RHYTHM_LIBRARY['4/4'];
+  }
+
+  function updateRhythmStateFromSong() {
+    const meter = getPrimaryMeter();
+    const lib = getRhythmLibraryForMeter(meter);
+    if (!__rhythmState.patternId || !lib.patterns[__rhythmState.patternId]) {
+      __rhythmState.patternId = lib.defaultPatternId;
+    }
+    __rhythmState.meter = meter;
+    __rhythmState.stepsPerBar = lib.patterns[__rhythmState.patternId].stepsPerBar;
+    __rhythmState.engineReady = true;
+    window.__rhythmState = { ...__rhythmState };
+  }
+
+  function getCurrentMeasureAtTime(ms) {
+    const t = Math.max(0, Number(ms) || 0);
+    for (let i = 0; i < __measureTimelineRaw.length; i++) {
+      const m = __measureTimelineRaw[i];
+      if (t >= m.startMs && t < m.endMs) return m;
+    }
+    return __measureTimelineRaw.length ? __measureTimelineRaw[__measureTimelineRaw.length - 1] : null;
+  }
+
+  function getCurrentChordAtTime(ms) {
+    const t = Math.max(0, Number(ms) || 0);
+    let current = __chordTimeline.length ? __chordTimeline[0] : null;
+    for (let i = 0; i < __chordTimeline.length; i++) {
+      if (__chordTimeline[i].startMs <= t) current = __chordTimeline[i];
+      else break;
+    }
+    return current;
+  }
+
+  function getCurrentPattern() {
+    const lib = getRhythmLibraryForMeter(__rhythmState.meter || getPrimaryMeter());
+    return lib.patterns[__rhythmState.patternId] || lib.patterns[lib.defaultPatternId];
+  }
+
+  function computeRhythmPlaybackState(ms) {
+    const measure = getCurrentMeasureAtTime(ms);
+    const chord = getCurrentChordAtTime(ms);
+    const pattern = getCurrentPattern();
+    if (!measure || !pattern) return null;
+    const localMs = Math.max(0, ms - measure.startMs);
+    const stepDuration = Math.max(1, measure.durationMs / pattern.stepsPerBar);
+    let stepIndex = Math.floor(localMs / stepDuration);
+    if (stepIndex >= pattern.stepsPerBar) stepIndex = pattern.stepsPerBar - 1;
+    return {
+      meter: measure.meter,
+      measure: measure.measure,
+      stepIndex,
+      stepsPerBar: pattern.stepsPerBar,
+      patternId: pattern.id,
+      patternDisplay: pattern.display.slice(),
+      currentChord: chord ? chord.chordDisplay : '',
+      currentChordRaw: chord ? chord.chordRaw : ''
+    };
+  }
+
+  function ensureRhythmHud() {
+    if (document.getElementById('rhythm-hud')) return;
+    const contentCard = document.querySelector('.content-card');
+    if (!contentCard) return;
+    const wrap = document.createElement('div');
+    wrap.id = 'rhythm-hud';
+    wrap.style.cssText = 'margin:10px 0 4px;padding:10px 12px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:rgba(255,255,255,.04);color:#fff;';
+    wrap.innerHTML = `
+      <div id="rhythm-head" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:13px;margin-bottom:8px;">
+        <span id="rhythm-meter">拍号 --</span>
+        <span id="rhythm-measure">小节 --</span>
+        <span id="rhythm-chord">和弦 --</span>
+        <button type="button" id="rhythm-pattern-btn" style="margin-left:auto;background:#2b65ff;color:#fff;border:none;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;">节奏</button>
+      </div>
+      <div id="rhythm-steps" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    `;
+    contentCard.insertBefore(wrap, contentCard.firstChild);
+    const btn = document.getElementById('rhythm-pattern-btn');
+    if (btn) {
+      btn.addEventListener('click', () => cycleRhythmPattern());
+    }
+  }
+
+  function updateRhythmUi() {
+    ensureRhythmHud();
+    const meterEl = document.getElementById('rhythm-meter');
+    const measureEl = document.getElementById('rhythm-measure');
+    const chordEl = document.getElementById('rhythm-chord');
+    const stepsEl = document.getElementById('rhythm-steps');
+    const btn = document.getElementById('rhythm-pattern-btn');
+    const pattern = getCurrentPattern();
+    if (meterEl) meterEl.textContent = `拍号 ${__rhythmState.meter || '--'}`;
+    if (measureEl) measureEl.textContent = `小节 ${__rhythmState.currentMeasure || '--'}`;
+    if (chordEl) chordEl.textContent = `和弦 ${__rhythmState.currentChord || '--'}`;
+    if (btn && pattern) btn.textContent = pattern.label;
+    if (!stepsEl || !pattern) return;
+    stepsEl.innerHTML = '';
+    pattern.display.forEach((token, idx) => {
+      const cell = document.createElement('div');
+      const active = idx === __rhythmState.activeStepIndex;
+      cell.textContent = token;
+      cell.style.cssText = `min-width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:${active ? '700' : '500'};background:${active ? '#111' : 'rgba(255,255,255,.08)'};color:${active ? '#fff' : 'rgba(255,255,255,.88)'};`;
+      stepsEl.appendChild(cell);
+    });
+    window.__rhythmState = { ...__rhythmState };
+  }
+
+  function syncRhythmToPlayback(ms) {
+    if (!__rhythmState.engineReady) return;
+    const now = computeRhythmPlaybackState(ms);
+    if (!now) return;
+    let dirty = false;
+    if (__rhythmState.activeStepIndex !== now.stepIndex) { __rhythmState.activeStepIndex = now.stepIndex; dirty = true; }
+    if (__rhythmState.currentMeasure !== now.measure) { __rhythmState.currentMeasure = now.measure; dirty = true; }
+    if (__rhythmState.currentChord !== now.currentChord) { __rhythmState.currentChord = now.currentChord; dirty = true; }
+    if (__rhythmState.meter !== now.meter) { __rhythmState.meter = now.meter; dirty = true; }
+    if (__rhythmState.stepsPerBar !== now.stepsPerBar) { __rhythmState.stepsPerBar = now.stepsPerBar; dirty = true; }
+    if (__rhythmState.patternId !== now.patternId) { __rhythmState.patternId = now.patternId; dirty = true; }
+    if (dirty) updateRhythmUi();
+  }
+
+  function cycleRhythmPattern() {
+    const lib = getRhythmLibraryForMeter(__rhythmState.meter || getPrimaryMeter());
+    const ids = Object.keys(lib.patterns);
+    if (!ids.length) return;
+    const idx = Math.max(0, ids.indexOf(__rhythmState.patternId));
+    __rhythmState.patternId = ids[(idx + 1) % ids.length];
+    __rhythmState.stepsPerBar = lib.patterns[__rhythmState.patternId].stepsPerBar;
+    updateRhythmUi();
+    syncRhythmToPlayback(__playbackState.current || 0);
+  }
+
 
   function msToMMSS(ms) {
     const totalSec = Math.max(0, Math.floor(ms / 1000));
@@ -1295,29 +1305,26 @@ document.addEventListener('DOMContentLoaded', () => {
       const playing = (args.state === alphaTab.synth.PlayerState.Playing);
       __playbackState.playing = playing;
       if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
+    __rhythmState.activeStepIndex = -1;
+    __rhythmState.currentMeasure = 0;
+    __rhythmState.currentChord = '';
+    updateRhythmUi();
     });
 
-    let previousUiSec = -1;
     api.playerPositionChanged.on((args) => {
-      const currentMs = args.currentTime || 0;
-      const currentSec = Math.floor(currentMs / 1000);
-
       const max = Math.max(1, args.endTime);
-      const v = Math.floor((currentMs / max) * 1000);
-      __playbackState.current = currentMs;
+      const v = Math.floor((args.currentTime / max) * 1000);
+      __playbackState.current = args.currentTime || 0;
       __playbackState.total = args.endTime || 0;
       __playbackState.progress = isFinite(v) ? v : 0;
-
       if (!__playerUi.isSeeking && progressEl) {
         progressEl.value = String(__playbackState.progress);
       }
-      if (timeEl && currentSec !== previousUiSec) {
-        previousUiSec = currentSec;
-        timeEl.textContent = `${msToMMSS(currentMs)} / ${msToMMSS(args.endTime)}`;
+      if (timeEl) timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
+      if (__measureTimelineRaw.length) {
+        finalizeGtzhTimelines(args.endTime || 0);
       }
-
-      remapTimelineTimesIfNeeded();
-      updateRhythmPlayback(currentMs);
+      syncRhythmToPlayback(args.currentTime || 0);
     });
 
     if (progressEl) {
@@ -1360,8 +1367,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (progressEl) progressEl.value = "0";
     const btnPlay = document.getElementById("ui-play");
     if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
-    remapTimelineTimesIfNeeded();
-    updateRhythmPlayback(current || 0);
   }
   // ===== /alphaTab + .gtz 加载 =====
 
@@ -1650,10 +1655,8 @@ function pad4(num) {
         renderVisibleTracks(window.__atApi);
         applyScoreTransposition(window.__atApi);
         applyPlaybackTrackVisibility(window.__atApi);
-        remapTimelineTimesIfNeeded();
-        rebuildDisplayChordTimeline();
-        rebuildRhythmState();
-        updateRhythmPlayback(__playbackState.current || 0);
+        ensureRhythmHud();
+        updateRhythmUi();
       });
 
       window.__atApi.renderFinished.on(() => {
@@ -1824,6 +1827,7 @@ function pad4(num) {
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
+    ensureRhythmHud();
     parseQuery();
     applyViewerPrefsToLyricsPage();
     await loadAndRenderCurrentSong({ preservePlaybackControls: true });
