@@ -353,6 +353,20 @@ document.addEventListener('DOMContentLoaded', () => {
     .rhythm-step{min-height:40px;border-radius:12px;border:1px solid rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;background:#fafafa}
     .rhythm-step[data-active="1"]{border-color:#111;background:#111;color:#fff}
     .rhythm-step[data-accent="1"]{box-shadow:inset 0 0 0 1px rgba(0,0,0,.10)}
+    #alphaTab .at-cursors{z-index:2000!important}
+    #alphaTab .at-cursor-bar{background:rgba(37,99,235,.22)!important;border-left:2px solid rgba(37,99,235,.85)!important;box-shadow:0 0 0 1px rgba(37,99,235,.12) inset!important}
+    #alphaTab .at-cursor-beat{background:rgba(59,130,246,.18)!important;border:1px solid rgba(59,130,246,.55)!important;border-radius:6px!important;box-shadow:0 0 0 1px rgba(59,130,246,.08) inset!important}
+    #alphaTab .at-highlight text,
+    #alphaTab .at-highlight tspan,
+    #alphaTab .at-highlight path,
+    #alphaTab .at-highlight rect,
+    #alphaTab .at-highlight ellipse,
+    #alphaTab .at-highlight polygon,
+    #alphaTab .at-highlight line{
+      fill:#2563eb!important;
+      stroke:#2563eb!important;
+      color:#2563eb!important;
+    }
     @media (max-width:640px){.rhythm-step{min-height:34px;font-size:13px}.rhythm-hud-chord{font-size:22px}}
   </style>
 
@@ -1283,23 +1297,27 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
     });
 
-    let previousSec = -1;
+    let previousUiSec = -1;
     api.playerPositionChanged.on((args) => {
-      const currentSec = Math.floor(args.currentTime / 1000);
-      if (currentSec === previousSec) return;
-      previousSec = currentSec;
+      const currentMs = args.currentTime || 0;
+      const currentSec = Math.floor(currentMs / 1000);
 
       const max = Math.max(1, args.endTime);
-      const v = Math.floor((args.currentTime / max) * 1000);
-      __playbackState.current = args.currentTime || 0;
+      const v = Math.floor((currentMs / max) * 1000);
+      __playbackState.current = currentMs;
       __playbackState.total = args.endTime || 0;
       __playbackState.progress = isFinite(v) ? v : 0;
+
       if (!__playerUi.isSeeking && progressEl) {
         progressEl.value = String(__playbackState.progress);
       }
-      if (timeEl) timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
+      if (timeEl && currentSec !== previousUiSec) {
+        previousUiSec = currentSec;
+        timeEl.textContent = `${msToMMSS(currentMs)} / ${msToMMSS(args.endTime)}`;
+      }
+
       remapTimelineTimesIfNeeded();
-      updateRhythmPlayback(args.currentTime || 0);
+      updateRhythmPlayback(currentMs);
     });
 
     if (progressEl) {
