@@ -239,6 +239,15 @@
     return Number.isFinite(n) ? Math.max(-11, Math.min(11, n)) : 0;
   }
 
+  function getEffectiveTranspose() {
+    return getUserTranspose();
+  }
+
+  function trackUsesTab(track) {
+    const staves = Array.isArray(track?.staves) ? track.staves : [];
+    return staves.some((staff) => !!staff?.showTablature);
+  }
+
   /*
    * ===== CAPO / 转调 逻辑说明（请尽量不要随意改动） =====
    *
@@ -248,7 +257,7 @@
    * 3. 用户手动转调（viewerPrefs.transposeSemitones）同时影响显示层与播放层。
    *
    * 正确公式：
-   * - 显示/记谱层 = 用户转调
+   * - 显示/记谱层  = 用户转调
    * - TAB 播放层   = 用户转调 + 歌曲自带 CAPO
    * - 非 TAB 播放层 = 用户转调
    *
@@ -260,15 +269,6 @@
    *
    * 所以这里一定要把“显示层 semitones”和“播放层 semitones”拆开。
    */
-  function getEffectiveTranspose() {
-    return getUserTranspose();
-  }
-
-  function trackUsesTab(track) {
-    const staves = Array.isArray(track?.staves) ? track.staves : [];
-    return staves.some((staff) => !!staff?.showTablature);
-  }
-
   function getTrackTransposeSemitones(track) {
     const base = getUserTranspose();
     // 【显示层 / 记谱层】
