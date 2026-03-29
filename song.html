@@ -239,27 +239,6 @@
     return Number.isFinite(n) ? Math.max(-11, Math.min(11, n)) : 0;
   }
 
-  /*
-   * ===== CAPO / 转调 逻辑说明（请尽量不要随意改动） =====
-   *
-   * 目标：
-   * 1. 六线谱“显示层”保持原始手型阅读，不把歌曲自带 CAPO 叠到可见数字上。
-   * 2. “播放层”才叠加歌曲自带 CAPO，这样听到的音高才会正确。
-   * 3. 用户手动转调（viewerPrefs.transposeSemitones）同时影响显示层与播放层。
-   *
-   * 正确公式：
-   * - 显示/记谱层 = 用户转调
-   * - TAB 播放层   = 用户转调 + 歌曲自带 CAPO
-   * - 非 TAB 播放层 = 用户转调
-   *
-   * 之前出过的两个坑：
-   * - 把 CAPO 同时塞进 notation.transpositionPitches 和 changeTrackTranspositionPitch
-   *   => 会出现“双重 CAPO”。
-   * - 把 CAPO 全部删掉
-   *   => 会出现“CAPO 完全失效”。
-   *
-   * 所以这里一定要把“显示层 semitones”和“播放层 semitones”拆开。
-   */
   function getEffectiveTranspose() {
     return getUserTranspose();
   }
@@ -271,25 +250,7 @@
 
   function getTrackTransposeSemitones(track) {
     const base = getUserTranspose();
-    // 【显示层 / 记谱层】
-    // 这里只返回“用户转调”。
-    // 注意：这里绝对不要再加歌曲 CAPO。
-    // 因为这个值会喂给 notation.transpositionPitches，
-    // 一旦把 CAPO 混进来，六线谱显示就会被一起推高，
-    // 最终造成“显示层和播放层不一致”或者“双重 CAPO”。
     return base;
-  }
-
-  function getTrackPlaybackSemitones(track) {
-    const base = getUserTranspose();
-    // 【播放层】
-    // TAB 轨：用户转调 + 歌曲自带 CAPO
-    // 非 TAB 轨：只跟随用户转调
-    //
-    // 这样做的目的是：
-    // - 看谱时仍然按原始指型阅读
-    // - 听到的音高才按 CAPO 正确抬高
-    return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -440,29 +401,16 @@
   function applyScoreTransposition(api) {
     if (!api || !api.settings) return;
     const tracks = getAllTracks(api);
-    const notationTranspositions = tracks.length
+    const trackTranspositions = tracks.length
       ? tracks.map((track) => getTrackTransposeSemitones(track))
-      : [getUserTranspose()];
+      : [getEffectiveTranspose()];
     try {
       if (!api.settings.notation) api.settings.notation = {};
-
-      // 第 1 步：先设置“显示层 / 记谱层”的转调。
-      // 这里只允许用户转调进入 notation，禁止把歌曲自带 CAPO 混进来。
-      api.settings.notation.transpositionPitches = notationTranspositions.slice();
+      api.settings.notation.transpositionPitches = trackTranspositions.slice();
       api.updateSettings();
-
       if (typeof api.changeTrackTranspositionPitch === 'function' && tracks.length) {
-        // 第 2 步：再单独设置“播放层”的转调。
-        // 这里才允许 TAB 轨叠加歌曲自带 CAPO。
-        //
-        // 这个顺序和拆分非常重要：
-        // - notation.transpositionPitches 负责“看起来怎么显示”
-        // - changeTrackTranspositionPitch 负责“最终怎么发声”
-        //
-        // 千万不要把同一个 (transpose + capo) 同时喂给两边，
-        // 否则很容易回到之前“双重 CAPO”的老问题。
-        tracks.forEach((track) => {
-          const semitones = getTrackPlaybackSemitones(track) || 0;
+        tracks.forEach((track, i) => {
+          const semitones = trackTranspositions[i] || 0;
           try { api.changeTrackTranspositionPitch([track], semitones); } catch (e) { console.warn('live transpose failed', e); }
         });
       }
@@ -514,6 +462,20 @@
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
+    applyViewerPrefsToScore();
+  }
+
+  function resetSongPlaybackAdjustments() {
+    viewerPrefs.playbackSpeedPercent = DEFAULT_VIEWER_PREFS.playbackSpeedPercent;
+    viewerPrefs.transposeSemitones = DEFAULT_VIEWER_PREFS.transposeSemitones;
+    saveViewerPrefs();
+    refreshAdjustUI();
+    updateMetaRow();
+    try {
+      if (window.__atApi) {
+        window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100;
+      }
+    } catch (e) {}
     applyViewerPrefsToScore();
   }
 
@@ -1363,6 +1325,7 @@ function pad4(num) {
       alert("找不到这首诗歌的歌词数据。");
       return;
     }
+    resetSongPlaybackAdjustments();
     updateTitle(song);
     renderScore(state.currentBook, state.currentNo);
     renderLyrics(song);
