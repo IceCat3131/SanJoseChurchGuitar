@@ -678,6 +678,7 @@
   async function loadGtzIntoAlphaTab(api, gtzUrl) {
     try { api.stop(); } catch(e) {}
     setPlayerUI({ current: 0, total: 0, playing: false });
+    __timelinesFinalizedForEndTime = 0;
 
     const res = await fetch(gtzUrl);
     if (!res.ok) throw new Error(`HTTP ${res.status} ${gtzUrl}`);
@@ -721,14 +722,9 @@
       __chordTimelineRaw = [];
       __chordTimeline = [];
       __measureTimelineRaw = [];
-      __rhythmState.patternId = '';
-      __rhythmState.stepsPerBar = 0;
-      __rhythmState.activeStepIndex = -1;
-      __rhythmState.engineReady = false;
       window.__chordTimelineRaw = [];
       window.__chordTimeline = [];
       window.__measureTimelineRaw = [];
-      window.__rhythmState = { ...__rhythmState };
     }
 
     setPlayerStatus('谱面已加载');
@@ -741,6 +737,7 @@
   let __chordTimelineRaw = [];
   let __chordTimeline = [];
   let __measureTimelineRaw = [];
+  let __timelinesFinalizedForEndTime = 0;
   let __rhythmState = {
     meter: '',
     patternId: '',
@@ -750,37 +747,6 @@
     currentChord: '',
     engineReady: false
   };
-  const RHYTHM_OFF_PATTERN_ID = '__off__';
-
-  function getRhythmSongKey() {
-    return `${state.currentBook}:${state.currentNo}`;
-  }
-
-  function loadSavedRhythmPatternId(meter) {
-    try {
-      const raw = localStorage.getItem('sjcg.rhythm.patterns.v1');
-      if (!raw) return '';
-      const map = JSON.parse(raw);
-      if (!map || typeof map !== 'object') return '';
-      const entry = map[getRhythmSongKey()];
-      if (!entry || typeof entry !== 'object') return '';
-      return String(entry[meter] || '');
-    } catch (e) {
-      return '';
-    }
-  }
-
-  function saveRhythmPatternId(meter, patternId) {
-    try {
-      const raw = localStorage.getItem('sjcg.rhythm.patterns.v1');
-      const map = raw ? JSON.parse(raw) : {};
-      if (!map[getRhythmSongKey()] || typeof map[getRhythmSongKey()] !== 'object') {
-        map[getRhythmSongKey()] = {};
-      }
-      map[getRhythmSongKey()][meter] = patternId;
-      localStorage.setItem('sjcg.rhythm.patterns.v1', JSON.stringify(map));
-    } catch (e) {}
-  }
 
   const RHYTHM_LIBRARY = {
     '4/4': {
@@ -1018,19 +984,39 @@
     return RHYTHM_LIBRARY[meter] || RHYTHM_LIBRARY['4/4'];
   }
 
+  function getSongRhythmStorageKey() {
+    return `sjcg.rhythm.choice.${state.currentBook}.${state.currentNo}`;
+  }
+
+  function loadSongRhythmChoice() {
+    try { return localStorage.getItem(getSongRhythmStorageKey()) || ''; } catch (e) { return ''; }
+  }
+
+  function saveSongRhythmChoice(patternId) {
+    try {
+      const key = getSongRhythmStorageKey();
+      if (!patternId) localStorage.removeItem(key);
+      else localStorage.setItem(key, patternId);
+    } catch (e) {}
+  }
+
+  function isRhythmOff() {
+    return __rhythmState.patternId === '__off__';
+  }
+
   function updateRhythmStateFromSong() {
     const meter = getPrimaryMeter();
     const lib = getRhythmLibraryForMeter(meter);
-    const savedPatternId = loadSavedRhythmPatternId(meter);
-    const isValidSaved = savedPatternId === RHYTHM_OFF_PATTERN_ID || !!lib.patterns[savedPatternId];
-    if (isValidSaved) {
-      __rhythmState.patternId = savedPatternId;
-    } else if (!__rhythmState.patternId || (__rhythmState.patternId !== RHYTHM_OFF_PATTERN_ID && !lib.patterns[__rhythmState.patternId])) {
+    const saved = loadSongRhythmChoice();
+    if (saved === '__off__') {
+      __rhythmState.patternId = '__off__';
+    } else if (saved && lib.patterns[saved]) {
+      __rhythmState.patternId = saved;
+    } else if (!__rhythmState.patternId || __rhythmState.patternId === '__off__' || !lib.patterns[__rhythmState.patternId]) {
       __rhythmState.patternId = lib.defaultPatternId;
     }
     __rhythmState.meter = meter;
-    __rhythmState.stepsPerBar = __rhythmState.patternId === RHYTHM_OFF_PATTERN_ID ? 0 : lib.patterns[__rhythmState.patternId].stepsPerBar;
-    __rhythmState.activeStepIndex = -1;
+    __rhythmState.stepsPerBar = (__rhythmState.patternId !== '__off__' && lib.patterns[__rhythmState.patternId]) ? lib.patterns[__rhythmState.patternId].stepsPerBar : 0;
     __rhythmState.engineReady = true;
     window.__rhythmState = { ...__rhythmState };
   }
@@ -1055,8 +1041,8 @@
   }
 
   function getCurrentPattern() {
+    if (isRhythmOff()) return null;
     const lib = getRhythmLibraryForMeter(__rhythmState.meter || getPrimaryMeter());
-    if (__rhythmState.patternId === RHYTHM_OFF_PATTERN_ID) return null;
     return lib.patterns[__rhythmState.patternId] || lib.patterns[lib.defaultPatternId];
   }
 
@@ -1064,19 +1050,7 @@
     const measure = getCurrentMeasureAtTime(ms);
     const chord = getCurrentChordAtTime(ms);
     const pattern = getCurrentPattern();
-    if (!measure) return null;
-    if (!pattern) {
-      return {
-        meter: measure.meter,
-        measure: measure.measure,
-        stepIndex: -1,
-        stepsPerBar: 0,
-        patternId: RHYTHM_OFF_PATTERN_ID,
-        patternDisplay: [],
-        currentChord: chord ? chord.chordDisplay : '',
-        currentChordRaw: chord ? chord.chordRaw : ''
-      };
-    }
+    if (!measure || !pattern) return null;
     const localMs = Math.max(0, ms - measure.startMs);
     const stepDuration = Math.max(1, measure.durationMs / pattern.stepsPerBar);
     let stepIndex = Math.floor(localMs / stepDuration);
@@ -1130,14 +1104,7 @@
     if (btn) btn.textContent = pattern ? pattern.label : '关闭';
     if (!stepsEl) return;
     stepsEl.innerHTML = '';
-    if (!pattern) {
-      const off = document.createElement('div');
-      off.textContent = '节奏已关闭';
-      off.style.cssText = 'font-size:13px;opacity:.78;padding:4px 0;';
-      stepsEl.appendChild(off);
-      window.__rhythmState = { ...__rhythmState };
-      return;
-    }
+    if (!pattern) return;
     pattern.display.forEach((token, idx) => {
       const cell = document.createElement('div');
       const active = idx === __rhythmState.activeStepIndex;
@@ -1150,9 +1117,20 @@
 
   function syncRhythmToPlayback(ms) {
     if (!__rhythmState.engineReady) return;
+    const measure = getCurrentMeasureAtTime(ms);
+    const chord = getCurrentChordAtTime(ms);
+    let dirty = false;
+    const nextMeasure = measure ? measure.measure : 0;
+    const nextChord = chord ? chord.chordDisplay : '';
+    if (__rhythmState.currentMeasure !== nextMeasure) { __rhythmState.currentMeasure = nextMeasure; dirty = true; }
+    if (__rhythmState.currentChord !== nextChord) { __rhythmState.currentChord = nextChord; dirty = true; }
+    if (isRhythmOff()) {
+      if (__rhythmState.activeStepIndex !== -1) { __rhythmState.activeStepIndex = -1; dirty = true; }
+      if (dirty) updateRhythmUi();
+      return;
+    }
     const now = computeRhythmPlaybackState(ms);
     if (!now) return;
-    let dirty = false;
     if (__rhythmState.activeStepIndex !== now.stepIndex) { __rhythmState.activeStepIndex = now.stepIndex; dirty = true; }
     if (__rhythmState.currentMeasure !== now.measure) { __rhythmState.currentMeasure = now.measure; dirty = true; }
     if (__rhythmState.currentChord !== now.currentChord) { __rhythmState.currentChord = now.currentChord; dirty = true; }
@@ -1166,12 +1144,12 @@
     const lib = getRhythmLibraryForMeter(__rhythmState.meter || getPrimaryMeter());
     const ids = Object.keys(lib.patterns);
     if (!ids.length) return;
-    const cycleIds = ids.concat(RHYTHM_OFF_PATTERN_ID);
+    const sequence = ids.concat(['__off__']);
     const currentId = __rhythmState.patternId || lib.defaultPatternId;
-    const idx = Math.max(0, cycleIds.indexOf(currentId));
-    __rhythmState.patternId = cycleIds[(idx + 1) % cycleIds.length];
-    __rhythmState.stepsPerBar = __rhythmState.patternId === RHYTHM_OFF_PATTERN_ID ? 0 : lib.patterns[__rhythmState.patternId].stepsPerBar;
-    saveRhythmPatternId(__rhythmState.meter || getPrimaryMeter(), __rhythmState.patternId);
+    const idx = Math.max(0, sequence.indexOf(currentId));
+    __rhythmState.patternId = sequence[(idx + 1) % sequence.length];
+    __rhythmState.stepsPerBar = (__rhythmState.patternId !== '__off__' && lib.patterns[__rhythmState.patternId]) ? lib.patterns[__rhythmState.patternId].stepsPerBar : 0;
+    saveSongRhythmChoice(__rhythmState.patternId);
     updateRhythmUi();
     syncRhythmToPlayback(__playbackState.current || 0);
   }
@@ -1370,10 +1348,12 @@
       const playing = (args.state === alphaTab.synth.PlayerState.Playing);
       __playbackState.playing = playing;
       if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
-    __rhythmState.activeStepIndex = -1;
-    __rhythmState.currentMeasure = 0;
-    __rhythmState.currentChord = '';
-    updateRhythmUi();
+    if (!playing) {
+      __rhythmState.activeStepIndex = -1;
+      __rhythmState.currentMeasure = 0;
+      __rhythmState.currentChord = '';
+      updateRhythmUi();
+    }
     });
 
     api.playerPositionChanged.on((args) => {
@@ -1386,8 +1366,9 @@
         progressEl.value = String(__playbackState.progress);
       }
       if (timeEl) timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
-      if (__measureTimelineRaw.length) {
+      if (__measureTimelineRaw.length && args.endTime && __timelinesFinalizedForEndTime !== args.endTime) {
         finalizeGtzhTimelines(args.endTime || 0);
+        __timelinesFinalizedForEndTime = args.endTime || 0;
       }
       syncRhythmToPlayback(args.currentTime || 0);
     });
