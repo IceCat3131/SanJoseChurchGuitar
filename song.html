@@ -426,42 +426,57 @@ function ensureIndependentTabTrackUi() {
 function renderIndependentTabTrack(bar, activeStepIndex) {
   const root = ensureIndependentTabTrackUi();
   if (!root) return;
-  if (!bar || !Array.isArray(bar.notes) || !bar.notes.length) {
+  const song = Array.isArray(window.__autoAccompanimentSong) ? window.__autoAccompanimentSong : [];
+  if (!bar || !song.length) {
     root.hidden = true;
     root.innerHTML = '';
     return;
   }
   root.hidden = false;
-  const labels = ['1','2','3','4','5','6'];
   const stringNames = {1:'e',2:'B',3:'G',4:'D',5:'A',6:'E'};
-  const stepCount = Math.max(1, bar.notes.length);
-  root.style.setProperty('--step-count', String(stepCount));
-  const notesByString = new Map();
-  (bar.notes || []).forEach((n, idx) => {
-    const s = Number(n.string);
-    if (!Number.isFinite(s)) return;
-    if (!notesByString.has(s)) notesByString.set(s, new Map());
-    notesByString.get(s).set(idx, n);
-  });
-  const patternSteps = Array.isArray(bar.pattern) ? bar.pattern.map(x => String(x)) : new Array(stepCount).fill('');
+  const currentIndex = Math.max(0, song.findIndex(item => item && item.measure === bar.measure));
+  const windowBars = song.slice(currentIndex, currentIndex + 4);
+
+  function renderSingleBar(item, isCurrent, stepIdx) {
+    const stepCount = Math.max(1, Array.isArray(item?.notes) ? item.notes.length : 0);
+    const notesByString = new Map();
+    (item.notes || []).forEach((n, idx) => {
+      const s = Number(n.string);
+      if (!Number.isFinite(s)) return;
+      if (!notesByString.has(s)) notesByString.set(s, new Map());
+      notesByString.get(s).set(idx, n);
+    });
+    const patternSteps = Array.isArray(item.pattern) ? item.pattern.map(x => String(x)) : new Array(stepCount).fill('');
+    let part = `
+      <div class="auto-tab-measure-block" style="--step-count:${stepCount}">
+        <div class="auto-tab-head">
+          <div class="auto-tab-title">${item.chordDisplay || item.chordRaw || '--'} · ${item.patternName || '--'} · 第 ${item.measure} 小节</div>
+          <div>${isCurrent ? '播放中' : '后续'}</div>
+        </div>
+        <div class="auto-tab-step-row">
+          <div class="auto-tab-step-label">节奏</div>
+          ${patternSteps.map((step, idx) => `<div class="auto-tab-step" data-active="${isCurrent && idx===stepIdx ? 1 : 0}">${escapeHtml(step)}</div>`).join('')}
+        </div>
+        <div class="auto-tab-grid">`;
+    [1,2,3,4,5,6].forEach((stringNo) => {
+      part += `<div class="auto-tab-row"><div class="auto-tab-label">${stringNames[stringNo]}</div>`;
+      for (let i = 0; i < stepCount; i++) {
+        const note = notesByString.get(stringNo)?.get(i) || null;
+        part += `<div class="auto-tab-cell" data-active="${isCurrent && i===stepIdx ? 1 : 0}">${note ? escapeHtml(String(note.fret)) : ''}</div>`;
+      }
+      part += `</div>`;
+    });
+    part += `</div></div>`;
+    return part;
+  }
+
   let html = `
     <div class="auto-tab-head">
       <div class="auto-tab-title">自动伴奏独立轨</div>
-      <div>${bar.chordDisplay || bar.chordRaw || '--'} · ${bar.patternName || '--'} · 第 ${bar.measure} 小节</div>
+      <div>从第 ${bar.measure} 小节开始 · 连续显示 ${windowBars.length} 小节</div>
     </div>
-    <div class="auto-tab-step-row">
-      <div class="auto-tab-step-label">节奏</div>
-      ${patternSteps.map((step, idx) => `<div class="auto-tab-step" data-active="${idx===activeStepIndex?1:0}">${escapeHtml(step)}</div>`).join('')}
-    </div>
-    <div class="auto-tab-grid">`;
-  [1,2,3,4,5,6].forEach((stringNo) => {
-    html += `<div class="auto-tab-row"><div class="auto-tab-label">${stringNames[stringNo]}</div>`;
-    for (let i = 0; i < stepCount; i++) {
-      const note = notesByString.get(stringNo)?.get(i) || null;
-      html += `<div class="auto-tab-cell" data-active="${i===activeStepIndex?1:0}">${note ? escapeHtml(String(note.fret)) : ''}</div>`;
-    }
-    html += `</div>`;
-  });
+    <div class="auto-tab-window">`;
+  html += windowBars.map((item, idx) => renderSingleBar(item, idx === 0, activeStepIndex)).join('');
   html += `</div>`;
   root.innerHTML = html;
 }
@@ -610,6 +625,8 @@ document.addEventListener('DOMContentLoaded', () => {
     @media (max-width:640px){.rhythm-step{min-height:34px;font-size:13px}.rhythm-hud-chord{font-size:22px}}
 
     .auto-tab-track{margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.08)}
+    .auto-tab-window{display:flex;flex-direction:column;gap:12px}
+    .auto-tab-measure-block{display:block}
     .auto-tab-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;color:rgba(0,0,0,.7)}
     .auto-tab-title{font-weight:700;color:#111}
     .auto-tab-grid{display:grid;gap:0;border:1px solid rgba(0,0,0,.12);border-radius:10px;overflow:hidden;background:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
