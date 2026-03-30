@@ -435,7 +435,7 @@ function renderIndependentTabTrack(bar, activeStepIndex) {
   root.hidden = false;
   const stringNames = {1:'e',2:'B',3:'G',4:'D',5:'A',6:'E'};
   const currentIndex = Math.max(0, song.findIndex(item => item && item.measure === bar.measure));
-  const windowBars = song.slice(currentIndex, currentIndex + 4);
+  const windowBars = song;
 
   function renderSingleBar(item, isCurrent, stepIdx) {
     const stepCount = Math.max(1, Array.isArray(item?.notes) ? item.notes.length : 0);
@@ -473,10 +473,10 @@ function renderIndependentTabTrack(bar, activeStepIndex) {
   let html = `
     <div class="auto-tab-head">
       <div class="auto-tab-title">自动伴奏独立轨</div>
-      <div>从第 ${bar.measure} 小节开始 · 连续显示 ${windowBars.length} 小节</div>
+      <div>从第 ${bar.measure} 小节开始 · 显示全部 ${windowBars.length} 小节</div>
     </div>
     <div class="auto-tab-window">`;
-  html += windowBars.map((item, idx) => renderSingleBar(item, idx === 0, activeStepIndex)).join('');
+  html += windowBars.map((item, idx) => renderSingleBar(item, item.measure === bar.measure, item.measure === bar.measure ? activeStepIndex : -1)).join('');
   html += `</div>`;
   root.innerHTML = html;
 }
