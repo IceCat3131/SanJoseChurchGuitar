@@ -338,11 +338,7 @@ function getAutoPatternForMeter(meter, bassString) {
 
 function buildAutoAccompanimentBar(measureObj, chordObj) {
   if (!measureObj || !chordObj) return null;
-  const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
-  const lookupChord = getUserTranspose()
-    ? transposeChordSymbol(chordObj.chordRaw, getUserTranspose(), preferFlats)
-    : chordObj.chordRaw;
-  const resolved = getAutoShapeForChord(lookupChord, chordObj.chordRaw);
+  const resolved = getAutoShapeForChord(chordObj.chordDisplay, chordObj.chordRaw);
   if (!resolved || !resolved.shape) {
     return {
       meter: measureObj.meter,
@@ -981,11 +977,6 @@ document.addEventListener('DOMContentLoaded', () => {
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
-    try {
-      if (window.__tabRewriteModeActive && typeof window.__applyCurrentPatternToOriginalTab === 'function') {
-        setTimeout(() => window.__applyCurrentPatternToOriginalTab(), 30);
-      }
-    } catch (e) {}
   }
 
   function resetTranspose() {
@@ -996,11 +987,6 @@ document.addEventListener('DOMContentLoaded', () => {
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
-    try {
-      if (window.__tabRewriteModeActive && typeof window.__applyCurrentPatternToOriginalTab === 'function') {
-        setTimeout(() => window.__applyCurrentPatternToOriginalTab(), 30);
-      }
-    } catch (e) {}
   }
 
   function changeScoreFont(delta) {
@@ -2689,7 +2675,7 @@ function __isOriginalPatternSelected() {
 
   function createNoteEl(doc, n, durationUnits, divisions, beamState) {
     const note = doc.createElement('note');
-    const midi = OPEN_STRING_MIDI[n.string] + Number(n.fret || 0);
+    const midi = OPEN_STRING_MIDI[n.string] + Number(n.fret || 0) + (typeof getEffectiveCapo === 'function' ? (getEffectiveCapo() || 0) : 0);
     const pitch = midiToPitch(midi);
     const pitchEl = doc.createElement('pitch');
     pitchEl.appendChild(createTextEl(doc, 'step', pitch.step));
@@ -2790,7 +2776,6 @@ function __isOriginalPatternSelected() {
     hideIndependentTrackWhenRewriting();
     loadXmlTextIntoAlphaTab(window.__atApi, xmlText);
   }
-  window.__applyCurrentPatternToOriginalTab = applyCurrentPatternToOriginalTab;
 
   // Override rhythm switch to reload modified XML into original TAB track.
   const oldSwitch = window.switchRhythmPatternSafe;
