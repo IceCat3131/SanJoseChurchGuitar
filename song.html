@@ -16,8 +16,6 @@ window.__chordTimeline = [];
 window.__rhythmState = { meter: '--', patternId: '--', steps: [], stepsPerBar: 0 };
 window.__autoAccompanimentSong = [];
 window.__autoAccompanimentCurrentBar = null;
-window.__rhythmPatternSelections = {};
-window.__rhythmPatternButtonBound = false;
 
 function decodeBase64ToText(b64) {
   const binary = atob(b64);
@@ -226,52 +224,20 @@ function rebuildDisplayChordTimeline() {
   updateRhythmPlayback(__playbackState.current || 0);
 }
 
-
-function getPatternOptionsForMeter(meter) {
-  const options = {
-    '4/4': [
-      { id: 'arpeggio_R3231323', name: '分解 R3231323', type: 'arpeggio', steps: ['R','3','2','3','1','3','2','3'], accent: [1,0,0,0,1,0,0,0] },
-      { id: 'arpeggio_R3212323', name: '分解 R3212323', type: 'arpeggio', steps: ['R','3','2','1','2','3','2','3'], accent: [1,0,0,0,1,0,0,0] },
-      { id: 'strum_DDUUDU',      name: '扫弦 ↓↓↑↑↓↑',    type: 'strum',    steps: ['↓','↓','↑','↑','↓','↑'], accent: [1,0,1,0,1,0] }
-    ],
-    '3/4': [
-      { id: 'arpeggio_R32123',   name: '分解 R32123',    type: 'arpeggio', steps: ['R','3','2','1','2','3'], accent: [1,0,0,1,0,0] }
-    ],
-    '6/8': [
-      { id: 'arpeggio_R32123_68',name: '分解 R32123',    type: 'arpeggio', steps: ['R','3','2','1','2','3'], accent: [1,0,0,1,0,0] }
-    ],
-    '2/4': [
-      { id: 'arpeggio_R323',     name: '分解 R323',      type: 'arpeggio', steps: ['R','3','2','3'], accent: [1,0,1,0] }
-    ],
-    '6/4': [
-      { id: 'arpeggio_R32313231233', name: '分解 12格', type: 'arpeggio', steps: ['R','3','2','3','1','3','2','3','1','2','3','3'], accent: [1,0,0,0,0,0,1,0,0,0,0,0] }
-    ],
-    '3/2': [
-      { id: 'arpeggio_R32123_32',name: '分解 R32123', type: 'arpeggio', steps: ['R','3','2','1','2','3'], accent: [1,0,0,1,0,0] }
-    ],
-    '9/8': [
-      { id: 'arpeggio_R32123231',name: '分解 9格', type: 'arpeggio', steps: ['R','3','2','1','2','3','2','3','1'], accent: [1,0,0,1,0,0,1,0,0] }
-    ],
-    '4/2': [
-      { id: 'arpeggio_R3231323_42', name: '分解 8格', type: 'arpeggio', steps: ['R','3','2','3','1','3','2','3'], accent: [1,0,0,0,1,0,0,0] }
-    ],
-    '9/4': [
-      { id: 'strum_simple_9', name: '扫弦 9格', type: 'strum', steps: ['↓','·','↑','·','↓','·','↑','·','↓'], accent: [1,0,0,1,0,0,1,0,0] }
-    ]
-  };
-  return options[meter] || options['4/4'];
-}
-
 function getDefaultPatternForMeter(meter) {
-  const options = getPatternOptionsForMeter(meter);
-  const selected = window.__rhythmPatternSelections[meter];
-  const found = options.find(p => p.id === selected);
-  return found || options[0];
+  const patterns = {
+    '4/4': { id: 'arpeggio_53231323', name: '分解 53231323', steps: ['5','3','2','3','1','3','2','3'], accent: [1,0,0,0,1,0,0,0] },
+    '3/4': { id: 'arpeggio_532123', name: '分解 532123', steps: ['5','3','2','1','2','3'], accent: [1,0,0,1,0,0] },
+    '6/8': { id: 'arpeggio_632123', name: '分解 632123', steps: ['6','3','2','1','2','3'], accent: [1,0,0,1,0,0] },
+    '6/4': { id: 'arpeggio_12', name: '分解 12格', steps: ['5','3','2','3','1','3','2','3','1','3','2','3'], accent: [1,0,0,0,0,0,1,0,0,0,0,0] },
+    '3/2': { id: 'arpeggio_half_6', name: '分解 6格', steps: ['5','3','2','1','2','3'], accent: [1,0,0,1,0,0] },
+    '2/4': { id: 'strum_4', name: '扫弦 ↓ · ↑ ·', steps: ['↓','·','↑','·'], accent: [1,0,1,0] },
+    '9/8': { id: 'compound_9', name: '分解 9格', steps: ['6','3','2','1','2','3','2','3','1'], accent: [1,0,0,1,0,0,1,0,0] },
+    '4/2': { id: 'half_8', name: '分解 8格', steps: ['5','3','2','3','1','3','2','3'], accent: [1,0,0,0,1,0,0,0] },
+    '9/4': { id: 'simple_9', name: '扫弦 9格', steps: ['↓','·','↑','·','↓','·','↑','·','↓'], accent: [1,0,0,1,0,0,1,0,0] }
+  };
+  return patterns[meter] || patterns['4/4'];
 }
-
-
-// ===== 自动伴奏引擎（A 路线：网页实时生成，不改源文件） =====
-
 
 
 // ===== 自动伴奏引擎（A 路线：网页实时生成，不改源文件） =====
@@ -354,27 +320,21 @@ function getBassStringFromShape(shape) {
   return 6;
 }
 
-
 function getAutoPatternForMeter(meter, bassString) {
   const b = Number.isFinite(+bassString) ? +bassString : 6;
-  const selected = getDefaultPatternForMeter(meter);
-  if (!selected) return { id:'', name:'', type:'arpeggio', steps: [] };
-  const expanded = selected.steps.map(step => {
-    if (step === 'R') return b;
-    if (/^[1-6]$/.test(String(step))) return parseInt(step, 10);
-    return String(step);
-  });
-  return {
-    id: selected.id,
-    name: selected.name,
-    type: selected.type,
-    steps: expanded,
-    displaySteps: selected.steps.slice()
+  const patterns = {
+    '4/4': [b,3,2,3,1,3,2,3],
+    '3/4': [b,3,2,1,2,3],
+    '6/8': [b,3,2,1,2,3],
+    '2/4': [b,3,2,3],
+    '6/4': [b,3,2,3,1,3,2,3,1,3,2,3],
+    '3/2': [b,3,2,1,2,3],
+    '9/8': [b,3,2,1,2,3,2,3,1],
+    '4/2': [b,3,2,3,1,3,2,3],
+    '9/4': [b,3,2,1,2,3,2,3,1]
   };
+  return (patterns[meter] || patterns['4/4']).slice();
 }
-
-function buildAutoAccompanimentBar(measureObj, chordObj) {
-
 
 function buildAutoAccompanimentBar(measureObj, chordObj) {
   if (!measureObj || !chordObj) return null;
@@ -394,13 +354,10 @@ function buildAutoAccompanimentBar(measureObj, chordObj) {
   }
   const shape = resolved.shape;
   const bassString = getBassStringFromShape(shape);
-  const patternInfo = getAutoPatternForMeter(measureObj.meter, bassString);
-  const notes = patternInfo.steps.map((step, idx) => {
-    if (typeof step === 'number') {
-      const fret = shape[6 - step];
-      return { index: idx, kind: 'pluck', string: step, fret, label: `${step}弦${fret}` };
-    }
-    return { index: idx, kind: 'strum', direction: step, label: String(step) };
+  const pattern = getAutoPatternForMeter(measureObj.meter, bassString);
+  const notes = pattern.map((stringNo, idx) => {
+    const fret = shape[6 - stringNo];
+    return { index: idx, string: stringNo, fret, label: `${stringNo}弦${fret}` };
   });
   return {
     meter: measureObj.meter,
@@ -409,13 +366,9 @@ function buildAutoAccompanimentBar(measureObj, chordObj) {
     chordDisplay: chordObj.chordDisplay,
     bassString,
     shape: shape.slice(),
-    patternId: patternInfo.id,
-    patternName: patternInfo.name,
-    patternType: patternInfo.type,
-    pattern: patternInfo.steps.slice(),
-    displayPattern: patternInfo.displaySteps.slice(),
+    pattern: pattern.slice(),
     notes,
-    text: notes.map(n => n.label).join(' · ')
+    text: notes.map(n => `${n.string}弦${n.fret}`).join(' · ')
   };
 }
 
@@ -463,25 +416,7 @@ function updateAutoAccompanimentUi(bar) {
     el.textContent = '自动伴奏 --';
     return;
   }
-  el.textContent = `自动伴奏 ${bar.patternName || '--'} ｜ ${bar.text || '--'}`;
-}
-
-function bindRhythmSwitchButton() {
-  const btn = document.getElementById('rhythm-switch-btn');
-  if (!btn || window.__rhythmPatternButtonBound) return;
-  btn.addEventListener('click', () => {
-    const meter = (window.__rhythmState && window.__rhythmState.meter) || ((window.__measureTimelineRaw[0] || {}).meter) || '4/4';
-    const options = getPatternOptionsForMeter(meter);
-    if (!options.length) return;
-    const currentId = (window.__rhythmState && window.__rhythmState.patternId) || options[0].id;
-    const idx = Math.max(0, options.findIndex(p => p.id === currentId));
-    const next = options[(idx + 1) % options.length];
-    window.__rhythmPatternSelections[meter] = next.id;
-    rebuildRhythmState();
-    rebuildAutoAccompanimentSong();
-    updateRhythmPlayback(__playbackState.current || 0);
-  });
-  window.__rhythmPatternButtonBound = true;
+  el.textContent = `自动伴奏 ${bar.text || '--'}`;
 }
 
 function syncAutoAccompanimentToPlayback(ms) {
@@ -525,7 +460,6 @@ function rebuildRhythmState() {
   const patternNameEl = document.getElementById('rhythm-pattern-name');
   if (metaEl) metaEl.textContent = `拍号 ${meter} · ${pattern.steps.length} 格/小节`;
   if (patternNameEl) patternNameEl.textContent = pattern.name;
-  bindRhythmSwitchButton();
 }
 
 function renderRhythmSteps(steps, accent) {
@@ -590,7 +524,6 @@ function updateRhythmPlayback(ms) {
 document.addEventListener('DOMContentLoaded', () => {
   ensureRhythmHud();
   ensureAutoAccompanimentUi();
-  bindRhythmSwitchButton();
   hideRhythmHud();
 });
 // ===== /GTZ 和弦时间轴 + 节拍/节奏跟随 =====
@@ -625,8 +558,6 @@ document.addEventListener('DOMContentLoaded', () => {
       stroke:#2563eb!important;
       color:#2563eb!important;
     }
-    .rhythm-switch-btn{margin-top:8px;border:none;border-radius:999px;padding:6px 12px;background:#2563eb;color:#fff;font-size:12px;font-weight:700;cursor:pointer}
-    .rhythm-switch-btn:hover{filter:brightness(1.05)}
     @media (max-width:640px){.rhythm-step{min-height:34px;font-size:13px}.rhythm-hud-chord{font-size:22px}}
   </style>
 
@@ -743,7 +674,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="text-align:right">
             <div class="rhythm-hud-chord" id="rhythm-current-chord">--</div>
             <div class="rhythm-hud-sub" id="rhythm-pattern-name">--</div>
-            <button type="button" id="rhythm-switch-btn" class="rhythm-switch-btn">切换节奏</button>
           </div>
         </div>
         <div class="rhythm-steps" id="rhythm-steps"></div>
@@ -2469,6 +2399,29 @@ function pad4(num) {
 
   window.openNewTrackPanel = openNewTrackPanel;
 })();
+</script>
+
+
+<script>
+// === SAFE PATCH: auto accompaniment TAB track (no side effects) ===
+window.__autoAccompanimentTabTrack = [];
+
+function rebuildAutoTabTrack(){
+  const song = window.__autoAccompanimentSong || [];
+  window.__autoAccompanimentTabTrack = song.map(bar => ({
+    measure: bar.measure,
+    notes: (bar.notes || []).map((n,i)=>({
+      string: n.string,
+      fret: n.fret,
+      stepIndex: i
+    }))
+  }));
+  console.log("TAB轨生成完成", window.__autoAccompanimentTabTrack);
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  setTimeout(rebuildAutoTabTrack, 1000);
+});
 </script>
 
 </body>
