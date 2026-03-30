@@ -420,7 +420,7 @@ function updateAutoAccompanimentUi(bar) {
 }
 
 function ensureIndependentTabTrackUi() {
-  return document.getElementById('auto-tab-track');
+  return document.getElementById('auto-tab-track-main') || document.getElementById('auto-tab-track');
 }
 
 function renderIndependentTabTrack(bar, activeStepIndex) {
@@ -434,8 +434,17 @@ function renderIndependentTabTrack(bar, activeStepIndex) {
   }
   root.hidden = false;
   const stringNames = {1:'e',2:'B',3:'G',4:'D',5:'A',6:'E'};
-  const currentIndex = Math.max(0, song.findIndex(item => item && item.measure === bar.measure));
-  const windowBars = song;
+
+  const scoreView = document.getElementById('score-view') || document.getElementById('alphaTab');
+  const width = scoreView && scoreView.clientWidth ? scoreView.clientWidth : window.innerWidth;
+  const isLandscape = window.matchMedia && window.matchMedia('(orientation: landscape)').matches;
+  const barsPerRow = Math.max(1, (typeof computeBarsPerRow === 'function' ? computeBarsPerRow(width, isLandscape) : 4) || 4);
+
+  function chunk(list, size){
+    const rows = [];
+    for (let i = 0; i < list.length; i += size) rows.push(list.slice(i, i + size));
+    return rows;
+  }
 
   function renderSingleBar(item, isCurrent, stepIdx) {
     const stepCount = Math.max(1, Array.isArray(item?.notes) ? item.notes.length : 0);
@@ -449,9 +458,8 @@ function renderIndependentTabTrack(bar, activeStepIndex) {
     const patternSteps = Array.isArray(item.pattern) ? item.pattern.map(x => String(x)) : new Array(stepCount).fill('');
     let part = `
       <div class="auto-tab-measure-block" style="--step-count:${stepCount}">
-        <div class="auto-tab-head">
-          <div class="auto-tab-title">${item.chordDisplay || item.chordRaw || '--'} · ${item.patternName || '--'} · 第 ${item.measure} 小节</div>
-          <div>${isCurrent ? '播放中' : '后续'}</div>
+        <div class="auto-tab-head auto-tab-head-inline">
+          <div class="auto-tab-title">${item.chordDisplay || item.chordRaw || '--'} · 第 ${item.measure} 小节</div>
         </div>
         <div class="auto-tab-step-row">
           <div class="auto-tab-step-label">节奏</div>
@@ -470,15 +478,24 @@ function renderIndependentTabTrack(bar, activeStepIndex) {
     return part;
   }
 
-  let html = `
-    <div class="auto-tab-head">
-      <div class="auto-tab-title">自动伴奏独立轨</div>
-      <div>从第 ${bar.measure} 小节开始 · 显示全部 ${windowBars.length} 小节</div>
+  const systems = chunk(song, barsPerRow);
+  let out = `
+    <div class="auto-tab-page-head">
+      <div class="auto-tab-title">自动伴奏轨（对齐视图）</div>
+      <div class="auto-tab-page-sub">与主谱按相同每行小节数排布 · 每行 ${barsPerRow} 小节</div>
     </div>
-    <div class="auto-tab-window">`;
-  html += windowBars.map((item, idx) => renderSingleBar(item, item.measure === bar.measure, item.measure === bar.measure ? activeStepIndex : -1)).join('');
-  html += `</div>`;
-  root.innerHTML = html;
+    <div class="auto-tab-systems">`;
+
+  out += systems.map((row, rowIdx) => {
+    const currentInRow = row.some(item => item.measure === bar.measure);
+    let rowHtml = `<div class="auto-tab-system" style="--bars-per-row:${row.length}">`;
+    rowHtml += row.map(item => renderSingleBar(item, item.measure === bar.measure, item.measure === bar.measure ? activeStepIndex : -1)).join('');
+    rowHtml += `</div>`;
+    return rowHtml;
+  }).join('');
+
+  out += `</div>`;
+  root.innerHTML = out;
 }
 
 function syncAutoAccompanimentToPlayback(ms) {
@@ -625,9 +642,15 @@ document.addEventListener('DOMContentLoaded', () => {
     @media (max-width:640px){.rhythm-step{min-height:34px;font-size:13px}.rhythm-hud-chord{font-size:22px}}
 
     .auto-tab-track{margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.08)}
-    .auto-tab-window{display:flex;flex-direction:column;gap:12px}
-    .auto-tab-measure-block{display:block}
+    .auto-tab-track-page{margin-top:14px;padding:12px 14px;border-radius:16px;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+    .auto-tab-track-page[hidden]{display:none!important}
+    .auto-tab-page-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .auto-tab-page-sub{font-size:12px;color:rgba(0,0,0,.65)}
+    .auto-tab-systems{display:flex;flex-direction:column;gap:16px}
+    .auto-tab-system{display:grid;grid-template-columns:repeat(var(--bars-per-row,4), minmax(0,1fr));gap:12px;align-items:start}
+    .auto-tab-measure-block{display:block;min-width:0}
     .auto-tab-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;color:rgba(0,0,0,.7)}
+    .auto-tab-head-inline{justify-content:flex-start}
     .auto-tab-title{font-weight:700;color:#111}
     .auto-tab-grid{display:grid;gap:0;border:1px solid rgba(0,0,0,.12);border-radius:10px;overflow:hidden;background:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
     .auto-tab-row{display:grid;grid-template-columns:40px repeat(var(--step-count,8), minmax(26px,1fr));align-items:center;min-height:26px}
@@ -759,11 +782,12 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         <div class="rhythm-steps" id="rhythm-steps"></div>
-        <div id="auto-tab-track" class="auto-tab-track" hidden></div>
+        <div id="auto-tab-track" class="auto-tab-track" hidden style="display:none"></div>
       </div>
       <div id="score-view" class="score-wrap" aria-hidden="false">
         <div id="alphaTab" class="at-viewport"></div>
       </div>
+      <div id="auto-tab-track-main" class="auto-tab-track-page" hidden></div>
       <div id="lyrics-view" class="lyrics-root" style="display: none;" aria-hidden="true">
         <!-- 歌词 -->
       </div>
