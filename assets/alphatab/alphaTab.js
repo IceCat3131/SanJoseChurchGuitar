@@ -56434,12 +56434,162 @@
             else if ('nodeType' in body) {
                 placeholder.replaceChildren(body);
             }
+            this._relocateNumberedKeySignatureHeader(placeholder, renderResult);
             placeholder.resultState = ResultState.RenderDone;
             placeholder.renderedResultId = renderResult.id;
             placeholder.renderedResult = Array.from(placeholder.children);
         }
+        _relocateNumberedKeySignatureHeader(placeholder, renderResult) {
+            if (!placeholder || !renderResult || renderResult.firstMasterBarIndex !== 0) {
+                return;
+            }
+            const canvasElement = this._api.canvasElement.element;
+            const oldHeader = canvasElement.querySelector(':scope > .at-numbered-key-header');
+            if (oldHeader) {
+                oldHeader.remove();
+            }
+            const svg = placeholder.querySelector('svg.at-surface-svg');
+            if (!svg) {
+                return;
+            }
+            const normalizeHeaderText = (s) => String(s || '').replace(/\s+/g, '').replace(/♭/g, 'b').replace(/♯/g, '#');
+            const parseTranslateXY = (node) => {
+                const tf = node?.getAttribute?.('transform') || '';
+                const m = tf.match(/translate\(\s*([-\d.]+)[ ,]\s*([-\d.]+)\s*\)/);
+                if (!m) {
+                    return null;
+                }
+                return { x: parseFloat(m[1]), y: parseFloat(m[2]) };
+            };
+            const textNodes = Array.from(svg.querySelectorAll('text'));
+            let tonicNode = null;
+            let tonicBox = null;
+            for (const node of textNodes) {
+                const raw = (node.textContent || '').trim();
+                if (!raw) {
+                    continue;
+                }
+                const t = normalizeHeaderText(raw);
+                if (!/^1=[#b]?[A-G]m?$/.test(t)) {
+                    continue;
+                }
+                let box;
+                try {
+                    box = node.getBBox();
+                }
+                catch (_a) {
+                    continue;
+                }
+                if (!box || box.width <= 0 || box.height <= 0) {
+                    continue;
+                }
+                if (box.x < 140 && box.y > -30 && box.y < 40) {
+                    tonicNode = node;
+                    tonicBox = box;
+                    break;
+                }
+            }
+            if (!tonicNode || !tonicBox) {
+                return;
+            }
+            let accidentalNode = null;
+            const siblingCandidates = [];
+            let siblingWalker = tonicNode.nextElementSibling;
+            for (let i = 0; siblingWalker && i < 4; i++) {
+                siblingCandidates.push(siblingWalker);
+                siblingWalker = siblingWalker.nextElementSibling;
+            }
+            for (const sib of siblingCandidates) {
+                if (sib && sib.tagName && sib.tagName.toLowerCase() === 'g' && sib.classList && sib.classList.contains('at')) {
+                    accidentalNode = sib;
+                    break;
+                }
+            }
+            if (!accidentalNode) {
+                const atGroups = Array.from(svg.querySelectorAll('g.at'));
+                for (const g of atGroups) {
+                    const xy = parseTranslateXY(g);
+                    if (!xy) {
+                        continue;
+                    }
+                    if (!(xy.x < 180 && xy.y > -40 && xy.y < 60)) {
+                        continue;
+                    }
+                    const tonicYAttr = tonicNode.getAttribute('y');
+                    const tonicY = tonicYAttr ? parseFloat(tonicYAttr) : tonicBox.y;
+                    const sameRow = Math.abs(xy.y - tonicY) <= 16 || Math.abs(xy.y - tonicBox.y) <= 22;
+                    const nearRightSide = xy.x >= tonicBox.x + 8 && xy.x <= tonicBox.x + 90;
+                    if (sameRow && nearRightSide) {
+                        accidentalNode = g;
+                        break;
+                    }
+                }
+            }
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'at-numbered-key-header';
+            headerDiv.style.zIndex = '2';
+            headerDiv.style.position = 'absolute';
+            headerDiv.style.left = placeholder.style.left;
+            headerDiv.style.top = placeholder.style.top;
+            headerDiv.style.width = placeholder.style.width;
+            headerDiv.style.height = '64px';
+            headerDiv.style.display = 'inline-block';
+            headerDiv.style.pointerEvents = 'none';
+            const headerSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            headerSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            headerSvg.setAttribute('version', '1.1');
+            headerSvg.setAttribute('width', placeholder.style.width);
+            headerSvg.setAttribute('height', '64px');
+            headerSvg.setAttribute('class', 'at-surface-svg');
+            headerSvg.style.overflow = 'visible';
+            headerSvg.appendChild(tonicNode.cloneNode(true));
+            if (accidentalNode) {
+                headerSvg.appendChild(accidentalNode.cloneNode(true));
+            }
+            headerDiv.appendChild(headerSvg);
+            canvasElement.appendChild(headerDiv);
+            tonicNode.style.display = 'none';
+            tonicNode.setAttribute('data-numbered-header-relocated', '1');
+            if (accidentalNode) {
+                accidentalNode.style.display = 'none';
+                accidentalNode.setAttribute('data-numbered-header-relocated', '1');
+            }
+            const isLyricTextNode = (node) => {
+                if (!node || node.tagName?.toLowerCase() !== 'text') {
+                    return false;
+                }
+                const txt = (node.textContent || '').trim();
+                if (!txt) {
+                    return false;
+                }
+                return /[㐀-鿿]/.test(txt);
+            };
+            let shiftGroup = svg.querySelector(':scope > g.at-first-system-shift-group');
+            if (!shiftGroup) {
+                shiftGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                shiftGroup.setAttribute('class', 'at-first-system-shift-group');
+                shiftGroup.setAttribute('transform', 'translate(0 -20)');
+                const children = Array.from(svg.children);
+                for (const child of children) {
+                    if (child === tonicNode || child === accidentalNode) {
+                        continue;
+                    }
+                    if (isLyricTextNode(child)) {
+                        continue;
+                    }
+                    shiftGroup.appendChild(child);
+                }
+                svg.insertBefore(shiftGroup, svg.firstChild);
+            }
+        }
         beginAppendRenderResults(renderResult) {
             const canvasElement = this._api.canvasElement.element;
+            if (renderResult && this._totalResultCount === 0) {
+                const oldHeader = canvasElement.querySelector(':scope > .at-numbered-key-header');
+                if (oldHeader) {
+                    oldHeader.remove();
+                }
+            }
             // null result indicates that the rendering finished
             if (!renderResult) {
                 // so we remove elements that might be from a previous render session
@@ -59927,6 +60077,8 @@
         _accidental = AccidentalType.None;
         _accidentalOffset = 0;
         _padding = 0;
+        _visualHeight = 0;
+        static LayoutOffsetY = -30;
         constructor(x, y, keySignature, keySignatureType) {
             super(x, y);
             this._keySignature = keySignature;
@@ -60076,7 +60228,8 @@
             this._padding =
                 this.renderer.index === 0 ? settings.display.firstStaffPaddingLeft : settings.display.staffPaddingLeft;
             this.width = this._padding + fullSize.width;
-            this.height = fullSize.height;
+            this._visualHeight = fullSize.height;
+            this.height = 0;
         }
         paint(cx, cy, canvas) {
             const _ = ElementStyleHelper.bar(canvas, BarSubElement.NumberedKeySignature, this.renderer.bar);
@@ -60084,9 +60237,10 @@
                 const res = this.renderer.resources;
                 canvas.font = res.numberedNotationFont;
                 canvas.textBaseline = TextBaseline.Alphabetic;
-                canvas.fillText(this._text, cx + this.x + this._padding, cy + this.y + this.height);
+                const baselineY = cy + this.y + this._visualHeight + NumberedKeySignatureGlyph.LayoutOffsetY;
+                canvas.fillText(this._text, cx + this.x + this._padding, baselineY);
                 if (this._accidental !== AccidentalType.None) {
-                    CanvasHelper.fillMusicFontSymbolSafe(canvas, cx + this.x + this._padding + this._accidentalOffset, cy + this.y + this.height, 1, AccidentalGlyph.getMusicSymbol(this._accidental), false);
+                    CanvasHelper.fillMusicFontSymbolSafe(canvas, cx + this.x + this._padding + this._accidentalOffset, baselineY, 1, AccidentalGlyph.getMusicSymbol(this._accidental), false);
                 }
             }
             finally {

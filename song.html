@@ -423,68 +423,6 @@ function ensureIndependentTabTrackUi() {
   return document.getElementById('auto-tab-track');
 }
 
-
-
-function computeScoreSystemLayout() {
-  const svg = document.querySelector('#alphaTab svg');
-  if (!svg) return [];
-  const rootRect = svg.getBoundingClientRect();
-  const textNodes = Array.from(svg.querySelectorAll('text, tspan'));
-  const measureTexts = [];
-  textNodes.forEach((el) => {
-    const txt = String(el.textContent || '').trim();
-    if (!/^\d+$/.test(txt)) return;
-    const rect = el.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const fill = ((el.getAttribute('fill') || '') + ' ' + (getComputedStyle(el).fill || '')).toLowerCase();
-    const fontSize = parseFloat(getComputedStyle(el).fontSize || '0') || 0;
-    // prefer small red measure numbers
-    if (!(fill.includes('255, 0, 0') || fill.includes('red') || fill.includes('#f00') || fill.includes('#ff0000') || fill.includes('rgb(255, 0, 0)'))) {
-      if (fontSize > 12) return;
-    }
-    measureTexts.push({
-      no: parseInt(txt, 10),
-      x: rect.left - rootRect.left,
-      y: rect.top - rootRect.top,
-      width: rect.width,
-      height: rect.height
-    });
-  });
-  if (!measureTexts.length) return [];
-  measureTexts.sort((a,b)=> a.y===b.y ? a.x-b.x : a.y-b.y);
-  const rows = [];
-  measureTexts.forEach((m) => {
-    const last = rows[rows.length-1];
-    if (!last || Math.abs(last.y - m.y) > 18) rows.push({ y: m.y, measures: [m] });
-    else last.measures.push(m);
-  });
-  const longLines = Array.from(svg.querySelectorAll('line')).map((ln) => {
-    const r = ln.getBoundingClientRect();
-    return { x1: r.left-rootRect.left, x2: r.right-rootRect.left, y: (r.top+r.bottom)/2-rootRect.top, w: r.width };
-  }).filter(l => l.w > 120);
-
-  const systems = rows.map((row, idx) => {
-    row.measures.sort((a,b)=>a.x-b.x);
-    const nextY = idx < rows.length-1 ? rows[idx+1].y : 1e9;
-    const relatedLines = longLines.filter(l => l.y >= row.y - 40 && l.y < nextY - 20);
-    let minX = row.measures[0].x;
-    let maxX = row.measures[row.measures.length-1].x + 120;
-    if (relatedLines.length) {
-      minX = Math.min(...relatedLines.map(l => l.x1));
-      maxX = Math.max(...relatedLines.map(l => l.x2));
-    }
-    const measures = row.measures.map((m, i) => {
-      const startX = m.x;
-      const next = row.measures[i+1];
-      const endX = next ? next.x : maxX;
-      return { no: m.no, startX, endX, width: Math.max(24, endX-startX) };
-    });
-    return { y: row.y, minX, maxX, width: Math.max(100, maxX-minX), measures };
-  });
-  window.__scoreSystemLayout = systems;
-  return systems;
-}
-
 function renderIndependentTabTrack(bar, activeStepIndex) {
   const root = ensureIndependentTabTrackUi();
   if (!root) return;
@@ -495,69 +433,52 @@ function renderIndependentTabTrack(bar, activeStepIndex) {
     return;
   }
   root.hidden = false;
-
   const stringNames = {1:'e',2:'B',3:'G',4:'D',5:'A',6:'E'};
-  const systems = computeScoreSystemLayout();
-  const currentMeasure = bar.measure;
-  if (!systems.length) {
-    root.innerHTML = '<div class="auto-tab-head"><div class="auto-tab-title">自动伴奏轨（对齐系统）</div><div>等待主谱布局…</div></div>';
-    return;
-  }
+  const currentIndex = Math.max(0, song.findIndex(item => item && item.measure === bar.measure));
+  const windowBars = song;
 
-  function buildSystemRow(system, isCurrentSystem) {
-    const systemBars = system.measures.map(m => song.find(item => item && item.measure === m.no)).filter(Boolean);
-    if (!systemBars.length) return '';
-    let htmlPart = `<div class="auto-tab-system" style="width:${system.width}px">`;
-    htmlPart += `<div class="auto-tab-system-head"><div class="auto-tab-title">第 ${systemBars[0].measure}${systemBars.length>1?'-'+systemBars[systemBars.length-1].measure:''} 小节</div><div>${isCurrentSystem ? '播放中' : ''}</div></div>`;
-    htmlPart += `<div class="auto-tab-system-inner" style="width:${system.width}px">`;
-    htmlPart += `<div class="auto-tab-step-row-geo"><div class="auto-tab-step-label">节奏</div>`;
-    system.measures.forEach((meta) => {
-      const item = song.find(x => x && x.measure === meta.no);
-      if (!item) return;
-      const stepCount = Math.max(1, Array.isArray(item.notes) ? item.notes.length : 0);
-      const patternSteps = Array.isArray(item.pattern) ? item.pattern.map(x => String(x)) : new Array(stepCount).fill('');
-      htmlPart += `<div class="auto-tab-measure-segment" style="width:${meta.width}px">`;
-      htmlPart += `<div class="auto-tab-measure-caption"><span>${escapeHtml(item.chordDisplay || item.chordRaw || '--')}</span><span>第${item.measure}小节</span></div>`;
-      htmlPart += `<div class="auto-tab-measure-steps" style="--step-count:${stepCount}">`;
-      for (let i=0;i<stepCount;i++) {
-        const isActive = item.measure === currentMeasure && i === activeStepIndex;
-        htmlPart += `<div class="auto-tab-step" data-active="${isActive?1:0}">${escapeHtml(patternSteps[i] || '')}</div>`;
-      }
-      htmlPart += `</div></div>`;
+  function renderSingleBar(item, isCurrent, stepIdx) {
+    const stepCount = Math.max(1, Array.isArray(item?.notes) ? item.notes.length : 0);
+    const notesByString = new Map();
+    (item.notes || []).forEach((n, idx) => {
+      const s = Number(n.string);
+      if (!Number.isFinite(s)) return;
+      if (!notesByString.has(s)) notesByString.set(s, new Map());
+      notesByString.get(s).set(idx, n);
     });
-    htmlPart += `</div>`;
-
+    const patternSteps = Array.isArray(item.pattern) ? item.pattern.map(x => String(x)) : new Array(stepCount).fill('');
+    let part = `
+      <div class="auto-tab-measure-block" style="--step-count:${stepCount}">
+        <div class="auto-tab-head">
+          <div class="auto-tab-title">${item.chordDisplay || item.chordRaw || '--'} · ${item.patternName || '--'} · 第 ${item.measure} 小节</div>
+          <div>${isCurrent ? '播放中' : '后续'}</div>
+        </div>
+        <div class="auto-tab-step-row">
+          <div class="auto-tab-step-label">节奏</div>
+          ${patternSteps.map((step, idx) => `<div class="auto-tab-step" data-active="${isCurrent && idx===stepIdx ? 1 : 0}">${escapeHtml(step)}</div>`).join('')}
+        </div>
+        <div class="auto-tab-grid">`;
     [1,2,3,4,5,6].forEach((stringNo) => {
-      htmlPart += `<div class="auto-tab-row-geo"><div class="auto-tab-label">${stringNames[stringNo]}</div>`;
-      system.measures.forEach((meta) => {
-        const item = song.find(x => x && x.measure === meta.no);
-        if (!item) return;
-        const stepCount = Math.max(1, Array.isArray(item.notes) ? item.notes.length : 0);
-        const notesByIdx = new Map();
-        (item.notes || []).forEach((n, idx) => { if (Number(n.string) === stringNo) notesByIdx.set(idx, n); });
-        htmlPart += `<div class="auto-tab-measure-segment auto-tab-line-segment" style="width:${meta.width}px"><div class="auto-tab-measure-grid" style="--step-count:${stepCount}">`;
-        for (let i=0;i<stepCount;i++) {
-          const note = notesByIdx.get(i);
-          const isActive = item.measure === currentMeasure && i === activeStepIndex;
-          htmlPart += `<div class="auto-tab-cell" data-active="${isActive?1:0}">${note ? escapeHtml(String(note.fret)) : ''}</div>`;
-        }
-        htmlPart += `</div></div>`;
-      });
-      htmlPart += `</div>`;
+      part += `<div class="auto-tab-row"><div class="auto-tab-label">${stringNames[stringNo]}</div>`;
+      for (let i = 0; i < stepCount; i++) {
+        const note = notesByString.get(stringNo)?.get(i) || null;
+        part += `<div class="auto-tab-cell" data-active="${isCurrent && i===stepIdx ? 1 : 0}">${note ? escapeHtml(String(note.fret)) : ''}</div>`;
+      }
+      part += `</div>`;
     });
-
-    htmlPart += `</div></div>`;
-    return htmlPart;
+    part += `</div></div>`;
+    return part;
   }
 
-  let output = `<div class="auto-tab-head"><div class="auto-tab-title">自动伴奏轨（对齐系统）</div><div>按主谱真实分行/小节边界对齐</div></div>`;
-  output += `<div class="auto-tab-window auto-tab-window-rows">`;
-  systems.forEach((system) => {
-    const isCurrentSystem = system.measures.some(m => m.no === currentMeasure);
-    output += buildSystemRow(system, isCurrentSystem);
-  });
-  output += `</div>`;
-  root.innerHTML = output;
+  let html = `
+    <div class="auto-tab-head">
+      <div class="auto-tab-title">自动伴奏独立轨</div>
+      <div>从第 ${bar.measure} 小节开始 · 显示全部 ${windowBars.length} 小节</div>
+    </div>
+    <div class="auto-tab-window">`;
+  html += windowBars.map((item, idx) => renderSingleBar(item, item.measure === bar.measure, item.measure === bar.measure ? activeStepIndex : -1)).join('');
+  html += `</div>`;
+  root.innerHTML = html;
 }
 
 function syncAutoAccompanimentToPlayback(ms) {
@@ -719,43 +640,6 @@ document.addEventListener('DOMContentLoaded', () => {
     .auto-tab-step-label{padding:0 8px;font-size:11px;color:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:flex-end}
     .auto-tab-step{height:22px;border-right:1px solid rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:12px;color:rgba(0,0,0,.7)}
     .auto-tab-step[data-active="1"]{background:#111;color:#fff;border-radius:6px}
-  
-    .auto-tab-window-rows{display:flex;flex-direction:column;gap:14px}
-    .auto-tab-system{display:block}
-    .auto-tab-system-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;font-size:12px;color:rgba(0,0,0,.7)}
-    .auto-tab-meta-row{display:grid;grid-template-columns:40px repeat(var(--total-steps,8), minmax(26px,1fr));margin-bottom:4px}
-    .auto-tab-measure-meta{display:flex;justify-content:space-between;align-items:center;padding:0 6px;font-size:11px;color:rgba(0,0,0,.65);border-right:1px solid rgba(0,0,0,.08)}
-    .auto-tab-measure-meta:last-child{border-right:none}
-    .auto-tab-measure-no{opacity:.8}
-    .auto-tab-measure-chord{font-weight:700;color:#111}
-    .auto-tab-step-row-composite,.auto-tab-row-composite{display:grid;grid-template-columns:40px repeat(var(--total-steps,8), minmax(26px,1fr))}
-    .auto-tab-row-composite{align-items:center;min-height:26px}
-    .auto-tab-step[data-measure-start="1"], .auto-tab-cell[data-measure-start="1"]{border-left:2px solid rgba(0,0,0,.28)}
-    .auto-tab-step-row-composite .auto-tab-step:first-of-type,
-    .auto-tab-row-composite .auto-tab-cell:first-of-type{border-left:2px solid rgba(0,0,0,.28)}
-
-  
-    .auto-tab-window-rows{display:flex;flex-direction:column;gap:16px}
-    .auto-tab-system{display:block;max-width:100%}
-    .auto-tab-system-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px;font-size:12px;color:rgba(0,0,0,.72)}
-    .auto-tab-system-inner{max-width:100%;overflow:hidden}
-    .auto-tab-step-row-geo,.auto-tab-row-geo{display:grid;grid-template-columns:40px 1fr;align-items:center}
-    .auto-tab-row-geo{min-height:26px}
-    .auto-tab-label{padding:0 8px;font-style:italic;font-size:12px;color:#111;background:#fafafa;border-right:1px solid rgba(0,0,0,.10);height:100%;display:flex;align-items:center;justify-content:flex-end}
-    .auto-tab-step-label{padding:0 8px;font-size:11px;color:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:flex-end}
-    .auto-tab-measure-segment{display:inline-block;vertical-align:top;border-left:1px solid rgba(0,0,0,.25)}
-    .auto-tab-row-geo .auto-tab-measure-segment:last-child,.auto-tab-step-row-geo .auto-tab-measure-segment:last-child{border-right:2px solid rgba(0,0,0,.35)}
-    .auto-tab-measure-caption{display:flex;justify-content:space-between;align-items:center;padding:0 4px 2px;font-size:11px;color:rgba(0,0,0,.65)}
-    .auto-tab-measure-steps,.auto-tab-measure-grid{display:grid;grid-template-columns:repeat(var(--step-count,8), minmax(0,1fr))}
-    .auto-tab-step{height:22px;border-right:1px solid rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:12px;color:rgba(0,0,0,.7)}
-    .auto-tab-step:last-child{border-right:none}
-    .auto-tab-step[data-active="1"]{background:#111;color:#fff;border-radius:6px}
-    .auto-tab-line-segment{position:relative}
-    .auto-tab-line-segment::before{content:'';position:absolute;left:0;right:0;top:50%;border-top:1px solid rgba(0,0,0,.55);transform:translateY(-0.5px);pointer-events:none}
-    .auto-tab-cell{position:relative;height:26px;border-right:1px solid rgba(0,0,0,.10);display:flex;align-items:center;justify-content:center;font-size:14px;color:#111}
-    .auto-tab-cell:last-child{border-right:none}
-    .auto-tab-cell[data-active="1"]{background:linear-gradient(to bottom, rgba(37,99,235,.08) 48%, rgba(37,99,235,.85) 48%, rgba(37,99,235,.85) 52%, rgba(37,99,235,.08) 52%);color:#2563eb;font-weight:700}
-
   </style>
 
 </head>
@@ -1612,7 +1496,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 仅当有变化才更新，减少闪烁
       if (__lastBarsPerRow !== bars || Math.abs((__lastResponsiveScale||0) - responsiveScale) > 0.001) {
-        __lastBarsPerRow = bars; window.__lastBarsPerRow = bars;
+        __lastBarsPerRow = bars;
         __lastResponsiveScale = responsiveScale;
         api.updateSettings();
         // alphaTab 会自动响应 resize，但 barsPerRow/scale 变化最好强制 render
@@ -2776,10 +2660,126 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+
 <script>
-window.addEventListener('resize', () => {
-  try { if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0); } catch(e){}
-});
+// === SAFE TRY PATCH: 原始乐谱选项（不改底层轨道，只在网页层恢复原始显示） ===
+window.__originalTabOptionEnabled = false;
+window.__currentPatternChoiceIndexByMeter = window.__currentPatternChoiceIndexByMeter || {};
+window.__originalPatternChoiceSentinel = -1;
+
+function __scoreHasOriginalTabNotes() {
+  try {
+    const score = window.__currentScore || window.__atApi?.score;
+    const tracks = Array.isArray(score?.tracks) ? score.tracks : [];
+    for (const track of tracks) {
+      const staves = Array.isArray(track?.staves) ? track.staves : [];
+      const isTab = staves.some(s => !!s?.showTablature);
+      if (!isTab) continue;
+      const bars = Array.isArray(track?.staves?.[0]?.bars) ? track.staves[0].bars : [];
+      for (const bar of bars) {
+        const voices = Array.isArray(bar?.voices) ? bar.voices : [];
+        for (const voice of voices) {
+          const beats = Array.isArray(voice?.beats) ? voice.beats : [];
+          for (const beat of beats) {
+            const notes = Array.isArray(beat?.notes) ? beat.notes : [];
+            if (notes.length) return true;
+          }
+        }
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+
+function __refreshOriginalOptionEnabled() {
+  window.__originalTabOptionEnabled = __scoreHasOriginalTabNotes();
+}
+
+function __isOriginalPatternSelected() {
+  const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+  return window.__originalTabOptionEnabled && (window.__currentPatternChoiceIndexByMeter[meter] ?? window.__originalPatternChoiceSentinel) === window.__originalPatternChoiceSentinel;
+}
+
+(function(){
+  const _oldRebuildRhythmState = window.rebuildRhythmState;
+  if (typeof _oldRebuildRhythmState === 'function') {
+    window.rebuildRhythmState = function() {
+      const out = _oldRebuildRhythmState.apply(this, arguments);
+      __refreshOriginalOptionEnabled();
+      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+      const idx = window.__currentPatternChoiceIndexByMeter[meter];
+      if (window.__originalTabOptionEnabled && idx === window.__originalPatternChoiceSentinel) {
+        const patternNameEl = document.getElementById('rhythm-pattern-name');
+        if (patternNameEl) patternNameEl.textContent = '原始乐谱';
+      }
+      return out;
+    };
+  }
+
+  const _oldUpdateRhythmPlayback = window.updateRhythmPlayback;
+  if (typeof _oldUpdateRhythmPlayback === 'function') {
+    window.updateRhythmPlayback = function(ms) {
+      const out = _oldUpdateRhythmPlayback.apply(this, arguments);
+      const autoTab = document.getElementById('auto-tab-track');
+      if (__isOriginalPatternSelected()) {
+        if (autoTab) autoTab.hidden = true;
+        const line = document.getElementById('auto-accompaniment-line');
+        if (line) line.textContent = '自动伴奏 原始乐谱';
+      } else {
+        if (autoTab) autoTab.hidden = false;
+      }
+      return out;
+    };
+  }
+
+  const _oldSwitch = window.switchRhythmPatternSafe;
+  if (typeof _oldSwitch === 'function') {
+    window.switchRhythmPatternSafe = function() {
+      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+      const choices = (typeof __getPatternChoicesForMeter === 'function') ? __getPatternChoicesForMeter(meter) : [];
+      if (!choices.length) return;
+      if (!window.__originalTabOptionEnabled) {
+        return _oldSwitch.apply(this, arguments);
+      }
+      const current = (window.__currentPatternChoiceIndexByMeter[meter] ?? window.__originalPatternChoiceSentinel);
+      let next;
+      if (current === window.__originalPatternChoiceSentinel) next = 0;
+      else if (current >= choices.length - 1) next = window.__originalPatternChoiceSentinel;
+      else next = current + 1;
+      window.__currentPatternChoiceIndexByMeter[meter] = next;
+
+      if (next === window.__originalPatternChoiceSentinel) {
+        const patternNameEl = document.getElementById('rhythm-pattern-name');
+        if (patternNameEl) patternNameEl.textContent = '原始乐谱';
+        const autoTab = document.getElementById('auto-tab-track');
+        if (autoTab) autoTab.hidden = true;
+        const line = document.getElementById('auto-accompaniment-line');
+        if (line) line.textContent = '自动伴奏 原始乐谱';
+        return;
+      }
+
+      if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
+      if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+      if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      __refreshOriginalOptionEnabled();
+      if (window.__originalTabOptionEnabled) {
+        const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+        if (!(meter in window.__currentPatternChoiceIndexByMeter)) {
+          window.__currentPatternChoiceIndexByMeter[meter] = window.__originalPatternChoiceSentinel;
+        }
+        if (typeof updateRhythmPlayback === 'function') {
+          updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+        }
+      }
+    }, 1200);
+  });
+})();
 </script>
+
 </body>
 </html>
