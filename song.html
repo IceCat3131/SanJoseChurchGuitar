@@ -329,8 +329,162 @@ function updateRhythmPlayback(ms) {
   const measure = getCurrentMeasureAtMs(ms);
   const metaEl = document.getElementById('rhythm-meta');
   if (metaEl && measure) metaEl.textContent = `拍号 ${measure.meter} · 第 ${measure.measure} 小节`;
+  updateAutoAccompanimentPlayback(ms);
 }
 
+
+
+// ===== 自动伴奏引擎（只读外挂，不影响原播放高亮） =====
+window.__autoAccompanimentCurrentBar = null;
+
+const AUTO_CHORD_SHAPES = {
+  "C":  ["x",3,2,0,1,0],
+  "Cm": ["x",3,5,5,4,3],
+  "C7": ["x",3,2,3,1,0],
+  "Cmaj7": ["x",3,2,0,0,0],
+  "Cm7": ["x",3,5,3,4,3],
+  "Csus4": ["x",3,3,0,1,1],
+  "C#": ["x",4,6,6,6,4],
+  "C#m": ["x",4,6,6,5,4],
+  "C#7": ["x",4,6,4,6,4],
+  "Db": ["x",4,6,6,6,4],
+  "Dbm": ["x",4,6,6,5,4],
+  "D":  ["x","x",0,2,3,2],
+  "Dm": ["x","x",0,2,3,1],
+  "D7": ["x","x",0,2,1,2],
+  "Dmaj7": ["x","x",0,2,2,2],
+  "Dm7": ["x","x",0,2,1,1],
+  "Dsus4": ["x","x",0,2,3,3],
+  "D#": ["x",6,8,8,8,6],
+  "Eb": ["x",6,8,8,8,6],
+  "E":  [0,2,2,1,0,0],
+  "Em": [0,2,2,0,0,0],
+  "E7": [0,2,0,1,0,0],
+  "Emaj7": [0,2,1,1,0,0],
+  "Em7": [0,2,2,0,3,0],
+  "Esus4": [0,2,2,2,0,0],
+  "F":  [1,3,3,2,1,1],
+  "Fm": [1,3,3,1,1,1],
+  "F7": [1,3,1,2,1,1],
+  "Fmaj7": [1,3,2,2,1,0],
+  "Fm7": [1,3,1,1,1,1],
+  "F#": [2,4,4,3,2,2],
+  "F#m": [2,4,4,2,2,2],
+  "F#7": [2,4,2,3,2,2],
+  "Gb": [2,4,4,3,2,2],
+  "G":  [3,2,0,0,0,3],
+  "Gm": [3,5,5,3,3,3],
+  "G7": [3,2,0,0,0,1],
+  "Gmaj7": [3,2,0,0,0,2],
+  "Gm7": [3,5,3,3,3,3],
+  "Gsus4": [3,3,0,0,1,3],
+  "G#": [4,6,6,5,4,4],
+  "Ab": [4,6,6,5,4,4],
+  "A":  ["x",0,2,2,2,0],
+  "Am": ["x",0,2,2,1,0],
+  "A7": ["x",0,2,0,2,0],
+  "Amaj7": ["x",0,2,1,2,0],
+  "Am7": ["x",0,2,0,1,0],
+  "Asus4": ["x",0,2,2,3,0],
+  "A#": ["x",1,3,3,3,1],
+  "Bb": ["x",1,3,3,3,1],
+  "Bbm": ["x",1,3,3,2,1],
+  "Bb7": ["x",1,3,1,3,1],
+  "B":  ["x",2,4,4,4,2],
+  "Bm": ["x",2,4,4,3,2],
+  "B7": ["x",2,1,2,0,2],
+  "Bmaj7": ["x",2,4,3,4,2],
+  "Bm7": ["x",2,4,2,3,2]
+};
+
+function normalizeChordLookupKey(symbol) {
+  const raw = String(symbol || '').trim();
+  if (!raw) return '';
+  const m = raw.match(/^([A-G](?:#|b)?)([^/]*?)(?:\/([A-G](?:#|b)?))?$/);
+  if (!m) return raw;
+  const root = m[1];
+  let suffix = (m[2] || '').trim();
+  suffix = suffix.replace(/^M7$/, 'maj7').replace(/^M$/, 'maj').replace(/^min$/, 'm');
+  return root + suffix;
+}
+
+function getShapeForChordSymbol(symbol) {
+  const key = normalizeChordLookupKey(symbol);
+  return AUTO_CHORD_SHAPES[key] || null;
+}
+
+function getBassStringFromShape(shape) {
+  if (!Array.isArray(shape)) return 6;
+  for (let i = 0; i < shape.length; i++) {
+    if (shape[i] !== 'x' && shape[i] !== 'X') return 6 - i;
+  }
+  return 6;
+}
+
+function getAutoPatternForMeter(meter) {
+  const map = {
+    '4/4': ['R',3,2,3,1,3,2,3],
+    '3/4': ['R',3,2,1,2,3],
+    '6/8': ['R',3,2,1,2,3],
+    '2/4': ['R',3,2,3],
+    '6/4': ['R',3,2,3,1,3,2,3,1,3,2,3],
+    '3/2': ['R',3,2,1,2,3],
+    '9/8': ['R',3,2,1,2,3,2,3,1],
+    '4/2': ['R',3,2,3,1,3,2,3],
+    '9/4': ['R',3,2,1,2,3,2,3,1]
+  };
+  return (map[meter] || map['4/4']).slice();
+}
+
+function generateAutoAccompanimentForMs(ms) {
+  const measure = getCurrentMeasureAtMs(ms);
+  const chord = getCurrentDisplayChordAtMs(ms);
+  if (!measure || !chord) return null;
+
+  const shape = getShapeForChordSymbol(chord.chordRaw || chord.chordDisplay || '');
+  if (!shape) {
+    return {
+      meter: measure.meter,
+      measure: measure.measure,
+      chordRaw: chord.chordRaw || '',
+      chordDisplay: chord.chordDisplay || chord.chordRaw || '',
+      pattern: [],
+      notes: [],
+      shape: null,
+      text: `${chord.chordDisplay || chord.chordRaw}：暂无默认按法`
+    };
+  }
+
+  const bassString = getBassStringFromShape(shape);
+  const skeleton = getAutoPatternForMeter(measure.meter);
+  const pattern = skeleton.map(step => step === 'R' ? bassString : step);
+  const notes = pattern.map((stringNum, idx) => {
+    const shapeIdx = 6 - Number(stringNum);
+    const fret = shape[shapeIdx];
+    return { index: idx, string: Number(stringNum), fret };
+  });
+  const text = notes.map(n => `${n.string}弦${n.fret}`).join(' · ');
+
+  return {
+    meter: measure.meter,
+    measure: measure.measure,
+    chordRaw: chord.chordRaw || '',
+    chordDisplay: chord.chordDisplay || chord.chordRaw || '',
+    bassString,
+    pattern,
+    notes,
+    shape: shape.slice(),
+    text
+  };
+}
+
+function updateAutoAccompanimentPlayback(ms) {
+  const auto = generateAutoAccompanimentForMs(ms);
+  window.__autoAccompanimentCurrentBar = auto;
+  const el = document.getElementById('rhythm-auto-value');
+  if (!el) return;
+  el.textContent = auto ? `${auto.chordDisplay} · ${auto.text}` : '--';
+}
 document.addEventListener('DOMContentLoaded', () => {
   ensureRhythmHud();
   hideRhythmHud();
@@ -349,6 +503,9 @@ document.addEventListener('DOMContentLoaded', () => {
     .rhythm-hud-meta{font-size:12px;opacity:.7}
     .rhythm-hud-chord{font-size:24px;font-weight:800;line-height:1.1}
     .rhythm-hud-sub{font-size:12px;opacity:.72;margin-top:2px}
+    .rhythm-auto{margin-top:10px;padding-top:10px;border-top:1px dashed rgba(0,0,0,.12);font-size:13px;line-height:1.45;color:#1f2937}
+    .rhythm-auto-label{font-weight:700;margin-right:6px}
+    .rhythm-auto-value{word-break:break-word}
     .rhythm-steps{display:grid;gap:8px;margin-top:12px}
     .rhythm-step{min-height:40px;border-radius:12px;border:1px solid rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;background:#fafafa}
     .rhythm-step[data-active="1"]{border-color:#111;background:#111;color:#fff}
@@ -486,6 +643,9 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         <div class="rhythm-steps" id="rhythm-steps"></div>
+        <div class="rhythm-auto" id="rhythm-auto">
+          <span class="rhythm-auto-label">自动伴奏</span><span class="rhythm-auto-value" id="rhythm-auto-value">--</span>
+        </div>
       </div>
       <div id="score-view" class="score-wrap" aria-hidden="false">
         <div id="alphaTab" class="at-viewport"></div>
