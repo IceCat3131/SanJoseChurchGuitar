@@ -424,6 +424,67 @@ function ensureIndependentTabTrackUi() {
 }
 
 
+
+function computeScoreSystemLayout() {
+  const svg = document.querySelector('#alphaTab svg');
+  if (!svg) return [];
+  const rootRect = svg.getBoundingClientRect();
+  const textNodes = Array.from(svg.querySelectorAll('text, tspan'));
+  const measureTexts = [];
+  textNodes.forEach((el) => {
+    const txt = String(el.textContent || '').trim();
+    if (!/^\d+$/.test(txt)) return;
+    const rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const fill = ((el.getAttribute('fill') || '') + ' ' + (getComputedStyle(el).fill || '')).toLowerCase();
+    const fontSize = parseFloat(getComputedStyle(el).fontSize || '0') || 0;
+    // prefer small red measure numbers
+    if (!(fill.includes('255, 0, 0') || fill.includes('red') || fill.includes('#f00') || fill.includes('#ff0000') || fill.includes('rgb(255, 0, 0)'))) {
+      if (fontSize > 12) return;
+    }
+    measureTexts.push({
+      no: parseInt(txt, 10),
+      x: rect.left - rootRect.left,
+      y: rect.top - rootRect.top,
+      width: rect.width,
+      height: rect.height
+    });
+  });
+  if (!measureTexts.length) return [];
+  measureTexts.sort((a,b)=> a.y===b.y ? a.x-b.x : a.y-b.y);
+  const rows = [];
+  measureTexts.forEach((m) => {
+    const last = rows[rows.length-1];
+    if (!last || Math.abs(last.y - m.y) > 18) rows.push({ y: m.y, measures: [m] });
+    else last.measures.push(m);
+  });
+  const longLines = Array.from(svg.querySelectorAll('line')).map((ln) => {
+    const r = ln.getBoundingClientRect();
+    return { x1: r.left-rootRect.left, x2: r.right-rootRect.left, y: (r.top+r.bottom)/2-rootRect.top, w: r.width };
+  }).filter(l => l.w > 120);
+
+  const systems = rows.map((row, idx) => {
+    row.measures.sort((a,b)=>a.x-b.x);
+    const nextY = idx < rows.length-1 ? rows[idx+1].y : 1e9;
+    const relatedLines = longLines.filter(l => l.y >= row.y - 40 && l.y < nextY - 20);
+    let minX = row.measures[0].x;
+    let maxX = row.measures[row.measures.length-1].x + 120;
+    if (relatedLines.length) {
+      minX = Math.min(...relatedLines.map(l => l.x1));
+      maxX = Math.max(...relatedLines.map(l => l.x2));
+    }
+    const measures = row.measures.map((m, i) => {
+      const startX = m.x;
+      const next = row.measures[i+1];
+      const endX = next ? next.x : maxX;
+      return { no: m.no, startX, endX, width: Math.max(24, endX-startX) };
+    });
+    return { y: row.y, minX, maxX, width: Math.max(100, maxX-minX), measures };
+  });
+  window.__scoreSystemLayout = systems;
+  return systems;
+}
+
 function renderIndependentTabTrack(bar, activeStepIndex) {
   const root = ensureIndependentTabTrackUi();
   if (!root) return;
@@ -436,87 +497,68 @@ function renderIndependentTabTrack(bar, activeStepIndex) {
   root.hidden = false;
 
   const stringNames = {1:'e',2:'B',3:'G',4:'D',5:'A',6:'E'};
-  const scoreView = document.getElementById('score-view') || document.getElementById('alphaTab') || document.body;
-  const width = (scoreView && scoreView.clientWidth) ? scoreView.clientWidth : window.innerWidth;
-  const isLandscape = window.matchMedia && window.matchMedia('(orientation: landscape)').matches;
-  const barsPerRow = Math.max(1, Number(window.__lastBarsPerRow || 0) || (typeof computeBarsPerRow === 'function' ? computeBarsPerRow(width, isLandscape) : 4));
-
-  const systems = [];
-  for (let i = 0; i < song.length; i += barsPerRow) {
-    systems.push(song.slice(i, i + barsPerRow));
+  const systems = computeScoreSystemLayout();
+  const currentMeasure = bar.measure;
+  if (!systems.length) {
+    root.innerHTML = '<div class="auto-tab-head"><div class="auto-tab-title">自动伴奏轨（对齐系统）</div><div>等待主谱布局…</div></div>';
+    return;
   }
 
-  function buildSystemRow(systemBars, isCurrentSystem, currentMeasure, currentStep) {
-    const measuresMeta = systemBars.map((item) => {
-      const stepCount = Math.max(1, Array.isArray(item?.notes) ? item.notes.length : 0);
-      const notesByString = new Map();
-      (item.notes || []).forEach((n, idx) => {
-        const s = Number(n.string);
-        if (!Number.isFinite(s)) return;
-        if (!notesByString.has(s)) notesByString.set(s, new Map());
-        notesByString.get(s).set(idx, n);
-      });
+  function buildSystemRow(system, isCurrentSystem) {
+    const systemBars = system.measures.map(m => song.find(item => item && item.measure === m.no)).filter(Boolean);
+    if (!systemBars.length) return '';
+    let htmlPart = `<div class="auto-tab-system" style="width:${system.width}px">`;
+    htmlPart += `<div class="auto-tab-system-head"><div class="auto-tab-title">第 ${systemBars[0].measure}${systemBars.length>1?'-'+systemBars[systemBars.length-1].measure:''} 小节</div><div>${isCurrentSystem ? '播放中' : ''}</div></div>`;
+    htmlPart += `<div class="auto-tab-system-inner" style="width:${system.width}px">`;
+    htmlPart += `<div class="auto-tab-step-row-geo"><div class="auto-tab-step-label">节奏</div>`;
+    system.measures.forEach((meta) => {
+      const item = song.find(x => x && x.measure === meta.no);
+      if (!item) return;
+      const stepCount = Math.max(1, Array.isArray(item.notes) ? item.notes.length : 0);
       const patternSteps = Array.isArray(item.pattern) ? item.pattern.map(x => String(x)) : new Array(stepCount).fill('');
-      return { item, stepCount, notesByString, patternSteps };
-    });
-
-    const totalSteps = measuresMeta.reduce((sum, m) => sum + m.stepCount, 0);
-    let htmlPart = `<div class="auto-tab-system" style="--total-steps:${totalSteps}">`;
-    htmlPart += `<div class="auto-tab-system-head"><div class="auto-tab-title">`;
-    htmlPart += `${escapeHtml((systemBars[0]?.chordDisplay || systemBars[0]?.chordRaw || '--'))}`;
-    htmlPart += ` · 第 ${systemBars[0]?.measure || '--'}${systemBars.length > 1 ? `-${systemBars[systemBars.length - 1]?.measure}` : ''} 小节`;
-    htmlPart += `</div><div>${isCurrentSystem ? '播放中' : ''}</div></div>`;
-
-    // top mini meta row: measure numbers + chord labels
-    htmlPart += `<div class="auto-tab-meta-row"><div class="auto-tab-step-label"></div>`;
-    measuresMeta.forEach((m, mi) => {
-      htmlPart += `<div class="auto-tab-measure-meta" style="grid-column: span ${m.stepCount};">`;
-      htmlPart += `<span class="auto-tab-measure-no">第${m.item.measure}小节</span>`;
-      htmlPart += `<span class="auto-tab-measure-chord">${escapeHtml(m.item.chordDisplay || m.item.chordRaw || '--')}</span>`;
-      htmlPart += `</div>`;
-    });
-    htmlPart += `</div>`;
-
-    // step row
-    htmlPart += `<div class="auto-tab-step-row-composite"><div class="auto-tab-step-label">节奏</div>`;
-    measuresMeta.forEach((m) => {
-      for (let i = 0; i < m.stepCount; i++) {
-        const isActive = isCurrentSystem && m.item.measure === currentMeasure && i === currentStep;
-        const measureStart = i === 0 ? 1 : 0;
-        htmlPart += `<div class="auto-tab-step" data-active="${isActive ? 1 : 0}" data-measure-start="${measureStart}">${escapeHtml(m.patternSteps[i] || '')}</div>`;
+      htmlPart += `<div class="auto-tab-measure-segment" style="width:${meta.width}px">`;
+      htmlPart += `<div class="auto-tab-measure-caption"><span>${escapeHtml(item.chordDisplay || item.chordRaw || '--')}</span><span>第${item.measure}小节</span></div>`;
+      htmlPart += `<div class="auto-tab-measure-steps" style="--step-count:${stepCount}">`;
+      for (let i=0;i<stepCount;i++) {
+        const isActive = item.measure === currentMeasure && i === activeStepIndex;
+        htmlPart += `<div class="auto-tab-step" data-active="${isActive?1:0}">${escapeHtml(patternSteps[i] || '')}</div>`;
       }
+      htmlPart += `</div></div>`;
     });
     htmlPart += `</div>`;
 
-    // 6 string rows
     [1,2,3,4,5,6].forEach((stringNo) => {
-      htmlPart += `<div class="auto-tab-row-composite"><div class="auto-tab-label">${stringNames[stringNo]}</div>`;
-      measuresMeta.forEach((m) => {
-        for (let i = 0; i < m.stepCount; i++) {
-          const note = m.notesByString.get(stringNo)?.get(i) || null;
-          const isActive = isCurrentSystem && m.item.measure === currentMeasure && i === currentStep;
-          const measureStart = i === 0 ? 1 : 0;
-          htmlPart += `<div class="auto-tab-cell" data-active="${isActive ? 1 : 0}" data-measure-start="${measureStart}">${note ? escapeHtml(String(note.fret)) : ''}</div>`;
+      htmlPart += `<div class="auto-tab-row-geo"><div class="auto-tab-label">${stringNames[stringNo]}</div>`;
+      system.measures.forEach((meta) => {
+        const item = song.find(x => x && x.measure === meta.no);
+        if (!item) return;
+        const stepCount = Math.max(1, Array.isArray(item.notes) ? item.notes.length : 0);
+        const notesByIdx = new Map();
+        (item.notes || []).forEach((n, idx) => { if (Number(n.string) === stringNo) notesByIdx.set(idx, n); });
+        htmlPart += `<div class="auto-tab-measure-segment auto-tab-line-segment" style="width:${meta.width}px"><div class="auto-tab-measure-grid" style="--step-count:${stepCount}">`;
+        for (let i=0;i<stepCount;i++) {
+          const note = notesByIdx.get(i);
+          const isActive = item.measure === currentMeasure && i === activeStepIndex;
+          htmlPart += `<div class="auto-tab-cell" data-active="${isActive?1:0}">${note ? escapeHtml(String(note.fret)) : ''}</div>`;
         }
+        htmlPart += `</div></div>`;
       });
       htmlPart += `</div>`;
     });
 
-    htmlPart += `</div>`;
+    htmlPart += `</div></div>`;
     return htmlPart;
   }
 
-  const currentMeasure = bar.measure;
-  let output = `<div class="auto-tab-head"><div class="auto-tab-title">自动伴奏轨（对齐系统）</div><div>与主谱相同每行小节数 · 每行 ${barsPerRow} 小节</div></div>`;
+  let output = `<div class="auto-tab-head"><div class="auto-tab-title">自动伴奏轨（对齐系统）</div><div>按主谱真实分行/小节边界对齐</div></div>`;
   output += `<div class="auto-tab-window auto-tab-window-rows">`;
-  systems.forEach((systemBars) => {
-    const isCurrentSystem = systemBars.some(item => item.measure === currentMeasure);
-    output += buildSystemRow(systemBars, isCurrentSystem, currentMeasure, activeStepIndex);
+  systems.forEach((system) => {
+    const isCurrentSystem = system.measures.some(m => m.no === currentMeasure);
+    output += buildSystemRow(system, isCurrentSystem);
   });
   output += `</div>`;
   root.innerHTML = output;
 }
-
 
 function syncAutoAccompanimentToPlayback(ms) {
   const bar = getAutoAccompanimentBarAtMs(ms);
@@ -691,6 +733,28 @@ document.addEventListener('DOMContentLoaded', () => {
     .auto-tab-step[data-measure-start="1"], .auto-tab-cell[data-measure-start="1"]{border-left:2px solid rgba(0,0,0,.28)}
     .auto-tab-step-row-composite .auto-tab-step:first-of-type,
     .auto-tab-row-composite .auto-tab-cell:first-of-type{border-left:2px solid rgba(0,0,0,.28)}
+
+  
+    .auto-tab-window-rows{display:flex;flex-direction:column;gap:16px}
+    .auto-tab-system{display:block;max-width:100%}
+    .auto-tab-system-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px;font-size:12px;color:rgba(0,0,0,.72)}
+    .auto-tab-system-inner{max-width:100%;overflow:hidden}
+    .auto-tab-step-row-geo,.auto-tab-row-geo{display:grid;grid-template-columns:40px 1fr;align-items:center}
+    .auto-tab-row-geo{min-height:26px}
+    .auto-tab-label{padding:0 8px;font-style:italic;font-size:12px;color:#111;background:#fafafa;border-right:1px solid rgba(0,0,0,.10);height:100%;display:flex;align-items:center;justify-content:flex-end}
+    .auto-tab-step-label{padding:0 8px;font-size:11px;color:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:flex-end}
+    .auto-tab-measure-segment{display:inline-block;vertical-align:top;border-left:1px solid rgba(0,0,0,.25)}
+    .auto-tab-row-geo .auto-tab-measure-segment:last-child,.auto-tab-step-row-geo .auto-tab-measure-segment:last-child{border-right:2px solid rgba(0,0,0,.35)}
+    .auto-tab-measure-caption{display:flex;justify-content:space-between;align-items:center;padding:0 4px 2px;font-size:11px;color:rgba(0,0,0,.65)}
+    .auto-tab-measure-steps,.auto-tab-measure-grid{display:grid;grid-template-columns:repeat(var(--step-count,8), minmax(0,1fr))}
+    .auto-tab-step{height:22px;border-right:1px solid rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:12px;color:rgba(0,0,0,.7)}
+    .auto-tab-step:last-child{border-right:none}
+    .auto-tab-step[data-active="1"]{background:#111;color:#fff;border-radius:6px}
+    .auto-tab-line-segment{position:relative}
+    .auto-tab-line-segment::before{content:'';position:absolute;left:0;right:0;top:50%;border-top:1px solid rgba(0,0,0,.55);transform:translateY(-0.5px);pointer-events:none}
+    .auto-tab-cell{position:relative;height:26px;border-right:1px solid rgba(0,0,0,.10);display:flex;align-items:center;justify-content:center;font-size:14px;color:#111}
+    .auto-tab-cell:last-child{border-right:none}
+    .auto-tab-cell[data-active="1"]{background:linear-gradient(to bottom, rgba(37,99,235,.08) 48%, rgba(37,99,235,.85) 48%, rgba(37,99,235,.85) 52%, rgba(37,99,235,.08) 52%);color:#2563eb;font-weight:700}
 
   </style>
 
@@ -2712,5 +2776,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<script>
+window.addEventListener('resize', () => {
+  try { if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0); } catch(e){}
+});
+</script>
 </body>
 </html>
