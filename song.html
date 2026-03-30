@@ -678,8 +678,6 @@
   async function loadGtzIntoAlphaTab(api, gtzUrl) {
     try { api.stop(); } catch(e) {}
     setPlayerUI({ current: 0, total: 0, playing: false });
-    __timelineFinalizedEndMs = 0;
-    window.__autoAccompanimentCurrentBar = null;
 
     const res = await fetch(gtzUrl);
     if (!res.ok) throw new Error(`HTTP ${res.status} ${gtzUrl}`);
@@ -738,7 +736,6 @@
   let __chordTimelineRaw = [];
   let __chordTimeline = [];
   let __measureTimelineRaw = [];
-  let __timelineFinalizedEndMs = 0;
   let __rhythmState = {
     meter: '',
     patternId: '',
@@ -812,96 +809,37 @@
     }
   };
 
+  window.__autoAccompanimentCurrentBar = null;
 
   const CHORD_SHAPES = {
-    "C":  ["x",3,2,0,1,0],
-    "Cm": ["x",3,5,5,4,3],
-    "C7": ["x",3,2,3,1,0],
-    "Cmaj7": ["x",3,2,0,0,0],
-    "Cm7": ["x",3,5,3,4,3],
-    "Csus4": ["x",3,3,0,1,1],
-
-    "Db": ["x",4,6,6,6,4],
-    "Dbm": ["x",4,6,6,5,4],
-    "Db7": ["x",4,6,4,6,4],
-    "Dbmaj7": ["x",4,6,5,6,4],
-
-    "D":  ["x","x",0,2,3,2],
-    "Dm": ["x","x",0,2,3,1],
-    "D7": ["x","x",0,2,1,2],
-    "Dmaj7": ["x","x",0,2,2,2],
-    "Dm7": ["x","x",0,2,1,1],
-    "Dsus4": ["x","x",0,2,3,3],
-
-    "Eb": ["x",6,8,8,8,6],
-    "Ebm": ["x",6,8,8,7,6],
-    "Eb7": ["x",6,8,6,8,6],
-    "Ebmaj7": ["x",6,8,7,8,6],
-
-    "E":  [0,2,2,1,0,0],
-    "Em": [0,2,2,0,0,0],
-    "E7": [0,2,0,1,0,0],
-    "Emaj7": [0,2,1,1,0,0],
-    "Em7": [0,2,2,0,3,0],
-    "Esus4": [0,2,2,2,0,0],
-
-    "F":  [1,3,3,2,1,1],
-    "Fm": [1,3,3,1,1,1],
-    "F7": [1,3,1,2,1,1],
-    "Fmaj7": [1,3,2,2,1,0],
-    "Fm7": [1,3,1,1,1,1],
-
-    "F#": [2,4,4,3,2,2],
-    "F#m": [2,4,4,2,2,2],
-    "F#7": [2,4,2,3,2,2],
-    "F#maj7": [2,4,3,3,2,2],
-    "F#m7": [2,4,2,2,2,2],
-
-    "G":  [3,2,0,0,0,3],
-    "Gm": [3,5,5,3,3,3],
-    "G7": [3,2,0,0,0,1],
-    "Gmaj7": [3,2,0,0,0,2],
-    "Gm7": [3,5,3,3,3,3],
-    "Gsus4": [3,3,0,0,1,3],
-
-    "Ab": [4,6,6,5,4,4],
-    "Abm": [4,6,6,4,4,4],
-    "Ab7": [4,6,4,5,4,4],
-    "Abmaj7": [4,6,5,5,4,4],
-
-    "A":  ["x",0,2,2,2,0],
-    "Am": ["x",0,2,2,1,0],
-    "A7": ["x",0,2,0,2,0],
-    "Amaj7": ["x",0,2,1,2,0],
-    "Am7": ["x",0,2,0,1,0],
-    "Asus4": ["x",0,2,2,3,0],
-
-    "Bb": ["x",1,3,3,3,1],
-    "Bbm": ["x",1,3,3,2,1],
-    "Bb7": ["x",1,3,1,3,1],
-    "Bbmaj7": ["x",1,3,2,3,1],
-
-    "B":  ["x",2,4,4,4,2],
-    "Bm": ["x",2,4,4,3,2],
-    "B7": ["x",2,1,2,0,2],
-    "Bmaj7": ["x",2,4,3,4,2],
-    "Bm7": ["x",2,4,2,3,2]
+    "C": ["x",3,2,0,1,0], "Cm": ["x",3,5,5,4,3], "C7": ["x",3,2,3,1,0], "Cmaj7": ["x",3,2,0,0,0], "Cm7": ["x",3,5,3,4,3], "Csus4": ["x",3,3,0,1,1],
+    "Db": ["x",4,6,6,6,4], "Dbm": ["x",4,6,6,5,4], "Db7": ["x",4,6,4,6,4], "Dbmaj7": ["x",4,6,5,6,4],
+    "D": ["x","x",0,2,3,2], "Dm": ["x","x",0,2,3,1], "D7": ["x","x",0,2,1,2], "Dmaj7": ["x","x",0,2,2,2], "Dm7": ["x","x",0,2,1,1], "Dsus4": ["x","x",0,2,3,3],
+    "Eb": ["x",6,8,8,8,6], "Ebm": ["x",6,8,8,7,6], "Eb7": ["x",6,8,6,8,6], "Ebmaj7": ["x",6,8,7,8,6],
+    "E": [0,2,2,1,0,0], "Em": [0,2,2,0,0,0], "E7": [0,2,0,1,0,0], "Emaj7": [0,2,1,1,0,0], "Em7": [0,2,2,0,3,0], "Esus4": [0,2,2,2,0,0],
+    "F": [1,3,3,2,1,1], "Fm": [1,3,3,1,1,1], "F7": [1,3,1,2,1,1], "Fmaj7": [1,3,2,2,1,0], "Fm7": [1,3,1,1,1,1],
+    "F#": [2,4,4,3,2,2], "F#m": [2,4,4,2,2,2], "F#7": [2,4,2,3,2,2], "F#maj7": [2,4,3,3,2,2], "F#m7": [2,4,2,2,2,2],
+    "G": [3,2,0,0,0,3], "Gm": [3,5,5,3,3,3], "G7": [3,2,0,0,0,1], "Gmaj7": [3,2,0,0,0,2], "Gm7": [3,5,3,3,3,3], "Gsus4": [3,3,0,0,1,3],
+    "Ab": [4,6,6,5,4,4], "Abm": [4,6,6,4,4,4], "Ab7": [4,6,4,5,4,4], "Abmaj7": [4,6,5,5,4,4],
+    "A": ["x",0,2,2,2,0], "Am": ["x",0,2,2,1,0], "A7": ["x",0,2,0,2,0], "Amaj7": ["x",0,2,1,2,0], "Am7": ["x",0,2,0,1,0], "Asus4": ["x",0,2,2,3,0],
+    "Bb": ["x",1,3,3,3,1], "Bbm": ["x",1,3,3,2,1], "Bb7": ["x",1,3,1,3,1], "Bbmaj7": ["x",1,3,2,3,1],
+    "B": ["x",2,4,4,4,2], "Bm": ["x",2,4,4,3,2], "B7": ["x",2,1,2,0,2], "Bmaj7": ["x",2,4,3,4,2], "Bm7": ["x",2,4,2,3,2]
   };
 
   const PATTERN_SKELETONS = {
     arpeggio_53231323: ["R",3,2,3,1,3,2,3],
     arpeggio_53212323: ["R",3,2,1,2,3,2,3],
     arpeggio_63231323: ["R",3,2,3,1,3,2,3],
-    arpeggio_532123:   ["R",3,2,1,2,3],
-    arpeggio_5323:     ["R",3,2,3],
-    arpeggio_632123:   ["R",3,2,1,2,3],
-    arpeggio_632123123:["R",3,2,1,2,3,1,2,3],
-    arpeggio_632123123123:["R",3,2,1,2,3,1,2,3,1,2,3],
-    arpeggio_5323132353212323:["R",3,2,3,1,3,2,3,"R",3,2,1,2,3,2,3],
-    strum_ddUUDU:      ["D","·","D","·","U","U","D","U"],
-    strum_ddu:         ["D","·","D","·","U","·"],
-    strum_du:          ["D","·","U","·"],
-    strum_ddu_du:      ["D","·","D","U","D","U"]
+    arpeggio_532123: ["R",3,2,1,2,3],
+    arpeggio_5323: ["R",3,2,3],
+    arpeggio_632123: ["R",3,2,1,2,3],
+    arpeggio_632123123: ["R",3,2,1,2,3,1,2,3],
+    arpeggio_632123123123: ["R",3,2,1,2,3,1,2,3,1,2,3],
+    arpeggio_5323132353212323: ["R",3,2,3,1,3,2,3,"R",3,2,1,2,3,2,3],
+    strum_ddUUDU: ["D","·","D","·","U","U","D","U"],
+    strum_ddu: ["D","·","D","·","U","·"],
+    strum_du: ["D","·","U","·"],
+    strum_ddu_du: ["D","·","D","U","D","U"]
   };
 
   function getChordShapeKey(chordName) {
@@ -922,10 +860,7 @@
       .replace(/11$/i, '7')
       .replace(/13$/i, '7');
     if (CHORD_SHAPES[simplified]) return simplified;
-    const majorish = simplified
-      .replace(/maj7$/i, 'maj7')
-      .replace(/maj$/i, '')
-      .replace(/7sus4$/i, 'sus4');
+    const majorish = simplified.replace(/7sus4$/i, 'sus4').replace(/maj$/i, '');
     if (CHORD_SHAPES[majorish]) return majorish;
     return '';
   }
@@ -944,10 +879,10 @@
   }
 
   function expandPatternForChord(patternId, chordName) {
-    const pattern = getCurrentPattern();
+    const skeleton = (PATTERN_SKELETONS[patternId] || []).slice();
+    if (!skeleton.length) return [];
     const shape = getChordShape(chordName);
     const bass = getBassStringFromShape(shape);
-    const skeleton = (PATTERN_SKELETONS[patternId] || pattern?.display || []).slice();
     return skeleton.map((token) => token === 'R' ? bass : token);
   }
 
@@ -960,13 +895,7 @@
       if (typeof token === 'number') {
         const arrIndex = 6 - token;
         const fret = shape[arrIndex];
-        return {
-          step: idx,
-          kind: 'pluck',
-          string: token,
-          fret: fret,
-          muted: fret === 'x' || fret === 'X'
-        };
+        return { step: idx, kind: 'pluck', string: token, fret, muted: fret === 'x' || fret === 'X' };
       }
       if (token === 'D' || token === 'U') {
         const playable = [];
@@ -975,15 +904,9 @@
           if (fret === 'x' || fret === 'X') continue;
           playable.push({ string: 6 - i, fret });
         }
-        const ordered = token === 'D' ? playable : playable.slice().reverse();
-        return { step: idx, kind: 'strum', direction: token, notes: ordered };
+        return { step: idx, kind: 'strum', direction: token, notes: token === 'D' ? playable : playable.slice().reverse() };
       }
       return { step: idx, kind: 'rest', token };
-    });
-    const pretty = notes.map((n) => {
-      if (n.kind === 'pluck') return `${n.string}:${n.fret}`;
-      if (n.kind === 'strum') return `${n.direction}[${n.notes.map(x => `${x.string}:${x.fret}`).join(' ')}]`;
-      return '·';
     });
     return {
       chord: chordName,
@@ -993,28 +916,10 @@
       patternId,
       patternExpanded: expanded.slice(),
       notes,
-      pretty,
-      summary: pretty.join(' | ')
+      summary: notes.map((n) => n.kind === 'pluck' ? `${n.string}:${n.fret}` : (n.kind === 'strum' ? `${n.direction}[${n.notes.map(x => `${x.string}:${x.fret}`).join(' ')}]` : '·')).join(' | ')
     };
   }
 
-  function getCurrentAutoAccompanimentBar(ms) {
-    const measure = getCurrentMeasureAtTime(ms);
-    const chord = getCurrentChordAtTime(ms);
-    const pattern = getCurrentPattern();
-    if (!measure || !chord || !pattern) return null;
-    const bar = buildAutoAccompanimentBar(chord.chordRaw, measure.meter, pattern.id);
-    if (!bar) return null;
-    return {
-      measure: measure.measure,
-      meter: measure.meter,
-      startMs: measure.startMs,
-      endMs: measure.endMs,
-      currentChord: chord.chordDisplay || chord.chordRaw,
-      currentChordRaw: chord.chordRaw,
-      ...bar
-    };
-  }
 
   function decodeBase64ToText(b64) {
     const binary = atob(b64);
@@ -1197,8 +1102,6 @@
     }
     __rhythmState.meter = meter;
     __rhythmState.stepsPerBar = lib.patterns[__rhythmState.patternId].stepsPerBar;
-    __rhythmState.patternDisplayExpanded = [];
-    __rhythmState.autoBarSummary = '';
     __rhythmState.engineReady = true;
     window.__rhythmState = { ...__rhythmState };
   }
@@ -1236,7 +1139,6 @@
     const stepDuration = Math.max(1, measure.durationMs / pattern.stepsPerBar);
     let stepIndex = Math.floor(localMs / stepDuration);
     if (stepIndex >= pattern.stepsPerBar) stepIndex = pattern.stepsPerBar - 1;
-    const autoBar = chord ? buildAutoAccompanimentBar(chord.chordRaw, measure.meter, pattern.id) : null;
     return {
       meter: measure.meter,
       measure: measure.measure,
@@ -1244,11 +1146,8 @@
       stepsPerBar: pattern.stepsPerBar,
       patternId: pattern.id,
       patternDisplay: pattern.display.slice(),
-      patternDisplayExpanded: autoBar ? autoBar.patternExpanded.map((t) => String(t)) : pattern.display.slice(),
       currentChord: chord ? chord.chordDisplay : '',
-      currentChordRaw: chord ? chord.chordRaw : '',
-      autoBar,
-      autoBarSummary: autoBar ? autoBar.summary : ''
+      currentChordRaw: chord ? chord.chordRaw : ''
     };
   }
 
@@ -1267,7 +1166,7 @@
         <button type="button" id="rhythm-pattern-btn" style="margin-left:auto;background:#2b65ff;color:#fff;border:none;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;">节奏</button>
       </div>
       <div id="rhythm-steps" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-      <div id="rhythm-auto-bar" style="margin-top:8px;font-size:12px;opacity:.92;word-break:break-word;"></div>
+      <div id="rhythm-auto" style="margin-top:8px;font-size:12px;opacity:.92;word-break:break-all;">自动伴奏 --</div>
     `;
     contentCard.insertBefore(wrap, contentCard.firstChild);
     const btn = document.getElementById('rhythm-pattern-btn');
@@ -1283,20 +1182,19 @@
     const chordEl = document.getElementById('rhythm-chord');
     const stepsEl = document.getElementById('rhythm-steps');
     const btn = document.getElementById('rhythm-pattern-btn');
-    const autoBarEl = document.getElementById('rhythm-auto-bar');
+    const autoEl = document.getElementById('rhythm-auto');
     const pattern = getCurrentPattern();
-    const expandedDisplay = (__rhythmState.patternDisplayExpanded && __rhythmState.patternDisplayExpanded.length)
-      ? __rhythmState.patternDisplayExpanded.slice()
-      : ((pattern && pattern.display) ? pattern.display.slice() : []);
     if (meterEl) meterEl.textContent = `拍号 ${__rhythmState.meter || '--'}`;
-    if (measureEl) meterEl && measureEl.textContent !== undefined;
     if (measureEl) measureEl.textContent = `小节 ${__rhythmState.currentMeasure || '--'}`;
     if (chordEl) chordEl.textContent = `和弦 ${__rhythmState.currentChord || '--'}`;
     if (btn && pattern) btn.textContent = pattern.label;
-    if (autoBarEl) autoBarEl.textContent = __rhythmState.autoBarSummary ? `自动伴奏 ${__rhythmState.autoBarSummary}` : '';
+    if (autoEl) {
+      const bar = window.__autoAccompanimentCurrentBar;
+      autoEl.textContent = bar ? `自动伴奏 ${bar.chord} ｜ ${bar.summary}` : '自动伴奏 --';
+    }
     if (!stepsEl || !pattern) return;
     stepsEl.innerHTML = '';
-    expandedDisplay.forEach((token, idx) => {
+    pattern.display.forEach((token, idx) => {
       const cell = document.createElement('div');
       const active = idx === __rhythmState.activeStepIndex;
       cell.textContent = token;
@@ -1317,11 +1215,13 @@
     if (__rhythmState.meter !== now.meter) { __rhythmState.meter = now.meter; dirty = true; }
     if (__rhythmState.stepsPerBar !== now.stepsPerBar) { __rhythmState.stepsPerBar = now.stepsPerBar; dirty = true; }
     if (__rhythmState.patternId !== now.patternId) { __rhythmState.patternId = now.patternId; dirty = true; }
-    if ((__rhythmState.autoBarSummary || '') !== (now.autoBarSummary || '')) { __rhythmState.autoBarSummary = now.autoBarSummary || ''; dirty = true; }
-    const expandedKeyPrev = JSON.stringify(__rhythmState.patternDisplayExpanded || []);
-    const expandedKeyNow = JSON.stringify(now.patternDisplayExpanded || []);
-    if (expandedKeyPrev !== expandedKeyNow) { __rhythmState.patternDisplayExpanded = (now.patternDisplayExpanded || []).slice(); dirty = true; }
-    window.__autoAccompanimentCurrentBar = now.autoBar || null;
+    const nextBar = buildAutoAccompanimentBar(now.currentChordRaw || now.currentChord || '', now.meter, now.patternId);
+    const prevSummary = window.__autoAccompanimentCurrentBar ? window.__autoAccompanimentCurrentBar.summary : '';
+    const nextSummary = nextBar ? nextBar.summary : '';
+    if (prevSummary !== nextSummary) {
+      window.__autoAccompanimentCurrentBar = nextBar;
+      dirty = true;
+    }
     if (dirty) updateRhythmUi();
   }
 
@@ -1546,9 +1446,8 @@
         progressEl.value = String(__playbackState.progress);
       }
       if (timeEl) timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
-      if (__measureTimelineRaw.length && args.endTime && Math.abs((__timelineFinalizedEndMs || 0) - args.endTime) > 5) {
+      if (__measureTimelineRaw.length) {
         finalizeGtzhTimelines(args.endTime || 0);
-        __timelineFinalizedEndMs = args.endTime || 0;
       }
       syncRhythmToPlayback(args.currentTime || 0);
     });
@@ -1593,7 +1492,6 @@
     if (progressEl) progressEl.value = "0";
     const btnPlay = document.getElementById("ui-play");
     if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
-    window.__autoAccompanimentCurrentBar = null;
   }
   // ===== /alphaTab + .gtz 加载 =====
 
