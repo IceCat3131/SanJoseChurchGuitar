@@ -674,6 +674,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="text-align:right">
             <div class="rhythm-hud-chord" id="rhythm-current-chord">--</div>
             <div class="rhythm-hud-sub" id="rhythm-pattern-name">--</div>
+            <button id="btn-switch-rhythm" type="button" style="margin-top:8px;border:none;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;background:#111;color:#fff;">切换节奏</button>
           </div>
         </div>
         <div class="rhythm-steps" id="rhythm-steps"></div>
@@ -2403,24 +2404,137 @@ function pad4(num) {
 
 
 <script>
-// === SAFE PATCH: auto accompaniment TAB track (no side effects) ===
-window.__autoAccompanimentTabTrack = [];
+// === SAFE PATCH: restore rhythm switch button + keep all existing functionality ===
+window.__autoAccompanimentTabTrack = window.__autoAccompanimentTabTrack || [];
+window.__currentPatternChoiceIndexByMeter = window.__currentPatternChoiceIndexByMeter || {};
+
+window.__RHYTHM_PATTERN_LIBRARY = {
+  '4/4': [
+    { id:'arpeggio_r3231323', name:'分解 R3231323', type:'arpeggio', steps:['R','3','2','3','1','3','2','3'], accent:[1,0,0,0,1,0,0,0] },
+    { id:'arpeggio_r3212323', name:'分解 R3212323', type:'arpeggio', steps:['R','3','2','1','2','3','2','3'], accent:[1,0,0,0,1,0,0,0] },
+    { id:'strum_dduudu',      name:'扫弦 ↓↓↑↑↓↑',    type:'strum',    steps:['↓','↓','↑','↑','↓','↑'],         accent:[1,0,1,0,1,0] }
+  ],
+  '3/4': [
+    { id:'arpeggio_r32123',   name:'分解 R32123',    type:'arpeggio', steps:['R','3','2','1','2','3'], accent:[1,0,0,1,0,0] }
+  ],
+  '6/8': [
+    { id:'arpeggio_r32123',   name:'分解 R32123',    type:'arpeggio', steps:['R','3','2','1','2','3'], accent:[1,0,0,1,0,0] }
+  ]
+};
+
+function __getPatternChoicesForMeter(meter){
+  const list = window.__RHYTHM_PATTERN_LIBRARY[meter];
+  if (Array.isArray(list) && list.length) return list;
+  const fallback = (typeof window.__getDefaultPatternForMeterOriginal === 'function')
+    ? window.__getDefaultPatternForMeterOriginal(meter)
+    : (typeof getDefaultPatternForMeter === 'function' ? getDefaultPatternForMeter(meter) : null);
+  return fallback ? [fallback] : [];
+}
+
+// Preserve original function
+if (!window.__getDefaultPatternForMeterOriginal && typeof getDefaultPatternForMeter === 'function') {
+  window.__getDefaultPatternForMeterOriginal = getDefaultPatternForMeter;
+  getDefaultPatternForMeter = function(meter){
+    const choices = __getPatternChoicesForMeter(meter);
+    if (!choices.length) return window.__getDefaultPatternForMeterOriginal(meter);
+    const idx = window.__currentPatternChoiceIndexByMeter[meter] || 0;
+    return choices[idx % choices.length];
+  };
+}
+
+function __expandAutoPatternSteps(meter, bassString){
+  const pattern = (typeof getDefaultPatternForMeter === 'function') ? getDefaultPatternForMeter(meter) : null;
+  if (!pattern) return [];
+  const b = Number.isFinite(+bassString) ? +bassString : 6;
+  return (pattern.steps || []).map(step => step === 'R' ? b : step);
+}
+
+// Patch auto accompaniment generation to use selected pattern and expose pattern fields
+if (typeof buildAutoAccompanimentBar === 'function' && !window.__buildAutoAccompanimentBarOriginal) {
+  window.__buildAutoAccompanimentBarOriginal = buildAutoAccompanimentBar;
+  buildAutoAccompanimentBar = function(measureObj, chordObj) {
+    const base = window.__buildAutoAccompanimentBarOriginal(measureObj, chordObj);
+    if (!base) return base;
+    const patternObj = (typeof getDefaultPatternForMeter === 'function') ? getDefaultPatternForMeter(base.meter) : null;
+    if (!patternObj) return base;
+    if (base.bassString) {
+      const expanded = __expandAutoPatternSteps(base.meter, base.bassString);
+      if (expanded.length) {
+        base.pattern = expanded.slice();
+        base.patternId = patternObj.id;
+        base.patternName = patternObj.name;
+        base.patternType = patternObj.type;
+        if (Array.isArray(base.shape) && patternObj.type === 'arpeggio') {
+          base.notes = expanded.map((stringNo, idx) => {
+            const stringNum = parseInt(stringNo, 10);
+            const fret = base.shape[6 - stringNum];
+            return { index: idx, string: stringNum, fret, label: `${stringNum}弦${fret}` };
+          });
+          base.text = base.notes.map(n => `${n.string}弦${n.fret}`).join(' · ');
+        } else if (patternObj.type === 'strum') {
+          base.notes = expanded.map((token, idx) => ({ index: idx, string: null, fret: null, label: String(token) }));
+          base.text = expanded.join(' ');
+        }
+      }
+    }
+    return base;
+  };
+}
 
 function rebuildAutoTabTrack(){
   const song = window.__autoAccompanimentSong || [];
   window.__autoAccompanimentTabTrack = song.map(bar => ({
     measure: bar.measure,
+    meter: bar.meter,
+    chordRaw: bar.chordRaw,
+    chordDisplay: bar.chordDisplay,
+    patternId: bar.patternId || null,
+    patternName: bar.patternName || null,
     notes: (bar.notes || []).map((n,i)=>({
       string: n.string,
       fret: n.fret,
-      stepIndex: i
+      stepIndex: i,
+      label: n.label
     }))
   }));
-  console.log("TAB轨生成完成", window.__autoAccompanimentTabTrack);
 }
 
-document.addEventListener("DOMContentLoaded", ()=>{
-  setTimeout(rebuildAutoTabTrack, 1000);
+// Patch rebuildAutoAccompanimentSong so the track is always refreshed
+if (typeof rebuildAutoAccompanimentSong === 'function' && !window.__rebuildAutoAccompanimentSongOriginal) {
+  window.__rebuildAutoAccompanimentSongOriginal = rebuildAutoAccompanimentSong;
+  rebuildAutoAccompanimentSong = function() {
+    const out = window.__rebuildAutoAccompanimentSongOriginal();
+    rebuildAutoTabTrack();
+    return out;
+  };
+}
+
+function switchRhythmPatternSafe(){
+  const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+  const choices = __getPatternChoicesForMeter(meter);
+  if (!choices.length) return;
+  const current = window.__currentPatternChoiceIndexByMeter[meter] || 0;
+  window.__currentPatternChoiceIndexByMeter[meter] = (current + 1) % choices.length;
+
+  if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
+  if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+  if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btn-switch-rhythm');
+  if (btn) {
+    btn.addEventListener('click', switchRhythmPatternSafe);
+  }
+  // Build once after initial page settle
+  setTimeout(() => {
+    try {
+      if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+      if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+    } catch (e) {
+      console.warn('safe patch init failed', e);
+    }
+  }, 1200);
 });
 </script>
 
