@@ -419,10 +419,59 @@ function updateAutoAccompanimentUi(bar) {
   el.textContent = `自动伴奏 ${bar.text || '--'}`;
 }
 
+function ensureIndependentTabTrackUi() {
+  return document.getElementById('auto-tab-track');
+}
+
+function renderIndependentTabTrack(bar, activeStepIndex) {
+  const root = ensureIndependentTabTrackUi();
+  if (!root) return;
+  if (!bar || !Array.isArray(bar.notes) || !bar.notes.length) {
+    root.hidden = true;
+    root.innerHTML = '';
+    return;
+  }
+  root.hidden = false;
+  const labels = ['1','2','3','4','5','6'];
+  const stringNames = {1:'e',2:'B',3:'G',4:'D',5:'A',6:'E'};
+  const stepCount = Math.max(1, bar.notes.length);
+  root.style.setProperty('--step-count', String(stepCount));
+  const notesByString = new Map();
+  (bar.notes || []).forEach((n, idx) => {
+    const s = Number(n.string);
+    if (!Number.isFinite(s)) return;
+    if (!notesByString.has(s)) notesByString.set(s, new Map());
+    notesByString.get(s).set(idx, n);
+  });
+  const patternSteps = Array.isArray(bar.pattern) ? bar.pattern.map(x => String(x)) : new Array(stepCount).fill('');
+  let html = `
+    <div class="auto-tab-head">
+      <div class="auto-tab-title">自动伴奏独立轨</div>
+      <div>${bar.chordDisplay || bar.chordRaw || '--'} · ${bar.patternName || '--'} · 第 ${bar.measure} 小节</div>
+    </div>
+    <div class="auto-tab-step-row">
+      <div class="auto-tab-step-label">节奏</div>
+      ${patternSteps.map((step, idx) => `<div class="auto-tab-step" data-active="${idx===activeStepIndex?1:0}">${escapeHtml(step)}</div>`).join('')}
+    </div>
+    <div class="auto-tab-grid">`;
+  [1,2,3,4,5,6].forEach((stringNo) => {
+    html += `<div class="auto-tab-row"><div class="auto-tab-label">${stringNames[stringNo]}</div>`;
+    for (let i = 0; i < stepCount; i++) {
+      const note = notesByString.get(stringNo)?.get(i) || null;
+      html += `<div class="auto-tab-cell" data-active="${i===activeStepIndex?1:0}">${note ? escapeHtml(String(note.fret)) : ''}</div>`;
+    }
+    html += `</div>`;
+  });
+  html += `</div>`;
+  root.innerHTML = html;
+}
+
 function syncAutoAccompanimentToPlayback(ms) {
   const bar = getAutoAccompanimentBarAtMs(ms);
   window.__autoAccompanimentCurrentBar = bar || null;
   updateAutoAccompanimentUi(bar || null);
+  const activeStepIndex = Math.max(0, getCurrentRhythmStepAtMs(ms));
+  renderIndependentTabTrack(bar || null, activeStepIndex);
 }
 
 function ensureRhythmHud() {
@@ -559,6 +608,21 @@ document.addEventListener('DOMContentLoaded', () => {
       color:#2563eb!important;
     }
     @media (max-width:640px){.rhythm-step{min-height:34px;font-size:13px}.rhythm-hud-chord{font-size:22px}}
+
+    .auto-tab-track{margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.08)}
+    .auto-tab-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;color:rgba(0,0,0,.7)}
+    .auto-tab-title{font-weight:700;color:#111}
+    .auto-tab-grid{display:grid;gap:0;border:1px solid rgba(0,0,0,.12);border-radius:10px;overflow:hidden;background:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .auto-tab-row{display:grid;grid-template-columns:40px repeat(var(--step-count,8), minmax(26px,1fr));align-items:center;min-height:26px}
+    .auto-tab-label{padding:0 8px;font-style:italic;font-size:12px;color:#111;border-right:1px solid rgba(0,0,0,.10);background:#fafafa;height:100%;display:flex;align-items:center;justify-content:flex-end}
+    .auto-tab-cell{position:relative;height:26px;border-right:1px solid rgba(0,0,0,.10);border-top:1px solid rgba(0,0,0,.10);display:flex;align-items:center;justify-content:center;font-size:14px;color:#111;background:linear-gradient(to bottom, transparent 48%, rgba(0,0,0,.55) 48%, rgba(0,0,0,.55) 52%, transparent 52%)}
+    .auto-tab-row:first-child .auto-tab-cell{border-top:none}
+    .auto-tab-cell[data-active="1"]{background:linear-gradient(to bottom, rgba(37,99,235,.08) 48%, rgba(37,99,235,.85) 48%, rgba(37,99,235,.85) 52%, rgba(37,99,235,.08) 52%);color:#2563eb;font-weight:700}
+    .auto-tab-cell:last-child,.auto-tab-step:last-child{border-right:none}
+    .auto-tab-step-row{display:grid;grid-template-columns:40px repeat(var(--step-count,8), minmax(26px,1fr));margin-bottom:4px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .auto-tab-step-label{padding:0 8px;font-size:11px;color:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:flex-end}
+    .auto-tab-step{height:22px;border-right:1px solid rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:12px;color:rgba(0,0,0,.7)}
+    .auto-tab-step[data-active="1"]{background:#111;color:#fff;border-radius:6px}
   </style>
 
 </head>
@@ -678,6 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         <div class="rhythm-steps" id="rhythm-steps"></div>
+        <div id="auto-tab-track" class="auto-tab-track" hidden></div>
       </div>
       <div id="score-view" class="score-wrap" aria-hidden="false">
         <div id="alphaTab" class="at-viewport"></div>
