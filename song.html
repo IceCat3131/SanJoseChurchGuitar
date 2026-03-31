@@ -977,6 +977,10 @@ document.addEventListener('DOMContentLoaded', () => {
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
+    setTimeout(() => {
+      try { if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('applyCurrentPatternToOriginalTab after transpose failed', e); }
+      setTimeout(() => { try { applyViewerPrefsToScore(); } catch (e) { console.warn('applyViewerPrefsToScore after transpose reload failed', e); } }, 120);
+    }, 50);
   }
 
   function resetTranspose() {
@@ -987,6 +991,10 @@ document.addEventListener('DOMContentLoaded', () => {
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
+    setTimeout(() => {
+      try { if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('applyCurrentPatternToOriginalTab after reset failed', e); }
+      setTimeout(() => { try { applyViewerPrefsToScore(); } catch (e) { console.warn('applyViewerPrefsToScore after reset reload failed', e); } }, 120);
+    }, 50);
   }
 
   function changeScoreFont(delta) {
