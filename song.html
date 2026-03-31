@@ -395,13 +395,91 @@ function getAutoAccompanimentBarAtMs(ms) {
   return items.find(item => item.measure === measure.measure) || null;
 }
 
-function ensureAutoAccompanimentUi() { return null; }
+function ensureAutoAccompanimentUi() {
+  let el = document.getElementById('auto-accompaniment-line');
+  if (el) return el;
+  const hud = document.getElementById('rhythm-hud');
+  if (!hud) return null;
+  el = document.createElement('div');
+  el.id = 'auto-accompaniment-line';
+  el.className = 'rhythm-hud-sub';
+  el.style.marginTop = '8px';
+  el.textContent = '自动伴奏 --';
+  hud.appendChild(el);
+  return el;
+}
 
-function updateAutoAccompanimentUi(bar) { return; }
+function updateAutoAccompanimentUi(bar) {
+  const el = ensureAutoAccompanimentUi();
+  if (!el) return;
+  if (!bar) {
+    el.textContent = '自动伴奏 --';
+    return;
+  }
+  el.textContent = `自动伴奏 ${bar.text || '--'}`;
+}
 
-function ensureIndependentTabTrackUi() { return null; }
+function ensureIndependentTabTrackUi() {
+  return document.getElementById('auto-tab-track');
+}
 
-function renderIndependentTabTrack(bar, activeStepIndex) { return; }
+function renderIndependentTabTrack(bar, activeStepIndex) {
+  const root = ensureIndependentTabTrackUi();
+  if (!root) return;
+  const song = Array.isArray(window.__autoAccompanimentSong) ? window.__autoAccompanimentSong : [];
+  if (!bar || !song.length) {
+    root.hidden = true;
+    root.innerHTML = '';
+    return;
+  }
+  root.hidden = false;
+  const stringNames = {1:'e',2:'B',3:'G',4:'D',5:'A',6:'E'};
+  const currentIndex = Math.max(0, song.findIndex(item => item && item.measure === bar.measure));
+  const windowBars = song;
+
+  function renderSingleBar(item, isCurrent, stepIdx) {
+    const stepCount = Math.max(1, Array.isArray(item?.notes) ? item.notes.length : 0);
+    const notesByString = new Map();
+    (item.notes || []).forEach((n, idx) => {
+      const s = Number(n.string);
+      if (!Number.isFinite(s)) return;
+      if (!notesByString.has(s)) notesByString.set(s, new Map());
+      notesByString.get(s).set(idx, n);
+    });
+    const patternSteps = Array.isArray(item.pattern) ? item.pattern.map(x => String(x)) : new Array(stepCount).fill('');
+    let part = `
+      <div class="auto-tab-measure-block" style="--step-count:${stepCount}">
+        <div class="auto-tab-head">
+          <div class="auto-tab-title">${item.chordDisplay || item.chordRaw || '--'} · ${item.patternName || '--'} · 第 ${item.measure} 小节</div>
+          <div>${isCurrent ? '播放中' : '后续'}</div>
+        </div>
+        <div class="auto-tab-step-row">
+          <div class="auto-tab-step-label">节奏</div>
+          ${patternSteps.map((step, idx) => `<div class="auto-tab-step" data-active="${isCurrent && idx===stepIdx ? 1 : 0}">${escapeHtml(step)}</div>`).join('')}
+        </div>
+        <div class="auto-tab-grid">`;
+    [1,2,3,4,5,6].forEach((stringNo) => {
+      part += `<div class="auto-tab-row"><div class="auto-tab-label">${stringNames[stringNo]}</div>`;
+      for (let i = 0; i < stepCount; i++) {
+        const note = notesByString.get(stringNo)?.get(i) || null;
+        part += `<div class="auto-tab-cell" data-active="${isCurrent && i===stepIdx ? 1 : 0}">${note ? escapeHtml(String(note.fret)) : ''}</div>`;
+      }
+      part += `</div>`;
+    });
+    part += `</div></div>`;
+    return part;
+  }
+
+  let html = `
+    <div class="auto-tab-head">
+      <div class="auto-tab-title">自动伴奏独立轨</div>
+      <div>从第 ${bar.measure} 小节开始 · 显示全部 ${windowBars.length} 小节</div>
+    </div>
+    <div class="auto-tab-window">`;
+  html += windowBars.map((item, idx) => renderSingleBar(item, item.measure === bar.measure, item.measure === bar.measure ? activeStepIndex : -1)).join('');
+  html += `</div>`;
+  root.innerHTML = html;
+}
 
 function syncAutoAccompanimentToPlayback(ms) {
   const bar = getAutoAccompanimentBarAtMs(ms);
@@ -411,16 +489,26 @@ function syncAutoAccompanimentToPlayback(ms) {
   renderIndependentTabTrack(bar || null, activeStepIndex);
 }
 
-function ensureRhythmHud() { return null; }
+function ensureRhythmHud() {
+  const hud = document.getElementById('rhythm-hud');
+  if (!hud) return null;
+  hud.hidden = false;
+  return hud;
+}
 
-function hideRhythmHud() { return; }
+function hideRhythmHud() {
+  const hud = document.getElementById('rhythm-hud');
+  if (hud) hud.hidden = true;
+}
 
 function rebuildRhythmState() {
   const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
   if (!measures.length) {
-      window.__rhythmState = { meter: '--', patternId: '--', patternName: '--', steps: [], stepsPerBar: 0 };
+    hideRhythmHud();
+    window.__rhythmState = { meter: '--', patternId: '--', patternName: '--', steps: [], stepsPerBar: 0 };
     return;
   }
+  ensureRhythmHud();
   const meter = measures[0].meter || '--';
   const pattern = getDefaultPatternForMeter(meter);
   window.__rhythmState = {
@@ -438,7 +526,14 @@ function rebuildRhythmState() {
   if (patternNameEl) patternNameEl.textContent = pattern.name;
 }
 
-function renderRhythmSteps(steps, accent) { return; }
+function renderRhythmSteps(steps, accent) {
+  const box = document.getElementById('rhythm-steps');
+  if (!box) return;
+  box.style.gridTemplateColumns = `repeat(${steps.length}, minmax(0, 1fr))`;
+  box.innerHTML = steps.map((step, i) =>
+    `<div class="rhythm-step" data-rhythm-step="${i}" data-accent="${accent && accent[i] ? 1 : 0}">${escapeHtml(step)}</div>`
+  ).join('');
+}
 
 function getCurrentDisplayChordAtMs(ms) {
   const items = Array.isArray(window.__chordTimeline) ? window.__chordTimeline : [];
@@ -473,10 +568,27 @@ function getCurrentRhythmStepAtMs(ms) {
 }
 
 function updateRhythmPlayback(ms) {
+  const hud = document.getElementById('rhythm-hud');
+  if (!hud || hud.hidden) return;
+  const chord = getCurrentDisplayChordAtMs(ms);
+  const currentChordEl = document.getElementById('rhythm-current-chord');
+  if (currentChordEl) currentChordEl.textContent = chord?.chordDisplay || '--';
+
+  const stepIdx = getCurrentRhythmStepAtMs(ms);
+  document.querySelectorAll('.rhythm-step[data-rhythm-step]').forEach((el) => {
+    el.setAttribute('data-active', String(parseInt(el.getAttribute('data-rhythm-step'), 10) === stepIdx ? 1 : 0));
+  });
+
+  const measure = getCurrentMeasureAtMs(ms);
+  const metaEl = document.getElementById('rhythm-meta');
+  if (metaEl && measure) metaEl.textContent = `拍号 ${measure.meter} · 第 ${measure.measure} 小节`;
   syncAutoAccompanimentToPlayback(ms);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  ensureRhythmHud();
+  ensureAutoAccompanimentUi();
+  hideRhythmHud();
 });
 // ===== /GTZ 和弦时间轴 + 节拍/节奏跟随 =====
 
@@ -485,8 +597,49 @@ document.addEventListener('DOMContentLoaded', () => {
   <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
 
   <style>
-.rhythm-hud-chord{font-size:22px}}
+    .rhythm-hud{margin:12px 0 14px;padding:12px 14px;border-radius:16px;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+    .rhythm-hud[hidden]{display:none!important}
+    .rhythm-hud-top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .rhythm-hud-title{font-size:14px;font-weight:700}
+    .rhythm-hud-meta{font-size:12px;opacity:.7}
+    .rhythm-hud-chord{font-size:24px;font-weight:800;line-height:1.1}
+    .rhythm-hud-sub{font-size:12px;opacity:.72;margin-top:2px}
+    .rhythm-steps{display:grid;gap:8px;margin-top:12px}
+    .rhythm-step{min-height:40px;border-radius:12px;border:1px solid rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;background:#fafafa}
+    .rhythm-step[data-active="1"]{border-color:#111;background:#111;color:#fff}
+    .rhythm-step[data-accent="1"]{box-shadow:inset 0 0 0 1px rgba(0,0,0,.10)}
+    #alphaTab .at-cursors{z-index:2000!important}
+    #alphaTab .at-cursor-bar{background:rgba(37,99,235,.22)!important;border-left:2px solid rgba(37,99,235,.85)!important;box-shadow:0 0 0 1px rgba(37,99,235,.12) inset!important}
+    #alphaTab .at-cursor-beat{background:rgba(59,130,246,.18)!important;border:1px solid rgba(59,130,246,.55)!important;border-radius:6px!important;box-shadow:0 0 0 1px rgba(59,130,246,.08) inset!important}
+    #alphaTab .at-highlight text,
+    #alphaTab .at-highlight tspan,
+    #alphaTab .at-highlight path,
+    #alphaTab .at-highlight rect,
+    #alphaTab .at-highlight ellipse,
+    #alphaTab .at-highlight polygon,
+    #alphaTab .at-highlight line{
+      fill:#2563eb!important;
+      stroke:#2563eb!important;
+      color:#2563eb!important;
+    }
+    @media (max-width:640px){.rhythm-step{min-height:34px;font-size:13px}.rhythm-hud-chord{font-size:22px}}
 
+    .auto-tab-track{margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.08)}
+    .auto-tab-window{display:flex;flex-direction:column;gap:12px}
+    .auto-tab-measure-block{display:block}
+    .auto-tab-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;color:rgba(0,0,0,.7)}
+    .auto-tab-title{font-weight:700;color:#111}
+    .auto-tab-grid{display:grid;gap:0;border:1px solid rgba(0,0,0,.12);border-radius:10px;overflow:hidden;background:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .auto-tab-row{display:grid;grid-template-columns:40px repeat(var(--step-count,8), minmax(26px,1fr));align-items:center;min-height:26px}
+    .auto-tab-label{padding:0 8px;font-style:italic;font-size:12px;color:#111;border-right:1px solid rgba(0,0,0,.10);background:#fafafa;height:100%;display:flex;align-items:center;justify-content:flex-end}
+    .auto-tab-cell{position:relative;height:26px;border-right:1px solid rgba(0,0,0,.10);border-top:1px solid rgba(0,0,0,.10);display:flex;align-items:center;justify-content:center;font-size:14px;color:#111;background:linear-gradient(to bottom, transparent 48%, rgba(0,0,0,.55) 48%, rgba(0,0,0,.55) 52%, transparent 52%)}
+    .auto-tab-row:first-child .auto-tab-cell{border-top:none}
+    .auto-tab-cell[data-active="1"]{background:linear-gradient(to bottom, rgba(37,99,235,.08) 48%, rgba(37,99,235,.85) 48%, rgba(37,99,235,.85) 52%, rgba(37,99,235,.08) 52%);color:#2563eb;font-weight:700}
+    .auto-tab-cell:last-child,.auto-tab-step:last-child{border-right:none}
+    .auto-tab-step-row{display:grid;grid-template-columns:40px repeat(var(--step-count,8), minmax(26px,1fr));margin-bottom:4px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .auto-tab-step-label{padding:0 8px;font-size:11px;color:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:flex-end}
+    .auto-tab-step{height:22px;border-right:1px solid rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:12px;color:rgba(0,0,0,.7)}
+    .auto-tab-step[data-active="1"]{background:#111;color:#fff;border-radius:6px}
   </style>
 
 </head>
@@ -506,7 +659,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="core-btn core-btn-icon" id="ui-next" aria-label="下一首">⏭</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-text">字</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-track">轨</button>
-        <button class="core-btn core-btn-pill core-btn-mini" id="btn-switch-rhythm" type="button">节</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-staff">谱</button>
         <button class="core-btn core-btn-icon" id="ui-lang" aria-label="语言">🌐</button>
         <button class="core-btn core-btn-icon" id="ui-search" aria-label="搜索">⌕</button>
@@ -594,7 +746,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <!-- 第 4 部分：内容 -->
     <div class="content-card">
-      
+      <div id="rhythm-hud" class="rhythm-hud" hidden>
+        <div class="rhythm-hud-top">
+          <div>
+            <div class="rhythm-hud-title">节奏跟随</div>
+            <div class="rhythm-hud-meta" id="rhythm-meta">--</div>
+          </div>
+          <div style="text-align:right">
+            <div class="rhythm-hud-chord" id="rhythm-current-chord">--</div>
+            <div class="rhythm-hud-sub" id="rhythm-pattern-name">--</div>
+            <button id="btn-switch-rhythm" type="button" style="margin-top:8px;border:none;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;background:#111;color:#fff;">切换节奏</button>
+          </div>
+        </div>
+        <div class="rhythm-steps" id="rhythm-steps"></div>
+        <div id="auto-tab-track" class="auto-tab-track" hidden></div>
+      </div>
       <div id="score-view" class="score-wrap" aria-hidden="false">
         <div id="alphaTab" class="at-viewport"></div>
       </div>
@@ -763,16 +929,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getTrackPlaybackSemitones(track) {
-    const base = getUserTranspose();
-    // 【播放层】
-    // TAB 轨：用户转调 + 歌曲自带 CAPO
-    // 非 TAB 轨：只跟随用户转调
-    //
-    // 这样做的目的是：
-    // - 看谱时仍然按原始指型阅读
-    // - 听到的音高才按 CAPO 正确抬高
-    return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
-  }
+  const base = getUserTranspose();
+  const isAuto = Array.isArray(window.__autoAccompanimentSong) && window.__autoAccompanimentSong.length > 0;
+  return trackUsesTab(track) ? (base + (isAuto ? getEffectiveCapo() : 0)) : base;
+}
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   const NOTE_INDEX_FLAT  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
@@ -1203,7 +1363,8 @@ document.addEventListener('DOMContentLoaded', () => {
       window.__chordTimelineRaw = [];
       window.__measureTimelineRaw = [];
       window.__chordTimeline = [];
-        }
+      hideRhythmHud();
+    }
 
     const bytes = base64ToUint8Array(scoreB64);
     api.load(bytes);
