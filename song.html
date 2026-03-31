@@ -472,7 +472,9 @@ function getCurrentRhythmStepAtMs(ms) {
   return Math.max(0, Math.min(state.stepsPerBar - 1, Math.floor(ratio * state.stepsPerBar)));
 }
 
-function updateRhythmPlayback(ms) { return; }
+function updateRhythmPlayback(ms) {
+  syncAutoAccompanimentToPlayback(ms);
+}
 
 document.addEventListener('DOMContentLoaded', () => {
 });
@@ -504,6 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="core-btn core-btn-icon" id="ui-next" aria-label="下一首">⏭</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-text">字</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-track">轨</button>
+        <button class="core-btn core-btn-pill core-btn-mini" id="btn-switch-rhythm" type="button">节</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-staff">谱</button>
         <button class="core-btn core-btn-icon" id="ui-lang" aria-label="语言">🌐</button>
         <button class="core-btn core-btn-icon" id="ui-search" aria-label="搜索">⌕</button>
@@ -591,6 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <!-- 第 4 部分：内容 -->
     <div class="content-card">
+      
       <div id="score-view" class="score-wrap" aria-hidden="false">
         <div id="alphaTab" class="at-viewport"></div>
       </div>
