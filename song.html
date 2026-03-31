@@ -977,9 +977,24 @@ document.addEventListener('DOMContentLoaded', () => {
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
+
+    // 关键：转调后必须把“当前节奏模式”的 XML 重新写回 alphaTab，
+    // 否则原谱/自动模式都只会在刷新页面后才拿到新数字与新音高。
     setTimeout(() => {
-      try { if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('applyCurrentPatternToOriginalTab after transpose failed', e); }
-      setTimeout(() => { try { applyViewerPrefsToScore(); } catch (e) { console.warn('applyViewerPrefsToScore after transpose reload failed', e); } }, 120);
+      try {
+        if (typeof applyCurrentPatternToOriginalTab === 'function') {
+          applyCurrentPatternToOriginalTab();
+        }
+      } catch (e) {
+        console.warn('applyCurrentPatternToOriginalTab after transpose failed', e);
+      }
+
+      // 重新 load XML 后，再把当前显示/播放参数补一次，保证音高立即更新。
+      setTimeout(() => {
+        try { applyViewerPrefsToScore(); } catch (e) {
+          console.warn('applyViewerPrefsToScore after transpose reload failed', e);
+        }
+      }, 120);
     }, 50);
   }
 
@@ -991,9 +1006,21 @@ document.addEventListener('DOMContentLoaded', () => {
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
+
     setTimeout(() => {
-      try { if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('applyCurrentPatternToOriginalTab after reset failed', e); }
-      setTimeout(() => { try { applyViewerPrefsToScore(); } catch (e) { console.warn('applyViewerPrefsToScore after reset reload failed', e); } }, 120);
+      try {
+        if (typeof applyCurrentPatternToOriginalTab === 'function') {
+          applyCurrentPatternToOriginalTab();
+        }
+      } catch (e) {
+        console.warn('applyCurrentPatternToOriginalTab after reset failed', e);
+      }
+
+      setTimeout(() => {
+        try { applyViewerPrefsToScore(); } catch (e) {
+          console.warn('applyViewerPrefsToScore after reset reload failed', e);
+        }
+      }, 120);
     }, 50);
   }
 
