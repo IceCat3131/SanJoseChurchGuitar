@@ -2675,7 +2675,7 @@ function __isOriginalPatternSelected() {
 
   function createNoteEl(doc, n, durationUnits, divisions, beamState) {
     const note = doc.createElement('note');
-    const midi = OPEN_STRING_MIDI[n.string] + Number(n.fret || 0) + (typeof getEffectiveCapo === 'function' ? (getEffectiveCapo() || 0) : 0);
+    const midi = OPEN_STRING_MIDI[n.string] + Number(n.fret || 0);
     const pitch = midiToPitch(midi);
     const pitchEl = doc.createElement('pitch');
     pitchEl.appendChild(createTextEl(doc, 'step', pitch.step));
