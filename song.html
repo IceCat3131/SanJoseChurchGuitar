@@ -754,9 +754,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getTrackPlaybackSemitones(track) {
     const base = getUserTranspose();
-    // 所有 TAB 轨的播放层统一：用户转调 + 歌曲自带 CAPO（只加一次）
-    // 显示层仍然只吃用户转调，不把 CAPO 混进记谱层。
-    return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
+    // TAB 轨：播放层只补歌曲自带 CAPO。
+    // 用户转调已经在记谱/显示层生效，这里不要再把 base 叠加一次，
+    // 否则会出现「转调重复加一次」的问题。
+    return trackUsesTab(track) ? getEffectiveCapo() : base;
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
