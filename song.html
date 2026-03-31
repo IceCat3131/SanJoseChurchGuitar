@@ -16,6 +16,7 @@ window.__chordTimeline = [];
 window.__rhythmState = { meter: '--', patternId: '--', steps: [], stepsPerBar: 0 };
 window.__autoAccompanimentSong = [];
 window.__autoAccompanimentCurrentBar = null;
+window.__pendingTransposeReload = false;
 
 function decodeBase64ToText(b64) {
   const binary = atob(b64);
@@ -974,28 +975,24 @@ document.addEventListener('DOMContentLoaded', () => {
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
+
+    // 关键：转调后强制重新加载当前 GTZ，再按当前节奏模式重写原 TAB。
+    // 否则原谱/自动模式都会出现“显示或音高要刷新网页才更新”的问题。
+    if (window.__atApi && window.__currentGtzUrl) {
+      window.__pendingTransposeReload = true;
+      loadGtzIntoAlphaTab(window.__atApi, window.__currentGtzUrl).catch(err => {
+        console.warn('reload current GTZ after transpose failed', err);
+        window.__pendingTransposeReload = false;
+        applyViewerPrefsToScore();
+        rebuildDisplayChordTimeline();
+        updateRhythmPlayback(__playbackState.current || 0);
+      });
+      return;
+    }
+
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
-
-    // 关键：转调后必须把“当前节奏模式”的 XML 重新写回 alphaTab，
-    // 否则原谱/自动模式都只会在刷新页面后才拿到新数字与新音高。
-    setTimeout(() => {
-      try {
-        if (typeof applyCurrentPatternToOriginalTab === 'function') {
-          applyCurrentPatternToOriginalTab();
-        }
-      } catch (e) {
-        console.warn('applyCurrentPatternToOriginalTab after transpose failed', e);
-      }
-
-      // 重新 load XML 后，再把当前显示/播放参数补一次，保证音高立即更新。
-      setTimeout(() => {
-        try { applyViewerPrefsToScore(); } catch (e) {
-          console.warn('applyViewerPrefsToScore after transpose reload failed', e);
-        }
-      }, 120);
-    }, 50);
   }
 
   function resetTranspose() {
@@ -1003,25 +1000,22 @@ document.addEventListener('DOMContentLoaded', () => {
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
+
+    if (window.__atApi && window.__currentGtzUrl) {
+      window.__pendingTransposeReload = true;
+      loadGtzIntoAlphaTab(window.__atApi, window.__currentGtzUrl).catch(err => {
+        console.warn('reload current GTZ after transpose reset failed', err);
+        window.__pendingTransposeReload = false;
+        applyViewerPrefsToScore();
+        rebuildDisplayChordTimeline();
+        updateRhythmPlayback(__playbackState.current || 0);
+      });
+      return;
+    }
+
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
-
-    setTimeout(() => {
-      try {
-        if (typeof applyCurrentPatternToOriginalTab === 'function') {
-          applyCurrentPatternToOriginalTab();
-        }
-      } catch (e) {
-        console.warn('applyCurrentPatternToOriginalTab after reset failed', e);
-      }
-
-      setTimeout(() => {
-        try { applyViewerPrefsToScore(); } catch (e) {
-          console.warn('applyViewerPrefsToScore after reset reload failed', e);
-        }
-      }, 120);
-    }, 50);
   }
 
   function changeScoreFont(delta) {
@@ -1786,6 +1780,24 @@ function pad4(num) {
         rebuildDisplayChordTimeline();
         rebuildRhythmState();
         updateRhythmPlayback(__playbackState.current || 0);
+
+        if (window.__pendingTransposeReload) {
+          window.__pendingTransposeReload = false;
+          setTimeout(() => {
+            try {
+              if (typeof applyCurrentPatternToOriginalTab === 'function') {
+                applyCurrentPatternToOriginalTab();
+              }
+            } catch (e) {
+              console.warn('applyCurrentPatternToOriginalTab after GTZ reload failed', e);
+            }
+            setTimeout(() => {
+              try { applyViewerPrefsToScore(); } catch (e) {
+                console.warn('applyViewerPrefsToScore after pattern rewrite failed', e);
+              }
+            }, 120);
+          }, 30);
+        }
       });
 
       window.__atApi.renderFinished.on(() => {
