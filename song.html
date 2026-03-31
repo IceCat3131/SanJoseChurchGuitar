@@ -7,8 +7,482 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="stylesheet" href="style.css" />
   <script src="assets/alphatab/alphaTab.js"></script>
+<script>
+// ===== GTZ 和弦时间轴 + 节拍/节奏跟随 =====
+window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
+window.__chordTimelineRaw = [];
+window.__measureTimelineRaw = [];
+window.__chordTimeline = [];
+window.__rhythmState = { meter: '--', patternId: '--', steps: [], stepsPerBar: 0 };
+window.__autoAccompanimentSong = [];
+window.__autoAccompanimentCurrentBar = null;
+
+function decodeBase64ToText(b64) {
+  const binary = atob(b64);
+  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function mapHarmonyKindToSuffix(kindEl) {
+  if (!kindEl) return '';
+  const textAttr = String(kindEl.getAttribute('text') || '').trim();
+  if (textAttr) return textAttr;
+  const v = String(kindEl.textContent || '').trim();
+  const map = {
+    'major': '',
+    'minor': 'm',
+    'augmented': 'aug',
+    'diminished': 'dim',
+    'dominant': '7',
+    'major-seventh': 'maj7',
+    'minor-seventh': 'm7',
+    'diminished-seventh': 'dim7',
+    'augmented-seventh': 'aug7',
+    'half-diminished': 'm7b5',
+    'major-minor': 'm(maj7)',
+    'major-sixth': '6',
+    'minor-sixth': 'm6',
+    'dominant-ninth': '9',
+    'major-ninth': 'maj9',
+    'minor-ninth': 'm9',
+    'dominant-11th': '11',
+    'major-11th': 'maj11',
+    'minor-11th': 'm11',
+    'dominant-13th': '13',
+    'major-13th': 'maj13',
+    'minor-13th': 'm13',
+    'suspended-second': 'sus2',
+    'suspended-fourth': 'sus4',
+    'power': '5',
+    'none': ''
+  };
+  return Object.prototype.hasOwnProperty.call(map, v) ? map[v] : v;
+}
+
+function buildChordSymbolFromHarmony(harmonyEl) {
+  if (!harmonyEl) return '';
+  const rootStep = String(harmonyEl.querySelector('root > root-step')?.textContent || '').trim();
+  if (!rootStep) return '';
+  const rootAlter = String(harmonyEl.querySelector('root > root-alter')?.textContent || '').trim();
+  const bassStep = String(harmonyEl.querySelector('bass > bass-step')?.textContent || '').trim();
+  const bassAlter = String(harmonyEl.querySelector('bass > bass-alter')?.textContent || '').trim();
+  const kindEl = harmonyEl.querySelector('kind');
+
+  let root = rootStep;
+  if (rootAlter === '1') root += '#';
+  else if (rootAlter === '-1') root += 'b';
+
+  let bass = bassStep;
+  if (bass) {
+    if (bassAlter === '1') bass += '#';
+    else if (bassAlter === '-1') bass += 'b';
+  }
+
+  const suffix = mapHarmonyKindToSuffix(kindEl);
+  return root + suffix + (bass ? ('/' + bass) : '');
+}
+
+function getTimeSignatureText(beats, beatType) {
+  if (!Number.isFinite(beats) || !Number.isFinite(beatType) || !beats || !beatType) return '--';
+  return String(beats) + '/' + String(beatType);
+}
+
+function buildMusicTimelineFromXML(xmlText) {
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(xmlText, 'application/xml');
+  const part = xml.querySelector('score-partwise > part, score-timewise > part');
+  if (!part) throw new Error('未找到 MusicXML part');
+
+  let divisions = 1;
+  let beats = 4;
+  let beatType = 4;
+  let currentStartTicks = 0;
+  let timeSignatures = [];
+  let chords = [];
+  let measures = [];
+
+  part.querySelectorAll(':scope > measure').forEach((measureEl, idx) => {
+    const measureNo = parseInt(measureEl.getAttribute('number') || '', 10) || (idx + 1);
+
+    const divEl = measureEl.querySelector(':scope > attributes > divisions');
+    if (divEl) {
+      const nextDiv = parseInt(divEl.textContent || '1', 10);
+      if (Number.isFinite(nextDiv) && nextDiv > 0) divisions = nextDiv;
+    }
+
+    const beatsEl = measureEl.querySelector(':scope > attributes > time > beats');
+    const beatTypeEl = measureEl.querySelector(':scope > attributes > time > beat-type');
+    if (beatsEl && beatTypeEl) {
+      const nextBeats = parseInt(beatsEl.textContent || '4', 10);
+      const nextBeatType = parseInt(beatTypeEl.textContent || '4', 10);
+      if (Number.isFinite(nextBeats) && nextBeats > 0) beats = nextBeats;
+      if (Number.isFinite(nextBeatType) && nextBeatType > 0) beatType = nextBeatType;
+    }
+
+    const meterText = getTimeSignatureText(beats, beatType);
+    timeSignatures.push({ measure: measureNo, meter: meterText, divisions });
+
+    let pos = 0;
+    let maxPos = 0;
+
+    Array.from(measureEl.children).forEach((node) => {
+      const name = node.nodeName;
+      if (name === 'note') {
+        const dur = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0;
+        pos += dur;
+        if (pos > maxPos) maxPos = pos;
+        return;
+      }
+      if (name === 'backup') {
+        const dur = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0;
+        pos = Math.max(0, pos - dur);
+        return;
+      }
+      if (name === 'forward') {
+        const dur = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0;
+        pos += dur;
+        if (pos > maxPos) maxPos = pos;
+        return;
+      }
+      if (name === 'harmony') {
+        const offset = parseInt(node.querySelector('offset')?.textContent || '0', 10) || 0;
+        const tick = Math.max(0, pos + offset);
+        const chordRaw = buildChordSymbolFromHarmony(node);
+        if (chordRaw) {
+          chords.push({
+            measure: measureNo,
+            beat: tick / divisions,
+            tickFromScoreStart: currentStartTicks + tick,
+            tickInMeasure: tick,
+            divisions,
+            meter: meterText,
+            chordRaw
+          });
+        }
+      }
+    });
+
+    let nominalMeasureTicks = 0;
+    if (Number.isFinite(beats) && Number.isFinite(beatType) && beatType > 0) {
+      nominalMeasureTicks = Math.round((beats * 4 / beatType) * divisions);
+    }
+    const durationTicks = Math.max(maxPos, nominalMeasureTicks, 1);
+    measures.push({
+      measure: measureNo,
+      startTicks: currentStartTicks,
+      durationTicks,
+      endTicks: currentStartTicks + durationTicks,
+      divisions,
+      beats,
+      beatType,
+      meter: meterText
+    });
+    currentStartTicks += durationTicks;
+  });
+
+  return {
+    chords,
+    measures,
+    timeSignatures,
+    totalTicks: currentStartTicks
+  };
+}
+
+function remapTimelineTimesIfNeeded() {
+  const raw = window.__musicTimelineRaw;
+  const totalMs = Math.max(0, __playbackState.total || 0);
+  if (!raw || !raw.totalTicks || !totalMs) return;
+  if (raw.__mappedTotalMs === totalMs) return;
+
+  const tickToMs = (ticks) => Math.round((ticks / raw.totalTicks) * totalMs);
+
+  window.__measureTimelineRaw = (raw.measures || []).map(m => ({
+    ...m,
+    startMs: tickToMs(m.startTicks),
+    endMs: tickToMs(m.endTicks),
+    durationMs: Math.max(1, tickToMs(m.endTicks) - tickToMs(m.startTicks))
+  }));
+  window.__chordTimelineRaw = (raw.chords || []).map(c => ({
+    ...c,
+    timeMs: tickToMs(c.tickFromScoreStart)
+  }));
+  raw.__mappedTotalMs = totalMs;
+  rebuildDisplayChordTimeline();
+  rebuildRhythmState();
+}
+
+function rebuildDisplayChordTimeline() {
+  const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
+  const semitones = getUserTranspose();
+  const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
+  window.__chordTimeline = raw.map((c, i) => ({
+    ...c,
+    index: i,
+    chordDisplay: semitones ? transposeChordSymbol(c.chordRaw, semitones, preferFlats) : c.chordRaw
+  }));
+  rebuildAutoAccompanimentSong();
+  updateRhythmPlayback(__playbackState.current || 0);
+}
+
+function getDefaultPatternForMeter(meter) {
+  const patterns = {
+    '4/4': { id: 'arpeggio_53231323', name: '分解 53231323', steps: ['5','3','2','3','1','3','2','3'], accent: [1,0,0,0,1,0,0,0] },
+    '3/4': { id: 'arpeggio_532123', name: '分解 532123', steps: ['5','3','2','1','2','3'], accent: [1,0,0,1,0,0] },
+    '6/8': { id: 'arpeggio_632123', name: '分解 632123', steps: ['6','3','2','1','2','3'], accent: [1,0,0,1,0,0] },
+    '6/4': { id: 'arpeggio_12', name: '分解 12格', steps: ['5','3','2','3','1','3','2','3','1','3','2','3'], accent: [1,0,0,0,0,0,1,0,0,0,0,0] },
+    '3/2': { id: 'arpeggio_half_6', name: '分解 6格', steps: ['5','3','2','1','2','3'], accent: [1,0,0,1,0,0] },
+    '2/4': { id: 'strum_4', name: '扫弦 ↓ · ↑ ·', steps: ['↓','·','↑','·'], accent: [1,0,1,0] },
+    '9/8': { id: 'compound_9', name: '分解 9格', steps: ['6','3','2','1','2','3','2','3','1'], accent: [1,0,0,1,0,0,1,0,0] },
+    '4/2': { id: 'half_8', name: '分解 8格', steps: ['5','3','2','3','1','3','2','3'], accent: [1,0,0,0,1,0,0,0] },
+    '9/4': { id: 'simple_9', name: '扫弦 9格', steps: ['↓','·','↑','·','↓','·','↑','·','↓'], accent: [1,0,0,1,0,0,1,0,0] }
+  };
+  return patterns[meter] || patterns['4/4'];
+}
+
+
+// ===== 自动伴奏引擎（A 路线：网页实时生成，不改源文件） =====
+const AUTO_CHORD_SHAPES = {
+  'C':  ['x',3,2,0,1,0],
+  'Cm': ['x',3,5,5,4,3],
+  'C7': ['x',3,2,3,1,0],
+  'Cmaj7': ['x',3,2,0,0,0],
+  'Cm7': ['x',3,5,3,4,3],
+  'Csus4': ['x',3,3,0,1,1],
+  'C#': ['x',4,6,6,6,4],
+  'C#m': ['x',4,6,6,5,4],
+  'D':  ['x','x',0,2,3,2],
+  'Dm': ['x','x',0,2,3,1],
+  'D7': ['x','x',0,2,1,2],
+  'Dmaj7': ['x','x',0,2,2,2],
+  'Dm7': ['x','x',0,2,1,1],
+  'Dsus4': ['x','x',0,2,3,3],
+  'Db': ['x',4,6,6,6,4],
+  'Dbm': ['x',4,6,6,5,4],
+  'E':  [0,2,2,1,0,0],
+  'Em': [0,2,2,0,0,0],
+  'E7': [0,2,0,1,0,0],
+  'Emaj7': [0,2,1,1,0,0],
+  'Em7': [0,2,2,0,3,0],
+  'Esus4': [0,2,2,2,0,0],
+  'Eb': ['x',6,8,8,8,6],
+  'Ebm': ['x',6,8,8,7,6],
+  'F':  [1,3,3,2,1,1],
+  'Fm': [1,3,3,1,1,1],
+  'F7': [1,3,1,2,1,1],
+  'Fmaj7': [1,3,2,2,1,0],
+  'Fm7': [1,3,1,1,1,1],
+  'F#': [2,4,4,3,2,2],
+  'F#m': [2,4,4,2,2,2],
+  'G':  [3,2,0,0,0,3],
+  'Gm': [3,5,5,3,3,3],
+  'G7': [3,2,0,0,0,1],
+  'Gmaj7': [3,2,0,0,0,2],
+  'Gm7': [3,5,3,3,3,3],
+  'Gsus4': [3,3,0,0,1,3],
+  'Gb': [2,4,4,3,2,2],
+  'A':  ['x',0,2,2,2,0],
+  'Am': ['x',0,2,2,1,0],
+  'A7': ['x',0,2,0,2,0],
+  'Amaj7': ['x',0,2,1,2,0],
+  'Am7': ['x',0,2,0,1,0],
+  'Asus4': ['x',0,2,2,3,0],
+  'Ab': [4,6,6,5,4,4],
+  'Abm': [4,6,6,4,4,4],
+  'Bb': ['x',1,3,3,3,1],
+  'Bbm': ['x',1,3,3,2,1],
+  'B':  ['x',2,4,4,4,2],
+  'Bm': ['x',2,4,4,3,2],
+  'B7': ['x',2,1,2,0,2],
+  'Bm7': ['x',2,4,2,3,2]
+};
+
+function normalizeAutoChordLookup(chord) {
+  const raw = String(chord || '').trim();
+  if (!raw) return '';
+  return raw.replace(/\s+/g, '').replace(/△/g, 'maj');
+}
+
+function getAutoShapeForChord(chordDisplay, chordRaw) {
+  const candidates = [chordDisplay, chordRaw].map(normalizeAutoChordLookup).filter(Boolean);
+  for (const c of candidates) {
+    if (AUTO_CHORD_SHAPES[c]) return { key: c, shape: AUTO_CHORD_SHAPES[c].slice() };
+    const slash = c.split('/')[0];
+    if (AUTO_CHORD_SHAPES[slash]) return { key: slash, shape: AUTO_CHORD_SHAPES[slash].slice() };
+  }
+  return null;
+}
+
+function getBassStringFromShape(shape) {
+  if (!Array.isArray(shape)) return 6;
+  for (let i = 0; i < shape.length; i++) {
+    if (shape[i] !== 'x' && shape[i] !== 'X') return 6 - i;
+  }
+  return 6;
+}
+
+function getAutoPatternForMeter(meter, bassString) {
+  const b = Number.isFinite(+bassString) ? +bassString : 6;
+  const patterns = {
+    '4/4': [b,3,2,3,1,3,2,3],
+    '3/4': [b,3,2,1,2,3],
+    '6/8': [b,3,2,1,2,3],
+    '2/4': [b,3,2,3],
+    '6/4': [b,3,2,3,1,3,2,3,1,3,2,3],
+    '3/2': [b,3,2,1,2,3],
+    '9/8': [b,3,2,1,2,3,2,3,1],
+    '4/2': [b,3,2,3,1,3,2,3],
+    '9/4': [b,3,2,1,2,3,2,3,1]
+  };
+  return (patterns[meter] || patterns['4/4']).slice();
+}
+
+function buildAutoAccompanimentBar(measureObj, chordObj) {
+  if (!measureObj || !chordObj) return null;
+  const resolved = getAutoShapeForChord(chordObj.chordDisplay, chordObj.chordRaw);
+  if (!resolved || !resolved.shape) {
+    return {
+      meter: measureObj.meter,
+      measure: measureObj.measure,
+      chordRaw: chordObj.chordRaw,
+      chordDisplay: chordObj.chordDisplay,
+      bassString: null,
+      shape: null,
+      pattern: [],
+      notes: [],
+      text: '未找到按法'
+    };
+  }
+  const shape = resolved.shape;
+  const bassString = getBassStringFromShape(shape);
+  const pattern = getAutoPatternForMeter(measureObj.meter, bassString);
+  const notes = pattern.map((stringNo, idx) => {
+    const fret = shape[6 - stringNo];
+    return { index: idx, string: stringNo, fret, label: `${stringNo}弦${fret}` };
+  });
+  return {
+    meter: measureObj.meter,
+    measure: measureObj.measure,
+    chordRaw: chordObj.chordRaw,
+    chordDisplay: chordObj.chordDisplay,
+    bassString,
+    shape: shape.slice(),
+    pattern: pattern.slice(),
+    notes,
+    text: notes.map(n => `${n.string}弦${n.fret}`).join(' · ')
+  };
+}
+
+function rebuildAutoAccompanimentSong() {
+  const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
+  const chords = Array.isArray(window.__chordTimeline) ? window.__chordTimeline : [];
+  window.__autoAccompanimentSong = measures.map((measureObj) => {
+    let chordObj = null;
+    for (let i = 0; i < chords.length; i++) {
+      const c = chords[i];
+      if ((c.timeMs || 0) <= (measureObj.startMs || 0)) chordObj = c;
+      else break;
+    }
+    if (!chordObj && chords.length) chordObj = chords[0];
+    return buildAutoAccompanimentBar(measureObj, chordObj);
+  }).filter(Boolean);
+  syncAutoAccompanimentToPlayback(__playbackState.current || 0);
+}
+
+function getAutoAccompanimentBarAtMs(ms) {
+  const items = Array.isArray(window.__autoAccompanimentSong) ? window.__autoAccompanimentSong : [];
+  const measure = getCurrentMeasureAtMs(ms);
+  if (!measure) return null;
+  return items.find(item => item.measure === measure.measure) || null;
+}
+
+function ensureAutoAccompanimentUi() { return null; }
+
+function updateAutoAccompanimentUi(bar) { return; }
+
+function ensureIndependentTabTrackUi() { return null; }
+
+function renderIndependentTabTrack(bar, activeStepIndex) { return; }
+
+function syncAutoAccompanimentToPlayback(ms) {
+  const bar = getAutoAccompanimentBarAtMs(ms);
+  window.__autoAccompanimentCurrentBar = bar || null;
+  updateAutoAccompanimentUi(bar || null);
+  const activeStepIndex = Math.max(0, getCurrentRhythmStepAtMs(ms));
+  renderIndependentTabTrack(bar || null, activeStepIndex);
+}
+
+function ensureRhythmHud() { return null; }
+
+function hideRhythmHud() { return; }
+
+function rebuildRhythmState() {
+  const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
+  if (!measures.length) {
+    window.__rhythmState = { meter: '--', patternId: '--', patternName: '--', steps: [], stepsPerBar: 0 };
+    return;
+  }
+  const meter = measures[0].meter || '--';
+  const pattern = getDefaultPatternForMeter(meter);
+  window.__rhythmState = {
+    meter,
+    patternId: pattern.id,
+    patternName: pattern.name,
+    steps: pattern.steps.slice(),
+    accent: (pattern.accent || []).slice(),
+    stepsPerBar: pattern.steps.length
+  };
+}
+
+function renderRhythmSteps(steps, accent) { return; }
+
+function getCurrentDisplayChordAtMs(ms) {
+  const items = Array.isArray(window.__chordTimeline) ? window.__chordTimeline : [];
+  if (!items.length) return null;
+  const t = Math.max(0, Number(ms) || 0);
+  let current = items[0];
+  for (let i = 0; i < items.length; i++) {
+    if ((items[i].timeMs || 0) <= t) current = items[i];
+    else break;
+  }
+  return current || null;
+}
+
+function getCurrentMeasureAtMs(ms) {
+  const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
+  const t = Math.max(0, Number(ms) || 0);
+  for (let i = 0; i < measures.length; i++) {
+    const m = measures[i];
+    if (t >= (m.startMs || 0) && t < (m.endMs || 0)) return m;
+  }
+  return measures[measures.length - 1] || null;
+}
+
+function getCurrentRhythmStepAtMs(ms) {
+  const measure = getCurrentMeasureAtMs(ms);
+  const state = window.__rhythmState || {};
+  if (!measure || !state.stepsPerBar) return -1;
+  const start = measure.startMs || 0;
+  const dur = Math.max(1, measure.durationMs || 1);
+  const ratio = Math.min(0.999999, Math.max(0, ((ms || 0) - start) / dur));
+  return Math.max(0, Math.min(state.stepsPerBar - 1, Math.floor(ratio * state.stepsPerBar)));
+}
+
+function updateRhythmPlayback(ms) {
+  syncAutoAccompanimentToPlayback(ms);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // HUD removed
+});
+// ===== /GTZ 和弦时间轴 + 节拍/节奏跟随 =====
+
+</script>
   <!-- 简繁转换库：opencc-js（浏览器 UMD 完整版） -->
   <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
+
+  <style>
+    </style>
+
 </head>
 <body>
 <div class="page">
@@ -26,6 +500,7 @@
         <button class="core-btn core-btn-icon" id="ui-next" aria-label="下一首">⏭</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-text">字</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-track">轨</button>
+        <button class="core-btn core-btn-pill core-btn-mini" id="ui-rhythm">节</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-staff">谱</button>
         <button class="core-btn core-btn-icon" id="ui-lang" aria-label="语言">🌐</button>
         <button class="core-btn core-btn-icon" id="ui-search" aria-label="搜索">⌕</button>
@@ -271,19 +746,16 @@
    */
   function getTrackTransposeSemitones(track) {
     const base = getUserTranspose();
-    // 【显示层 / 记谱层】
-    // 这里只返回“用户转调”。
-    // 注意：这里绝对不要再加歌曲 CAPO。
-    // 因为这个值会喂给 notation.transpositionPitches，
-    // 一旦把 CAPO 混进来，六线谱显示就会被一起推高，
-    // 最终造成“显示层和播放层不一致”或者“双重 CAPO”。
+    if (window.__tabRewriteModeActive && trackUsesTab(track)) {
+      return 0;
+    }
     return base;
   }
 
   function getTrackPlaybackSemitones(track) {
     const base = getUserTranspose();
-    // TAB 轨统一：用户转调 + 歌曲自带 CAPO（只加一次）
-    // 原谱模式与自动伴奏模式都走同一条播放链。
+    // 所有 TAB 轨的播放层统一：用户转调 + 歌曲自带 CAPO（只加一次）
+    // 显示层仍然只吃用户转调，不把 CAPO 混进记谱层。
     return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
   }
 
@@ -502,6 +974,8 @@
     refreshAdjustUI();
     updateMetaRow();
     applyViewerPrefsToScore();
+    rebuildDisplayChordTimeline();
+    updateRhythmPlayback(__playbackState.current || 0);
   }
 
   function resetTranspose() {
@@ -510,6 +984,8 @@
     refreshAdjustUI();
     updateMetaRow();
     applyViewerPrefsToScore();
+    rebuildDisplayChordTimeline();
+    updateRhythmPlayback(__playbackState.current || 0);
   }
 
   function changeScoreFont(delta) {
@@ -694,6 +1170,26 @@
     };
     window.__gtzMeta = gtz?.meta || null;
     updateMetaRow(window.__gtzMeta || null);
+
+    try {
+      const xmlText = decodeBase64ToText(scoreB64);
+      window.__currentGtzUrl = gtzUrl;
+      window.__originalXmlText = xmlText;
+      window.__originalScoreB64 = scoreB64;
+      const parsed = buildMusicTimelineFromXML(xmlText);
+      window.__musicTimelineRaw = parsed;
+      window.__chordTimelineRaw = parsed.chords.slice();
+      window.__measureTimelineRaw = parsed.measures.slice();
+      rebuildDisplayChordTimeline();
+      rebuildRhythmState();
+    } catch (e) {
+      console.warn('GTZ时间轴解析失败:', e);
+      window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
+      window.__chordTimelineRaw = [];
+      window.__measureTimelineRaw = [];
+      window.__chordTimeline = [];
+      hideRhythmHud();
+    }
 
     const bytes = base64ToUint8Array(scoreB64);
     api.load(bytes);
@@ -897,21 +1393,27 @@
       if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
     });
 
-    let previousSec = -1;
+    let previousUiSec = -1;
     api.playerPositionChanged.on((args) => {
-      const currentSec = Math.floor(args.currentTime / 1000);
-      if (currentSec === previousSec) return;
-      previousSec = currentSec;
+      const currentMs = args.currentTime || 0;
+      const currentSec = Math.floor(currentMs / 1000);
 
       const max = Math.max(1, args.endTime);
-      const v = Math.floor((args.currentTime / max) * 1000);
-      __playbackState.current = args.currentTime || 0;
+      const v = Math.floor((currentMs / max) * 1000);
+      __playbackState.current = currentMs;
       __playbackState.total = args.endTime || 0;
       __playbackState.progress = isFinite(v) ? v : 0;
+
       if (!__playerUi.isSeeking && progressEl) {
         progressEl.value = String(__playbackState.progress);
       }
-      if (timeEl) timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
+      if (timeEl && currentSec !== previousUiSec) {
+        previousUiSec = currentSec;
+        timeEl.textContent = `${msToMMSS(currentMs)} / ${msToMMSS(args.endTime)}`;
+      }
+
+      remapTimelineTimesIfNeeded();
+      updateRhythmPlayback(currentMs);
     });
 
     if (progressEl) {
@@ -954,6 +1456,8 @@
     if (progressEl) progressEl.value = "0";
     const btnPlay = document.getElementById("ui-play");
     if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
+    remapTimelineTimesIfNeeded();
+    updateRhythmPlayback(current || 0);
   }
   // ===== /alphaTab + .gtz 加载 =====
 
@@ -1242,6 +1746,10 @@ function pad4(num) {
         renderVisibleTracks(window.__atApi);
         applyScoreTransposition(window.__atApi);
         applyPlaybackTrackVisibility(window.__atApi);
+        remapTimelineTimesIfNeeded();
+        rebuildDisplayChordTimeline();
+        rebuildRhythmState();
+        updateRhythmPlayback(__playbackState.current || 0);
       });
 
       window.__atApi.renderFinished.on(() => {
@@ -1795,6 +2303,515 @@ function pad4(num) {
   });
 
   window.openNewTrackPanel = openNewTrackPanel;
+})();
+</script>
+
+
+<script>
+// === SAFE PATCH: restore rhythm switch button + keep all existing functionality ===
+window.__autoAccompanimentTabTrack = window.__autoAccompanimentTabTrack || [];
+window.__currentPatternChoiceIndexByMeter = window.__currentPatternChoiceIndexByMeter || {};
+
+window.__RHYTHM_PATTERN_LIBRARY = {
+  '4/4': [
+    { id:'arpeggio_r3231323', name:'分解 R3231323', type:'arpeggio', steps:['R','3','2','3','1','3','2','3'], accent:[1,0,0,0,1,0,0,0] }
+  ],
+  '3/4': [
+    { id:'arpeggio_r32123',   name:'分解 R32123',    type:'arpeggio', steps:['R','3','2','1','2','3'], accent:[1,0,0,1,0,0] }
+  ],
+  '6/8': [
+    { id:'arpeggio_r32123',   name:'分解 R32123',    type:'arpeggio', steps:['R','3','2','1','2','3'], accent:[1,0,0,1,0,0] }
+  ]
+};
+
+function __getPatternChoicesForMeter(meter){
+  const list = window.__RHYTHM_PATTERN_LIBRARY[meter];
+  if (Array.isArray(list) && list.length) return list;
+  const fallback = (typeof window.__getDefaultPatternForMeterOriginal === 'function')
+    ? window.__getDefaultPatternForMeterOriginal(meter)
+    : (typeof getDefaultPatternForMeter === 'function' ? getDefaultPatternForMeter(meter) : null);
+  return fallback ? [fallback] : [];
+}
+
+// Preserve original function
+if (!window.__getDefaultPatternForMeterOriginal && typeof getDefaultPatternForMeter === 'function') {
+  window.__getDefaultPatternForMeterOriginal = getDefaultPatternForMeter;
+  getDefaultPatternForMeter = function(meter){
+    const choices = __getPatternChoicesForMeter(meter);
+    if (!choices.length) return window.__getDefaultPatternForMeterOriginal(meter);
+    const idx = window.__currentPatternChoiceIndexByMeter[meter] || 0;
+    return choices[idx % choices.length];
+  };
+}
+
+function __expandAutoPatternSteps(meter, bassString){
+  const pattern = (typeof getDefaultPatternForMeter === 'function') ? getDefaultPatternForMeter(meter) : null;
+  if (!pattern) return [];
+  const b = Number.isFinite(+bassString) ? +bassString : 6;
+  return (pattern.steps || []).map(step => step === 'R' ? b : step);
+}
+
+// Patch auto accompaniment generation to use selected pattern and expose pattern fields
+if (typeof buildAutoAccompanimentBar === 'function' && !window.__buildAutoAccompanimentBarOriginal) {
+  window.__buildAutoAccompanimentBarOriginal = buildAutoAccompanimentBar;
+  buildAutoAccompanimentBar = function(measureObj, chordObj) {
+    const base = window.__buildAutoAccompanimentBarOriginal(measureObj, chordObj);
+    if (!base) return base;
+    const patternObj = (typeof getDefaultPatternForMeter === 'function') ? getDefaultPatternForMeter(base.meter) : null;
+    if (!patternObj) return base;
+    if (base.bassString) {
+      const expanded = __expandAutoPatternSteps(base.meter, base.bassString);
+      if (expanded.length) {
+        base.pattern = expanded.slice();
+        base.patternId = patternObj.id;
+        base.patternName = patternObj.name;
+        base.patternType = patternObj.type;
+        if (Array.isArray(base.shape) && patternObj.type === 'arpeggio') {
+          base.notes = expanded.map((stringNo, idx) => {
+            const stringNum = parseInt(stringNo, 10);
+            const fret = base.shape[6 - stringNum];
+            return { index: idx, string: stringNum, fret, label: `${stringNum}弦${fret}` };
+          });
+          base.text = base.notes.map(n => `${n.string}弦${n.fret}`).join(' · ');
+        } else if (patternObj.type === 'strum') {
+          base.notes = expanded.map((token, idx) => ({ index: idx, string: null, fret: null, label: String(token) }));
+          base.text = expanded.join(' ');
+        }
+      }
+    }
+    return base;
+  };
+}
+
+function rebuildAutoTabTrack(){
+  const song = window.__autoAccompanimentSong || [];
+  const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
+
+  function parseMeterText(meterText){
+    const m = String(meterText || '').match(/^(\d+)\/(\d+)$/);
+    return {
+      beats: m ? parseInt(m[1], 10) : 4,
+      beatType: m ? parseInt(m[2], 10) : 4
+    };
+  }
+
+  window.__autoAccompanimentTabTrack = song.map(bar => {
+    const measureObj = measures.find(m => m.measure === bar.measure) || null;
+    const meterInfo = parseMeterText(bar.meter || (measureObj && measureObj.meter) || '4/4');
+    const stepCount = Math.max(1, (bar.notes || []).length);
+    const measureStartMs = measureObj ? measureObj.startMs : null;
+    const measureDurationMs = measureObj ? measureObj.durationMs : null;
+    const beatsPerBar = meterInfo.beats;
+    const durationBeat = beatsPerBar / stepCount;
+
+    return {
+      measure: bar.measure,
+      meter: bar.meter,
+      chordRaw: bar.chordRaw,
+      chordDisplay: bar.chordDisplay,
+      patternId: bar.patternId || null,
+      patternName: bar.patternName || null,
+      patternType: bar.patternType || null,
+      beats: meterInfo.beats,
+      beatType: meterInfo.beatType,
+      stepCount,
+      measureStartMs,
+      measureDurationMs,
+      notes: (bar.notes || []).map((n, i) => {
+        const startRatio = i / stepCount;
+        const durationRatio = 1 / stepCount;
+        const startBeat = +(i * durationBeat).toFixed(4);
+        const noteObj = {
+          string: n.string,
+          fret: n.fret,
+          stepIndex: i,
+          label: n.label,
+          startRatio: +startRatio.toFixed(6),
+          durationRatio: +durationRatio.toFixed(6),
+          startBeat,
+          durationBeat: +durationBeat.toFixed(4)
+        };
+        if (Number.isFinite(measureStartMs) && Number.isFinite(measureDurationMs)) {
+          noteObj.startMs = Math.round(measureStartMs + measureDurationMs * startRatio);
+          noteObj.durationMs = Math.max(1, Math.round(measureDurationMs * durationRatio));
+        }
+        return noteObj;
+      })
+    };
+  });
+}
+
+// Patch rebuildAutoAccompanimentSong so the track is always refreshed
+if (typeof rebuildAutoAccompanimentSong === 'function' && !window.__rebuildAutoAccompanimentSongOriginal) {
+  window.__rebuildAutoAccompanimentSongOriginal = rebuildAutoAccompanimentSong;
+  rebuildAutoAccompanimentSong = function() {
+    const out = window.__rebuildAutoAccompanimentSongOriginal();
+    rebuildAutoTabTrack();
+    return out;
+  };
+}
+
+function switchRhythmPatternSafe(){
+  const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+  const choices = __getPatternChoicesForMeter(meter);
+  if (!choices.length) return;
+  const current = window.__currentPatternChoiceIndexByMeter[meter] || 0;
+  window.__currentPatternChoiceIndexByMeter[meter] = (current + 1) % choices.length;
+
+  if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
+  if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+  if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btn-switch-rhythm');
+  if (btn) {
+    btn.addEventListener('click', switchRhythmPatternSafe);
+  }
+  const btnToolbar = document.getElementById('ui-rhythm');
+  if (btnToolbar) {
+    btnToolbar.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      switchRhythmPatternSafe();
+      try {
+        const state = window.__rhythmState || {};
+        if (typeof __isOriginalPatternSelected === 'function' && __isOriginalPatternSelected()) btnToolbar.textContent = '原';
+        else btnToolbar.textContent = (state.patternName || '节').replace(/^分解\s*/, '').replace(/^扫弦\s*/, '扫');
+      } catch (_) {}
+    });
+  }
+  // Build once after initial page settle
+  setTimeout(() => {
+    try {
+      if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+      if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+    } catch (e) {
+      console.warn('safe patch init failed', e);
+    }
+  }, 1200);
+});
+</script>
+
+
+<script>
+// === SAFE TRY PATCH: 原始乐谱选项（不改底层轨道，只在网页层恢复原始显示） ===
+window.__originalTabOptionEnabled = false;
+window.__currentPatternChoiceIndexByMeter = window.__currentPatternChoiceIndexByMeter || {};
+window.__originalPatternChoiceSentinel = -1;
+
+function __scoreHasOriginalTabNotes() {
+  try {
+    const score = window.__currentScore || window.__atApi?.score;
+    const tracks = Array.isArray(score?.tracks) ? score.tracks : [];
+    for (const track of tracks) {
+      const staves = Array.isArray(track?.staves) ? track.staves : [];
+      const isTab = staves.some(s => !!s?.showTablature);
+      if (!isTab) continue;
+      const bars = Array.isArray(track?.staves?.[0]?.bars) ? track.staves[0].bars : [];
+      for (const bar of bars) {
+        const voices = Array.isArray(bar?.voices) ? bar.voices : [];
+        for (const voice of voices) {
+          const beats = Array.isArray(voice?.beats) ? voice.beats : [];
+          for (const beat of beats) {
+            const notes = Array.isArray(beat?.notes) ? beat.notes : [];
+            if (notes.length) return true;
+          }
+        }
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+
+function __refreshOriginalOptionEnabled() {
+  window.__originalTabOptionEnabled = __scoreHasOriginalTabNotes();
+}
+
+function __isOriginalPatternSelected() {
+  const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+  return window.__originalTabOptionEnabled && (window.__currentPatternChoiceIndexByMeter[meter] ?? window.__originalPatternChoiceSentinel) === window.__originalPatternChoiceSentinel;
+}
+
+(function(){
+  const _oldRebuildRhythmState = window.rebuildRhythmState;
+  if (typeof _oldRebuildRhythmState === 'function') {
+    window.rebuildRhythmState = function() {
+      const out = _oldRebuildRhythmState.apply(this, arguments);
+      __refreshOriginalOptionEnabled();
+      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+      const idx = window.__currentPatternChoiceIndexByMeter[meter];
+      if (window.__originalTabOptionEnabled && idx === window.__originalPatternChoiceSentinel) {
+        const patternNameEl = document.getElementById('rhythm-pattern-name');
+        if (patternNameEl) patternNameEl.textContent = '原始乐谱';
+      }
+      return out;
+    };
+  }
+
+  const _oldUpdateRhythmPlayback = window.updateRhythmPlayback;
+  if (typeof _oldUpdateRhythmPlayback === 'function') {
+    window.updateRhythmPlayback = function(ms) {
+      const out = _oldUpdateRhythmPlayback.apply(this, arguments);
+      const autoTab = document.getElementById('auto-tab-track');
+      if (__isOriginalPatternSelected()) {
+        if (autoTab) autoTab.hidden = true;
+        const line = document.getElementById('auto-accompaniment-line');
+        if (line) line.textContent = '自动伴奏 原始乐谱';
+      } else {
+        if (autoTab) autoTab.hidden = false;
+      }
+      return out;
+    };
+  }
+
+  const _oldSwitch = window.switchRhythmPatternSafe;
+  if (typeof _oldSwitch === 'function') {
+    window.switchRhythmPatternSafe = function() {
+      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+      const choices = (typeof __getPatternChoicesForMeter === 'function') ? __getPatternChoicesForMeter(meter) : [];
+      if (!choices.length) return;
+      if (!window.__originalTabOptionEnabled) {
+        return _oldSwitch.apply(this, arguments);
+      }
+      const current = (window.__currentPatternChoiceIndexByMeter[meter] ?? window.__originalPatternChoiceSentinel);
+      let next;
+      if (current === window.__originalPatternChoiceSentinel) next = 0;
+      else if (current >= choices.length - 1) next = window.__originalPatternChoiceSentinel;
+      else next = current + 1;
+      window.__currentPatternChoiceIndexByMeter[meter] = next;
+
+      if (next === window.__originalPatternChoiceSentinel) {
+        const patternNameEl = document.getElementById('rhythm-pattern-name');
+        if (patternNameEl) patternNameEl.textContent = '原始乐谱';
+        const autoTab = document.getElementById('auto-tab-track');
+        if (autoTab) autoTab.hidden = true;
+        const line = document.getElementById('auto-accompaniment-line');
+        if (line) line.textContent = '自动伴奏 原始乐谱';
+        return;
+      }
+
+      if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
+      if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+      if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      __refreshOriginalOptionEnabled();
+      if (window.__originalTabOptionEnabled) {
+        const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+        if (!(meter in window.__currentPatternChoiceIndexByMeter)) {
+          window.__currentPatternChoiceIndexByMeter[meter] = window.__originalPatternChoiceSentinel;
+        }
+        if (typeof updateRhythmPlayback === 'function') {
+          updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+        }
+      }
+    }, 1200);
+  });
+})();
+</script>
+
+
+<script>
+// === DEEP TAB REWRITE PATCH: rewrite original TAB track from auto accompaniment ===
+(function(){
+  function encodeTextToUint8Array(text) {
+    return new TextEncoder().encode(String(text || ''));
+  }
+
+  function cloneXmlNode(doc, node) {
+    return doc.importNode ? doc.importNode(node, true) : node.cloneNode(true);
+  }
+
+  function midiToPitch(midi) {
+    const pc = ((midi % 12) + 12) % 12;
+    const octave = Math.floor(midi / 12) - 1;
+    const names = [
+      ['C', null], ['C', 1], ['D', null], ['E', -1], ['E', null], ['F', null],
+      ['F', 1], ['G', null], ['A', -1], ['A', null], ['B', -1], ['B', null]
+    ];
+    const [step, alter] = names[pc];
+    return { step, alter, octave };
+  }
+
+  const OPEN_STRING_MIDI = { 6: 40, 5: 45, 4: 50, 3: 55, 2: 59, 1: 64 };
+
+  function findTabPartNode(xmlDoc) {
+    const parts = Array.from(xmlDoc.querySelectorAll('score-partwise > part, score-timewise > part'));
+    for (const part of parts) {
+      const firstMeasure = part.querySelector(':scope > measure');
+      if (!firstMeasure) continue;
+      const sign = firstMeasure.querySelector(':scope > attributes > clef > sign')?.textContent?.trim();
+      const lines = firstMeasure.querySelector(':scope > attributes > staff-details > staff-lines')?.textContent?.trim();
+      if (sign === 'TAB' || lines === '6') return part;
+    }
+    return parts[parts.length - 1] || null;
+  }
+
+  function getMeasureChildrenToKeep(measureEl) {
+    return Array.from(measureEl.children).filter((child) => !['note','backup','forward'].includes(child.nodeName));
+  }
+
+  function noteTypeFromDuration(durationUnits, divisions) {
+    const quarterUnits = Number(divisions) || 1;
+    const ratio = durationUnits / quarterUnits;
+    if (Math.abs(ratio - 4) < 1e-6) return 'whole';
+    if (Math.abs(ratio - 2) < 1e-6) return 'half';
+    if (Math.abs(ratio - 1) < 1e-6) return 'quarter';
+    if (Math.abs(ratio - 0.5) < 1e-6) return 'eighth';
+    if (Math.abs(ratio - 0.25) < 1e-6) return '16th';
+    return ratio >= 1 ? 'quarter' : 'eighth';
+  }
+
+  function createTextEl(doc, name, text) {
+    const el = doc.createElement(name);
+    el.textContent = String(text);
+    return el;
+  }
+
+  function createNoteEl(doc, n, durationUnits, divisions, beamState) {
+    const note = doc.createElement('note');
+    const midi = OPEN_STRING_MIDI[n.string] + Number(n.fret || 0);
+    const pitch = midiToPitch(midi);
+    const pitchEl = doc.createElement('pitch');
+    pitchEl.appendChild(createTextEl(doc, 'step', pitch.step));
+    if (pitch.alter != null) pitchEl.appendChild(createTextEl(doc, 'alter', pitch.alter));
+    pitchEl.appendChild(createTextEl(doc, 'octave', pitch.octave));
+    note.appendChild(pitchEl);
+    note.appendChild(createTextEl(doc, 'duration', durationUnits));
+    note.appendChild(createTextEl(doc, 'voice', 1));
+    note.appendChild(createTextEl(doc, 'type', noteTypeFromDuration(durationUnits, divisions)));
+    note.appendChild(createTextEl(doc, 'stem', 'down'));
+    if (beamState) {
+      const beam = doc.createElement('beam');
+      beam.setAttribute('number', '1');
+      beam.textContent = beamState;
+      note.appendChild(beam);
+    }
+    const notations = doc.createElement('notations');
+    const technical = doc.createElement('technical');
+    technical.appendChild(createTextEl(doc, 'string', n.string));
+    technical.appendChild(createTextEl(doc, 'fret', n.fret));
+    notations.appendChild(technical);
+    note.appendChild(notations);
+    return note;
+  }
+
+  function rewriteXmlTabTrack(xmlText) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+    const part = findTabPartNode(xmlDoc);
+    if (!part) return xmlText;
+
+    const bars = Array.isArray(window.__autoAccompanimentTabTrack) ? window.__autoAccompanimentTabTrack : [];
+    const measures = Array.from(part.querySelectorAll(':scope > measure'));
+    let divisions = 2;
+
+    for (const measureEl of measures) {
+      const divEl = measureEl.querySelector(':scope > attributes > divisions');
+      if (divEl) {
+        const d = parseInt(divEl.textContent || '2', 10);
+        if (Number.isFinite(d) && d > 0) divisions = d;
+      }
+      const barNo = parseInt(measureEl.getAttribute('number') || '0', 10);
+      const autoBar = bars.find(b => Number(b.measure) === barNo);
+      const keep = getMeasureChildrenToKeep(measureEl);
+      while (measureEl.firstChild) measureEl.removeChild(measureEl.firstChild);
+      keep.forEach(node => measureEl.appendChild(cloneXmlNode(xmlDoc, node)));
+      if (!autoBar || !Array.isArray(autoBar.notes) || !autoBar.notes.length) continue;
+
+      const durationUnits = Math.max(1, Math.round((autoBar.notes[0].durationBeat || 0.5) * divisions));
+      const beamable = autoBar.notes.length > 1 && noteTypeFromDuration(durationUnits, divisions) === 'eighth';
+      autoBar.notes.forEach((n, idx) => {
+        let beamState = null;
+        if (beamable) {
+          if (idx === 0) beamState = 'begin';
+          else if (idx === autoBar.notes.length - 1) beamState = 'end';
+          else beamState = 'continue';
+        }
+        measureEl.appendChild(createNoteEl(xmlDoc, n, durationUnits, divisions, beamState));
+      });
+    }
+    return new XMLSerializer().serializeToString(xmlDoc);
+  }
+
+  function loadXmlTextIntoAlphaTab(api, xmlText) {
+    if (!api || !xmlText) return;
+    try {
+      const parsed = buildMusicTimelineFromXML(xmlText);
+      window.__musicTimelineRaw = parsed;
+      window.__chordTimelineRaw = parsed.chords.slice();
+      window.__measureTimelineRaw = parsed.measures.slice();
+      rebuildDisplayChordTimeline();
+      rebuildRhythmState();
+    } catch (e) {
+      console.warn('重载XML时间轴失败', e);
+    }
+    const bytes = encodeTextToUint8Array(xmlText);
+    api.load(bytes);
+  }
+
+  function hideIndependentTrackWhenRewriting() { return; }
+
+  function showIndependentTrackWhenNeeded() { return; }
+
+  function applyCurrentPatternToOriginalTab() {
+    if (!window.__atApi || !window.__originalXmlText) return;
+    if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+    rebuildAutoTabTrack();
+    const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+    const idx = window.__currentPatternChoiceIndexByMeter[meter];
+    if (idx === window.__originalPatternChoiceSentinel) {
+      window.__tabRewriteModeActive = false;
+      loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText);
+      showIndependentTrackWhenNeeded();
+      return;
+    }
+    const xmlText = rewriteXmlTabTrack(window.__originalXmlText);
+    window.__tabRewriteModeActive = true;
+    hideIndependentTrackWhenRewriting();
+    loadXmlTextIntoAlphaTab(window.__atApi, xmlText);
+  }
+
+  // Override rhythm switch to reload modified XML into original TAB track.
+  const oldSwitch = window.switchRhythmPatternSafe;
+  if (typeof oldSwitch === 'function') {
+    window.switchRhythmPatternSafe = function() {
+      oldSwitch.apply(this, arguments);
+      setTimeout(applyCurrentPatternToOriginalTab, 50);
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      // Start on original if option exists.
+      try { applyCurrentPatternToOriginalTab(); } catch(e) { console.warn('applyCurrentPatternToOriginalTab failed', e); }
+    }, 1600);
+  });
+})();
+</script>
+
+
+<script>
+(function(){
+  function refreshRhythmButtonText(){
+    const btn = document.getElementById('ui-rhythm');
+    if (!btn) return;
+    if (typeof __isOriginalPatternSelected === 'function' && __isOriginalPatternSelected()) {
+      btn.textContent = '原';
+      return;
+    }
+    const state = window.__rhythmState || {};
+    const name = state.patternName || '节';
+    btn.textContent = name.replace(/^分解\s*/, '').replace(/^扫弦\s*/, '扫');
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    setInterval(refreshRhythmButtonText, 500);
+    setTimeout(refreshRhythmButtonText, 1200);
+  });
 })();
 </script>
 
