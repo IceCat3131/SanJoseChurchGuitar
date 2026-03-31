@@ -751,88 +751,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getTrackPlaybackSemitones(track) {
     const base = getUserTranspose();
-    // TAB 轨：播放层 = 用户转调 + 歌曲自带 CAPO。
-    // 这样六线谱数字与真实发声音高才能同步。
+    // TAB 轨播放层 = 用户转调 + 歌曲自带 CAPO
+    // 非 TAB 轨播放层 = 用户转调
     return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
-  }
-
-  let __pendingInternalReloadState = null;
-
-  function captureInternalReloadState(api) {
-    return {
-      currentMs: (__playbackState && Number.isFinite(__playbackState.current)) ? __playbackState.current : 0,
-      wasPlaying: !!(__playbackState && __playbackState.playing),
-      visibleTrackIndices: Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : null,
-      staffMode: (typeof getStaffMode === 'function') ? getStaffMode() : 'five'
-    };
-  }
-
-  function restoreInternalReloadState(api) {
-    const pending = __pendingInternalReloadState;
-    if (!pending || !api) return;
-    __pendingInternalReloadState = null;
-
-    if (Array.isArray(pending.visibleTrackIndices)) {
-      __visibleTrackIndices = pending.visibleTrackIndices.slice();
-    } else if (pending.visibleTrackIndices === null) {
-      __visibleTrackIndices = null;
-    }
-
-    try { renderVisibleTracks(api); } catch (e) {}
-    try { applyPlaybackTrackVisibility(api); } catch (e) {}
-    try {
-      if (pending.staffMode && typeof localStorage !== 'undefined') {
-        localStorage.setItem('staffMode', pending.staffMode);
-      }
-    } catch (e) {}
-    try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode({ domOnly: true }); } catch (e) {}
-    try { api.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
-
-    const seekMs = Number.isFinite(pending.currentMs) ? Math.max(0, pending.currentMs) : 0;
-    setTimeout(() => {
-      try { api.timePosition = seekMs; } catch (e) {}
-      if (pending.wasPlaying) {
-        setTimeout(() => {
-          try {
-            if (!(__playbackState && __playbackState.playing)) api.playPause();
-          } catch (e) {}
-        }, 90);
-      }
-    }, 60);
-  }
-
-  function reloadScoreInternallyAfterTranspose() {
-    const api = window.__atApi;
-    const xmlText = window.__originalXmlText;
-    if (!api || !xmlText) {
-      applyViewerPrefsToScore();
-      return;
-    }
-
-    __pendingInternalReloadState = captureInternalReloadState(api);
-
-    const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-    const idx = window.__currentPatternChoiceIndexByMeter ? window.__currentPatternChoiceIndexByMeter[meter] : undefined;
-    const originalSelected = (typeof window.__isOriginalPatternSelected === 'function')
-      ? !!window.__isOriginalPatternSelected()
-      : (idx === window.__originalPatternChoiceSentinel || idx == null);
-
-    try { api.stop(); } catch (e) {}
-
-    if (!originalSelected) {
-      try {
-        if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
-        if (typeof rebuildAutoTabTrack === 'function') rebuildAutoTabTrack();
-        window.__tabRewriteModeActive = true;
-        loadXmlTextIntoAlphaTab(api, rewriteXmlTabTrack(xmlText));
-        return;
-      } catch (e) {
-        console.warn('internal auto reload failed, fallback to original xml', e);
-      }
-    }
-
-    window.__tabRewriteModeActive = false;
-    loadXmlTextIntoAlphaTab(api, xmlText);
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -1044,14 +965,33 @@ document.addEventListener('DOMContentLoaded', () => {
     try { if (window.__atApi) window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
   }
 
+  function reloadScoreInternallyForTranspose() {
+    if (!window.__atApi) return;
+    const originalSelected = (typeof window.__isOriginalPatternSelected === 'function')
+      ? !!window.__isOriginalPatternSelected()
+      : !window.__tabRewriteModeActive;
+    if (originalSelected) {
+      window.__tabRewriteModeActive = false;
+      if (window.__originalXmlText) {
+        loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText);
+        return;
+      }
+    }
+    if (typeof applyCurrentPatternToOriginalTab === 'function') {
+      applyCurrentPatternToOriginalTab();
+      return;
+    }
+    applyViewerPrefsToScore();
+    rebuildDisplayChordTimeline();
+    updateRhythmPlayback(__playbackState.current || 0);
+  }
+
   function changeTranspose(delta) {
     viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, getUserTranspose() + delta));
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
-    reloadScoreInternallyAfterTranspose();
-    rebuildDisplayChordTimeline();
-    updateRhythmPlayback(__playbackState.current || 0);
+    reloadScoreInternallyForTranspose();
   }
 
   function resetTranspose() {
@@ -1059,9 +999,7 @@ document.addEventListener('DOMContentLoaded', () => {
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
-    reloadScoreInternallyAfterTranspose();
-    rebuildDisplayChordTimeline();
-    updateRhythmPlayback(__playbackState.current || 0);
+    reloadScoreInternallyForTranspose();
   }
 
   function changeScoreFont(delta) {
@@ -1799,13 +1737,7 @@ function pad4(num) {
       window.__atApi.scoreLoaded.on((e) => {
         __currentScore = e.score || window.__atApi.score;
         const st = window.__gtzState || {};
-        if (__pendingInternalReloadState && Array.isArray(__pendingInternalReloadState.visibleTrackIndices)) {
-          __visibleTrackIndices = __pendingInternalReloadState.visibleTrackIndices.slice();
-        } else if (__pendingInternalReloadState && __pendingInternalReloadState.visibleTrackIndices === null) {
-          __visibleTrackIndices = null;
-        } else {
-          __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
-        }
+        __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
 
         if (!viewerPrefs.__initializedFromSong) {
           viewerPrefs.scoreFontSizePx = st.fontSizePx || viewerPrefs.scoreFontSizePx;
@@ -1828,7 +1760,6 @@ function pad4(num) {
         renderVisibleTracks(window.__atApi);
         applyScoreTransposition(window.__atApi);
         applyPlaybackTrackVisibility(window.__atApi);
-        restoreInternalReloadState(window.__atApi);
         remapTimelineTimesIfNeeded();
         rebuildDisplayChordTimeline();
         rebuildRhythmState();
