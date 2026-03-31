@@ -16,6 +16,7 @@ window.__chordTimeline = [];
 window.__rhythmState = { meter: '--', patternId: '--', steps: [], stepsPerBar: 0 };
 window.__autoAccompanimentSong = [];
 window.__autoAccompanimentCurrentBar = null;
+window.__pendingLocalTabReload = false;
 
 function decodeBase64ToText(b64) {
   const binary = atob(b64);
@@ -974,25 +975,34 @@ document.addEventListener('DOMContentLoaded', () => {
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
-    applyViewerPrefsToScore();
+
+    // 先按新转调重建和弦/自动伴奏数据
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
 
-    // 只重写当前 6 线谱对应的 XML，不整谱重载 GTZ
-    setTimeout(() => {
+    // 关键：只重载当前 6 线谱对应的 XML，不整谱重新取 GTZ。
+    if (window.__atApi && window.__originalXmlText) {
       try {
-        if (typeof applyCurrentPatternToOriginalTab === 'function') {
-          applyCurrentPatternToOriginalTab();
+        window.__pendingLocalTabReload = true;
+        const isOriginal = (typeof __isOriginalPatternSelected === 'function') ? __isOriginalPatternSelected() : false;
+        if (isOriginal) {
+          window.__tabRewriteModeActive = false;
+          loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText);
+        } else {
+          if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+          if (typeof rebuildAutoTabTrack === 'function') rebuildAutoTabTrack();
+          window.__tabRewriteModeActive = true;
+          const xmlText = rewriteXmlTabTrack(window.__originalXmlText);
+          loadXmlTextIntoAlphaTab(window.__atApi, xmlText);
         }
+        return;
       } catch (e) {
-        console.warn('applyCurrentPatternToOriginalTab after transpose failed', e);
+        console.warn('local tab reload after transpose failed', e);
+        window.__pendingLocalTabReload = false;
       }
-      setTimeout(() => {
-        try { applyViewerPrefsToScore(); } catch (e) {
-          console.warn('applyViewerPrefsToScore after local tab rewrite failed', e);
-        }
-      }, 120);
-    }, 30);
+    }
+
+    applyViewerPrefsToScore();
   }
 
   function resetTranspose() {
@@ -1000,24 +1010,32 @@ document.addEventListener('DOMContentLoaded', () => {
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
-    applyViewerPrefsToScore();
+
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
 
-    setTimeout(() => {
+    if (window.__atApi && window.__originalXmlText) {
       try {
-        if (typeof applyCurrentPatternToOriginalTab === 'function') {
-          applyCurrentPatternToOriginalTab();
+        window.__pendingLocalTabReload = true;
+        const isOriginal = (typeof __isOriginalPatternSelected === 'function') ? __isOriginalPatternSelected() : false;
+        if (isOriginal) {
+          window.__tabRewriteModeActive = false;
+          loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText);
+        } else {
+          if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+          if (typeof rebuildAutoTabTrack === 'function') rebuildAutoTabTrack();
+          window.__tabRewriteModeActive = true;
+          const xmlText = rewriteXmlTabTrack(window.__originalXmlText);
+          loadXmlTextIntoAlphaTab(window.__atApi, xmlText);
         }
+        return;
       } catch (e) {
-        console.warn('applyCurrentPatternToOriginalTab after reset failed', e);
+        console.warn('local tab reload after reset failed', e);
+        window.__pendingLocalTabReload = false;
       }
-      setTimeout(() => {
-        try { applyViewerPrefsToScore(); } catch (e) {
-          console.warn('applyViewerPrefsToScore after local tab rewrite failed', e);
-        }
-      }, 120);
-    }, 30);
+    }
+
+    applyViewerPrefsToScore();
   }
 
   function changeScoreFont(delta) {
@@ -1782,6 +1800,15 @@ function pad4(num) {
         rebuildDisplayChordTimeline();
         rebuildRhythmState();
         updateRhythmPlayback(__playbackState.current || 0);
+
+        if (window.__pendingLocalTabReload) {
+          window.__pendingLocalTabReload = false;
+          setTimeout(() => {
+            try { applyViewerPrefsToScore(); } catch (e) {
+              console.warn('applyViewerPrefsToScore after local tab reload failed', e);
+            }
+          }, 30);
+        }
       });
 
       window.__atApi.renderFinished.on(() => {
