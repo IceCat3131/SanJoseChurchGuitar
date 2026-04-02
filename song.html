@@ -746,14 +746,18 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   function getTrackTransposeSemitones(track) {
     const base = getUserTranspose();
+    if (window.__tabRewriteModeActive && trackUsesTab(track)) {
+      return 0;
+    }
     return base;
   }
 
   function getTrackPlaybackSemitones(track) {
     const base = getUserTranspose();
-    // TAB 轨播放层 = 用户转调 + 歌曲自带 CAPO
-    // 非 TAB 轨播放层 = 用户转调
-    return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
+    // TAB 轨：播放层只补歌曲自带 CAPO。
+    // 用户转调已经在记谱/显示层生效，这里不要再把 base 叠加一次，
+    // 否则会出现「转调重复加一次」的问题。
+    return trackUsesTab(track) ? getEffectiveCapo() : base;
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -965,50 +969,14 @@ document.addEventListener('DOMContentLoaded', () => {
     try { if (window.__atApi) window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
   }
 
-  function reloadScoreInternallyForTranspose() {
-    if (!window.__atApi) return;
-    const originalSelected = (typeof window.__isOriginalPatternSelected === 'function')
-      ? !!window.__isOriginalPatternSelected()
-      : !window.__tabRewriteModeActive;
-    if (originalSelected) {
-      window.__tabRewriteModeActive = false;
-      if (window.__originalScoreB64) {
-        __pendingScoreReloadState = {
-          current: __playbackState.current || 0,
-          playing: !!__playbackState.playing,
-          speed: viewerPrefs.playbackSpeedPercent / 100
-        };
-        try { window.__atApi.stop(); } catch (e) {}
-        try { setPlayerUI({ current: 0, total: __playbackState.total || 0, playing: false }); } catch (e) {}
-        try {
-          const bytes = base64ToUint8Array(window.__originalScoreB64);
-          window.__atApi.load(bytes);
-          return;
-        } catch (e) {
-          console.warn('reload original score b64 failed', e);
-          __pendingScoreReloadState = null;
-        }
-      }
-      if (window.__originalXmlText) {
-        loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText);
-        return;
-      }
-    }
-    if (typeof applyCurrentPatternToOriginalTab === 'function') {
-      applyCurrentPatternToOriginalTab();
-      return;
-    }
-    applyViewerPrefsToScore();
-    rebuildDisplayChordTimeline();
-    updateRhythmPlayback(__playbackState.current || 0);
-  }
-
   function changeTranspose(delta) {
     viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, getUserTranspose() + delta));
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
-    reloadScoreInternallyForTranspose();
+    applyViewerPrefsToScore();
+    rebuildDisplayChordTimeline();
+    updateRhythmPlayback(__playbackState.current || 0);
   }
 
   function resetTranspose() {
@@ -1016,7 +984,9 @@ document.addEventListener('DOMContentLoaded', () => {
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
-    reloadScoreInternallyForTranspose();
+    applyViewerPrefsToScore();
+    rebuildDisplayChordTimeline();
+    updateRhythmPlayback(__playbackState.current || 0);
   }
 
   function changeScoreFont(delta) {
@@ -1408,7 +1378,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   let __playerUi = null;
   let __playbackState = { current: 0, total: 0, playing: false, progress: 0 };
-  let __pendingScoreReloadState = null;
   function setupPlayerBar(api) {
     if (__playerUi) return;
     const btnPrev = document.getElementById("ui-prev");
@@ -1782,24 +1751,6 @@ function pad4(num) {
         rebuildDisplayChordTimeline();
         rebuildRhythmState();
         updateRhythmPlayback(__playbackState.current || 0);
-
-        const pendingReload = __pendingScoreReloadState;
-        if (pendingReload) {
-          __pendingScoreReloadState = null;
-          setTimeout(() => {
-            try { if (window.__atApi) window.__atApi.playbackSpeed = pendingReload.speed || (viewerPrefs.playbackSpeedPercent / 100); } catch (e) {}
-            try {
-              if (window.__atApi && Number.isFinite(pendingReload.current) && pendingReload.current > 0) {
-                window.__atApi.timePosition = pendingReload.current;
-              }
-            } catch (e) {}
-            if (pendingReload.playing) {
-              setTimeout(() => {
-                try { if (window.__atApi) window.__atApi.play(); } catch (e) {}
-              }, 60);
-            }
-          }, 30);
-        }
       });
 
       window.__atApi.renderFinished.on(() => {
