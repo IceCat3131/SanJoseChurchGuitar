@@ -8,25 +8,6 @@
   <link rel="stylesheet" href="style.css" />
   <script src="assets/alphatab/alphaTab.js"></script>
 <script>
-
-// ===== V20 FORCE REBUILD LAYER (STEP3) =====
-function __V20_forceFullRebuild(){
-  try{
-    if(typeof ensureSchemeState==='function') ensureSchemeState();
-  }catch(e){}
-  try{
-    if(typeof rebuildAutoAccompanimentSong==='function') rebuildAutoAccompanimentSong();
-  }catch(e){}
-  try{
-    if(typeof applySelectedSchemeEffects==='function') applySelectedSchemeEffects();
-  }catch(e){}
-  setTimeout(function(){
-    try{
-      if(typeof applyCurrentPatternToOriginalTab==='function') applyCurrentPatternToOriginalTab();
-    }catch(e){}
-  },80);
-}
-
 // ===== GTZ 和弦时间轴 + 节拍/节奏跟随 =====
 window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
 window.__chordTimelineRaw = [];
@@ -732,10 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function isSchemeCapoActive() {
-    try {
-      if (typeof window.__isOriginalPatternSelected === 'function' && window.__isOriginalPatternSelected()) return false;
-    } catch (e) {}
-    return !!window.__tabRewriteModeActive;
+    return true;
   }
 
   function getEffectiveCapo() {
@@ -1041,42 +1019,25 @@ document.addEventListener('DOMContentLoaded', () => {
   function changeTranspose(delta) {
     viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, getUserTranspose() + delta));
     saveViewerPrefs();
-    try { if (typeof window.__ensureSchemeState === 'function') window.__ensureSchemeState(); 
- try{__V20_forceFullRebuild();}catch(e){}
-} catch (e) {}
+    try { if (typeof window.__ensureSchemeState === 'function') window.__ensureSchemeState(); } catch (e) {}
     refreshAdjustUI();
     updateMetaRow();
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
+    try { if (typeof applySelectedSchemeEffects === 'function') applySelectedSchemeEffects(); } catch (e) {}
     updateRhythmPlayback(__playbackState.current || 0);
-    if (__shouldRewritePatternAfterTranspose()) {
-      try {
-        if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
-        setTimeout(() => {
-          try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('transpose pattern rewrite failed', e); }
-        }, 60);
-      } catch (e) { console.warn('transpose pattern rewrite failed', e); }
-    }
   }
 
   function resetTranspose() {
     viewerPrefs.transposeSemitones = 0;
     saveViewerPrefs();
+    try { if (typeof window.__ensureSchemeState === 'function') window.__ensureSchemeState(); } catch (e) {}
     refreshAdjustUI();
     updateMetaRow();
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
+    try { if (typeof applySelectedSchemeEffects === 'function') applySelectedSchemeEffects(); } catch (e) {}
     updateRhythmPlayback(__playbackState.current || 0);
-    if (__shouldRewritePatternAfterTranspose()) {
-      try {
-        if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
-        setTimeout(() => {
-          try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); 
- try{__V20_forceFullRebuild();}catch(e){}
-} catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
-        }, 60);
-      } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
-    }
   }
 
   function changeScoreFont(delta) {
@@ -2880,7 +2841,7 @@ function __isOriginalPatternSelected() {
   if (typeof oldSwitch === 'function') {
     window.switchRhythmPatternSafe = function() {
       oldSwitch.apply(this, arguments);
-      setTimeout(applyCurrentPatternToOriginalTab, 50);
+      setTimeout(function(){ try { if (typeof applySelectedSchemeEffects === 'function') applySelectedSchemeEffects(); } catch(e){} try { applyCurrentPatternToOriginalTab(); } catch(e){} }, 50);
     };
   }
 
@@ -2914,7 +2875,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v20-step3</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v20-step4</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0 · scheme: A（原谱）</div>
 <script>
 (function(){
@@ -3123,9 +3084,10 @@ function __isOriginalPatternSelected() {
       if (typeof rebuildDisplayChordTimeline === 'function') rebuildDisplayChordTimeline();
       if (typeof scheduleChordRewrite === 'function') scheduleChordRewrite(30);
       if (typeof syncUI === 'function') syncUI();
+      if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
       if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
       if (typeof window.__updateDebugBadges === 'function') window.__updateDebugBadges();
-      if (typeof window.__tabRewriteModeActive !== 'undefined' && typeof window.applyCurrentPatternToOriginalTab === 'function' && window.__tabRewriteModeActive) {
+      if (typeof window.applyCurrentPatternToOriginalTab === 'function') {
         setTimeout(function(){ try { window.applyCurrentPatternToOriginalTab(); } catch(e){} }, 40);
       }
     } catch (e) { console.warn('applySelectedSchemeEffects failed', e); }
@@ -3140,8 +3102,6 @@ function __isOriginalPatternSelected() {
     st.currentSchemeId = id;
     window.__schemeState = st;
     applySelectedSchemeEffects();
-  
-    try{__V20_forceFullRebuild();}catch(e){}
   }
 
   function ensureSchemeState(){
