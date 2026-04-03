@@ -754,10 +754,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getTrackPlaybackSemitones(track) {
     const base = getUserTranspose();
-    // TAB 轨：播放层只补歌曲自带 CAPO。
-    // 用户转调已经在记谱/显示层生效，这里不要再把 base 叠加一次，
-    // 否则会出现「转调重复加一次」的问题。
-    return trackUsesTab(track) ? getEffectiveCapo() : base;
+    if (!trackUsesTab(track)) {
+      return base;
+    }
+    // 原谱模式：TAB 轨播放层必须 = 用户转调 + 歌曲自带 CAPO。
+    // 否则就会出现：显示数字跟着转调变化，但实际播放音高始终只吃 CAPO 的问题。
+    //
+    // 自动伴奏/改写模式：新的 TAB XML 已经把用户转调后的按法写进去了，
+    // 这里再叠加 base 会导致重复转调，所以只补歌曲自带 CAPO。
+    if (window.__tabRewriteModeActive) {
+      return getEffectiveCapo();
+    }
+    return base + getEffectiveCapo();
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -2849,7 +2857,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v11</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v12</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
