@@ -2857,8 +2857,8 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v13</div>
-<div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0 · scheme: A</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v14</div>
+<div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0 · scheme: A（原谱）</div>
 <script>
 (function(){
   function updateDebugBadges(){
@@ -2874,7 +2874,8 @@ function __isOriginalPatternSelected() {
       var tr = 0;
       try { tr = (typeof getUserTranspose === 'function') ? getUserTranspose() : 0; } catch(e) {}
       var scheme='A'; try { scheme = (window.__schemeState && window.__schemeState.currentSchemeId) || 'A'; } catch(e) {}
-      if (modeEl) modeEl.textContent = 'mode: ' + mode + ' · transpose: ' + tr + ' · scheme: ' + scheme;
+      if (modeEl) var schemeText = (scheme === 'A') ? 'A（原谱）' : scheme;
+      if (modeEl) modeEl.textContent = 'mode: ' + mode + ' · transpose: ' + tr + ' · scheme: ' + schemeText;
     } catch(e) {}
   }
   window.__updateDebugBadges = updateDebugBadges;
