@@ -14,13 +14,14 @@ window.__chordTimelineRaw = [];
 window.__measureTimelineRaw = [];
 window.__chordTimeline = [];
 window.__rhythmState = { meter: '--', patternId: '--', steps: [], stepsPerBar: 0 };
-window.__buildVersion = 'transpose-fix-v7';
+window.__buildVersion = 'transpose-fix-v8';
 window.__pendingForcedVisibleTrackIndices = null;
 window.__pendingPatternTransposeValue = null;
 window.__pendingPatternModeKey = 'original';
 window.__pendingPatternReloadAfterTranspose = false;
 window.__pendingPatternReloadToken = 0;
 window.__internalRebuildTimer = null;
+window.__lastExplicitTrackSelection = null;
 window.__autoAccompanimentSong = [];
 window.__autoAccompanimentCurrentBar = null;
 
@@ -996,30 +997,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const modeKey = getCurrentRhythmModeKey();
     const token = ++window.__pendingPatternReloadToken;
     try {
-      const currentSelected = (typeof getSelectedTrackIndicesSafe === 'function') ? getSelectedTrackIndicesSafe() : [];
+      const currentSelected = rememberCurrentTrackSelection();
       window.__pendingForcedVisibleTrackIndices = Array.isArray(currentSelected) ? currentSelected.slice() : null;
-      window.__lastExplicitTrackSelection = Array.isArray(currentSelected) ? currentSelected.slice() : null;
     } catch (e) {}
     window.__pendingPatternModeKey = modeKey;
+    window.__pendingPatternReloadAfterTranspose = (modeKey !== 'original');
     if (window.__internalRebuildTimer) clearTimeout(window.__internalRebuildTimer);
     window.__internalRebuildTimer = setTimeout(() => {
       if (token !== window.__pendingPatternReloadToken) return;
       try {
-        if (modeKey === 'original') {
-          loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText);
-        } else {
-          // 关键：自动伴奏模式下，转调后直接按最新转调重新生成当前节奏，不先退回原谱。
-          applyCurrentPatternToOriginalTab();
-          setTimeout(() => {
-            try {
-              const sel = Array.isArray(window.__lastExplicitTrackSelection) ? window.__lastExplicitTrackSelection.slice() : null;
-              if (sel && sel.length && typeof setSelectedTrackIndicesSafe === 'function' && typeof applyTrackSelection === 'function') {
-                setSelectedTrackIndicesSafe(sel);
-                applyTrackSelection();
-              }
-            } catch (e) { console.warn('restore track selection after pattern rebuild failed', e); }
-          }, 140);
-        }
+        // 统一先回到原始 XML 基底，再由 scoreLoaded 按当前模式重建。
+        loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText);
       } catch (e) {
         console.warn('scheduleInternalPatternRebuild failed', e);
       }
@@ -1835,8 +1823,13 @@ function pad4(num) {
           if (modeKey !== 'original') {
             setTimeout(() => {
               try { applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('post-load pattern restore failed', e); }
+              setTimeout(() => { try { restoreRememberedTrackSelection(); } catch(e) {} }, 220);
             }, 30);
+          } else {
+            setTimeout(() => { try { restoreRememberedTrackSelection(); } catch(e) {} }, 120);
           }
+        } else {
+          setTimeout(() => { try { restoreRememberedTrackSelection(); } catch(e) {} }, 120);
         }
       });
 
@@ -2297,6 +2290,32 @@ function pad4(num) {
     }
   }
 
+  function rememberCurrentTrackSelection(){
+    try {
+      const selected = getSelectedTrackIndicesSafe();
+      if (Array.isArray(selected)) {
+        window.__lastExplicitTrackSelection = selected.slice();
+      }
+      return selected;
+    } catch(e) {
+      return [];
+    }
+  }
+
+  function restoreRememberedTrackSelection(){
+    try {
+      const sel = Array.isArray(window.__lastExplicitTrackSelection) ? window.__lastExplicitTrackSelection.slice() : null;
+      if (sel && typeof setSelectedTrackIndicesSafe === 'function') {
+        setSelectedTrackIndicesSafe(sel);
+      }
+      if (sel && typeof applyTrackSelection === 'function') {
+        applyTrackSelection();
+      }
+    } catch(e) {
+      console.warn('restoreRememberedTrackSelection failed', e);
+    }
+  }
+
   function setSelectedTrackIndicesSafe(indices){
     try {
       if (typeof __visibleTrackIndices !== 'undefined') {
@@ -2340,6 +2359,7 @@ function pad4(num) {
         if (!now.size) tracks.forEach((_, k) => now.add(k));
         if (cb.checked) now.add(i); else now.delete(i);
         setSelectedTrackIndicesSafe(Array.from(now));
+        window.__lastExplicitTrackSelection = Array.from(now).slice().sort((a,b)=>a-b);
         applyTrackSelection();
       });
 
@@ -2371,11 +2391,13 @@ function pad4(num) {
     trackEl('new-track-all')?.addEventListener('click', () => {
       const tracks = getCurrentTracks();
       setSelectedTrackIndicesSafe(tracks.map((_, i) => i));
+      window.__lastExplicitTrackSelection = tracks.map((_, i) => i);
       buildNewTrackPanel();
       applyTrackSelection();
     });
     trackEl('new-track-none')?.addEventListener('click', () => {
       setSelectedTrackIndicesSafe([]);
+      window.__lastExplicitTrackSelection = [];
       buildNewTrackPanel();
       applyTrackSelection();
     });
@@ -2855,14 +2877,14 @@ function __isOriginalPatternSelected() {
   function applyCurrentPatternToOriginalTab() {
     if (!window.__atApi || !window.__originalXmlText) return;
     try {
-      const currentSelected = (typeof getSelectedTrackIndicesSafe === 'function') ? getSelectedTrackIndicesSafe() : [];
-      if (Array.isArray(currentSelected) && currentSelected.length) {
+      const currentSelected = rememberCurrentTrackSelection();
+      if (Array.isArray(currentSelected)) {
         window.__pendingForcedVisibleTrackIndices = currentSelected.slice();
-        window.__lastExplicitTrackSelection = currentSelected.slice();
       }
     } catch (e) {}
     window.__pendingPatternTransposeValue = getUserTranspose();
     window.__pendingPatternModeKey = getCurrentRhythmModeKey();
+    window.__pendingPatternReloadAfterTranspose = false;
     if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
     rebuildAutoTabTrack();
     const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
@@ -2884,9 +2906,8 @@ function __isOriginalPatternSelected() {
   if (typeof oldSwitch === 'function') {
     window.switchRhythmPatternSafe = function() {
       try {
-        const currentSelected = (typeof getSelectedTrackIndicesSafe === 'function') ? getSelectedTrackIndicesSafe() : [];
-        if (Array.isArray(currentSelected) && currentSelected.length) {
-          window.__lastExplicitTrackSelection = currentSelected.slice();
+        const currentSelected = rememberCurrentTrackSelection();
+        if (Array.isArray(currentSelected)) {
           window.__pendingForcedVisibleTrackIndices = currentSelected.slice();
         }
       } catch (e) {}
@@ -2894,14 +2915,8 @@ function __isOriginalPatternSelected() {
       setTimeout(() => {
         applyCurrentPatternToOriginalTab();
         setTimeout(() => {
-          try {
-            const sel = Array.isArray(window.__lastExplicitTrackSelection) ? window.__lastExplicitTrackSelection.slice() : null;
-            if (sel && sel.length && typeof setSelectedTrackIndicesSafe === 'function' && typeof applyTrackSelection === 'function') {
-              setSelectedTrackIndicesSafe(sel);
-              applyTrackSelection();
-            }
-          } catch (e) { console.warn('restore track selection after rhythm switch failed', e); }
-        }, 140);
+          try { restoreRememberedTrackSelection(); } catch (e) { console.warn('restore track selection after rhythm switch failed', e); }
+        }, 260);
       }, 50);
     };
   }
@@ -2936,7 +2951,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;z-index:99999;font-size:12px;color:#666;background:rgba(255,255,255,.85);padding:2px 6px;border-radius:999px;border:1px solid rgba(0,0,0,.08);">build: transpose-fix-v7</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;z-index:99999;font-size:12px;color:#666;background:rgba(255,255,255,.85);padding:2px 6px;border-radius:999px;border:1px solid rgba(0,0,0,.08);">build: transpose-fix-v8</div>
 <div id="debug-mode-state" style="position:fixed;right:10px;bottom:34px;z-index:99999;font-size:12px;color:#666;background:rgba(255,255,255,.85);padding:2px 6px;border-radius:999px;border:1px solid rgba(0,0,0,.08);">mode: original · transpose: 0</div>
 
 <script>
