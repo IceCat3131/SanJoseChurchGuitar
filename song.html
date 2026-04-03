@@ -9,7 +9,7 @@
   <script src="assets/alphatab/alphaTab.js"></script>
 <script>
 
-// ===== V20 STATE LAYER (STEP1B) =====
+// ===== V20 STATE + RENDER LAYER (STEP2) =====
 window.__V20_STATE = {
   transpose: 0,
   schemeId: "A",
@@ -36,6 +36,17 @@ function __V20_syncFromRealState() {
     }
     window.__V20_STATE.pattern = rs.patternName || null;
   } catch (_) {}
+}
+
+function __V20_applyCurrentPerformanceState() {
+  try { if (typeof window.__ensureSchemeState === 'function') window.__ensureSchemeState(); } catch (_) {}
+  try { if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong(); } catch (_) {}
+  try { if (typeof applySelectedSchemeEffects === 'function') applySelectedSchemeEffects(); } catch (_) {}
+  setTimeout(function(){
+    try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (_) {}
+    try { if (typeof window.__updateDebugBadges === 'function') window.__updateDebugBadges(); } catch (_) {}
+    try { __V20_syncFromRealState(); } catch (_) {}
+  }, 80);
 }
 
 // ===== GTZ 和弦时间轴 + 节拍/节奏跟随 =====
@@ -1063,12 +1074,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
         setTimeout(() => {
           try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('transpose pattern rewrite failed', e); }
-        
-  try { __V20_syncFromRealState(); } catch (e) {}
-}, 60);
+        }, 60);
       } catch (e) { console.warn('transpose pattern rewrite failed', e); }
     }
+  
+    try { __V20_applyCurrentPerformanceState(); } catch (e) {}
+    try { __V20_syncFromRealState(); } catch (e) {}
   }
+
 
   function resetTranspose() {
     viewerPrefs.transposeSemitones = 0;
@@ -1083,12 +1096,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
         setTimeout(() => {
           try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
-        
-  try { __V20_syncFromRealState(); } catch (e) {}
-}, 60);
+        }, 60);
       } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
     }
+  
+    try { __V20_applyCurrentPerformanceState(); } catch (e) {}
+    try { __V20_syncFromRealState(); } catch (e) {}
   }
+
 
   function changeScoreFont(delta) {
     viewerPrefs.scoreFontSizePx = Math.max(14, Math.min(52, viewerPrefs.scoreFontSizePx + delta));
@@ -2569,8 +2584,6 @@ function switchRhythmPatternSafe(){
   if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
   if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
   if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
-
-  try { __V20_syncFromRealState(); } catch (e) {}
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2596,7 +2609,6 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
       if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
-      try { __V20_syncFromRealState(); } catch (e) {}
     } catch (e) {
       console.warn('safe patch init failed', e);
     }
@@ -2894,7 +2906,7 @@ function __isOriginalPatternSelected() {
   if (typeof oldSwitch === 'function') {
     window.switchRhythmPatternSafe = function() {
       oldSwitch.apply(this, arguments);
-      setTimeout(applyCurrentPatternToOriginalTab, 50);
+      setTimeout(function(){ try { applyCurrentPatternToOriginalTab(); } catch(e){} try { __V20_applyCurrentPerformanceState(); } catch(e){} try { __V20_syncFromRealState(); } catch(e){} }, 50);
     };
   }
 
@@ -2902,6 +2914,8 @@ function __isOriginalPatternSelected() {
     setTimeout(() => {
       // Start on original if option exists.
       try { applyCurrentPatternToOriginalTab(); } catch(e) { console.warn('applyCurrentPatternToOriginalTab failed', e); }
+      try { __V20_applyCurrentPerformanceState(); } catch(e) {}
+      try { __V20_syncFromRealState(); } catch(e) {}
     }, 1600);
   });
 })();
@@ -2928,7 +2942,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v20-step1b</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v20-step2</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0 · scheme: A（原谱）</div>
 <script>
 (function(){
@@ -3155,6 +3169,7 @@ function __isOriginalPatternSelected() {
     window.__schemeState = st;
     applySelectedSchemeEffects();
   
+    try { __V20_applyCurrentPerformanceState(); } catch (e) {}
     try { __V20_syncFromRealState(); } catch (e) {}
   }
 
