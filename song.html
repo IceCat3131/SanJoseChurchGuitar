@@ -1115,6 +1115,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let __internalScoreRebuildRunning = false;
   let __internalScoreRebuildQueued = false;
   let __internalScoreRebuildReason = '';
+  window.__pendingPatternReapplyAfterLoad = false;
+  window.__pendingPatternReapplyReason = '';
 
   function applyViewerPrefsToScore() {
     if (!window.__atApi) return;
@@ -1138,20 +1140,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const selectedTracks = Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : null;
       const shouldRewriteTab = !!window.__originalXmlText && ((window.__tabRewriteModeActive) || (typeof __isOriginalPatternSelected === 'function' && !__isOriginalPatternSelected()));
       if (window.__currentGtzUrl) {
-        await loadGtzIntoAlphaTab(window.__atApi, window.__currentGtzUrl, { visibleTrackIndices: selectedTracks });
         if (shouldRewriteTab) {
-          setTimeout(() => {
-            try {
-              applyCurrentPatternToOriginalTab();
-              if (Array.isArray(selectedTracks)) {
-                __visibleTrackIndices = selectedTracks.slice();
-                if (typeof renderVisibleTracks === 'function' && window.__atApi) renderVisibleTracks(window.__atApi);
-              }
-            } catch (e) {
-              console.warn('post-reload applyCurrentPatternToOriginalTab failed', e);
-            }
-          }, 30);
+          window.__pendingPatternReapplyAfterLoad = true;
+          window.__pendingPatternReapplyReason = reason;
+        } else {
+          window.__pendingPatternReapplyAfterLoad = false;
+          window.__pendingPatternReapplyReason = '';
         }
+        await loadGtzIntoAlphaTab(window.__atApi, window.__currentGtzUrl, { visibleTrackIndices: selectedTracks });
       } else if (shouldRewriteTab) {
         applyCurrentPatternToOriginalTab();
       } else {
@@ -1824,6 +1820,24 @@ function pad4(num) {
         rebuildDisplayChordTimeline();
         rebuildRhythmState();
         updateRhythmPlayback(__playbackState.current || 0);
+
+        if (window.__pendingPatternReapplyAfterLoad) {
+          const pendingReason = window.__pendingPatternReapplyReason || 'scoreLoaded';
+          window.__pendingPatternReapplyAfterLoad = false;
+          window.__pendingPatternReapplyReason = '';
+          setTimeout(() => {
+            try {
+              if (typeof applyCurrentPatternToOriginalTab === 'function') {
+                applyCurrentPatternToOriginalTab();
+              }
+              if (Array.isArray(__visibleTrackIndices) && typeof renderVisibleTracks === 'function') {
+                renderVisibleTracks(window.__atApi);
+              }
+            } catch (e) {
+              console.warn('deferred applyCurrentPatternToOriginalTab failed', pendingReason, e);
+            }
+          }, 0);
+        }
       });
 
       window.__atApi.renderFinished.on(() => {
