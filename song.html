@@ -1024,35 +1024,28 @@ document.addEventListener('DOMContentLoaded', () => {
     saveViewerPrefs();
     try { if (typeof window.__ensureSchemeState === 'function') window.__ensureSchemeState(); } catch (e) {}
     refreshAdjustUI();
-    updateMetaRow();
-    applyViewerPrefsToScore();
-    rebuildDisplayChordTimeline();
-    updateRhythmPlayback(__playbackState.current || 0);
-    if (__shouldRewritePatternAfterTranspose()) {
-      try {
-        if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
-        setTimeout(() => {
-          try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('transpose pattern rewrite failed', e); }
-        }, 60);
-      } catch (e) { console.warn('transpose pattern rewrite failed', e); }
+    if (typeof window.__applyCurrentSchemeAndTranspose === 'function') {
+      window.__applyCurrentSchemeAndTranspose({ forcePatternRewrite: __shouldRewritePatternAfterTranspose(), delayMs: 70 });
+    } else {
+      updateMetaRow();
+      applyViewerPrefsToScore();
+      rebuildDisplayChordTimeline();
+      updateRhythmPlayback(__playbackState.current || 0);
     }
   }
 
   function resetTranspose() {
     viewerPrefs.transposeSemitones = 0;
     saveViewerPrefs();
+    try { if (typeof window.__ensureSchemeState === 'function') window.__ensureSchemeState(); } catch (e) {}
     refreshAdjustUI();
-    updateMetaRow();
-    applyViewerPrefsToScore();
-    rebuildDisplayChordTimeline();
-    updateRhythmPlayback(__playbackState.current || 0);
-    if (__shouldRewritePatternAfterTranspose()) {
-      try {
-        if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
-        setTimeout(() => {
-          try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
-        }, 60);
-      } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
+    if (typeof window.__applyCurrentSchemeAndTranspose === 'function') {
+      window.__applyCurrentSchemeAndTranspose({ forcePatternRewrite: __shouldRewritePatternAfterTranspose(), delayMs: 70 });
+    } else {
+      updateMetaRow();
+      applyViewerPrefsToScore();
+      rebuildDisplayChordTimeline();
+      updateRhythmPlayback(__playbackState.current || 0);
     }
   }
 
@@ -2891,8 +2884,8 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v15</div>
-<div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0 · scheme: A（原谱）</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v16</div>
+<div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0 · scheme: A（统一入口）</div>
 <script>
 (function(){
   function updateDebugBadges(){
@@ -2908,7 +2901,7 @@ function __isOriginalPatternSelected() {
       var tr = 0;
       try { tr = (typeof getUserTranspose === 'function') ? getUserTranspose() : 0; } catch(e) {}
       var scheme='A'; try { scheme = (window.__schemeState && window.__schemeState.currentSchemeId) || 'A'; } catch(e) {}
-      if (modeEl) var schemeText = (scheme === 'A') ? 'A（原谱）' : scheme;
+      if (modeEl) var schemeText = (scheme === 'A') ? 'A（统一）' : scheme;
       if (modeEl) modeEl.textContent = 'mode: ' + mode + ' · transpose: ' + tr + ' · scheme: ' + schemeText;
       try { if (typeof window.__refreshSchemeDock === 'function') window.__refreshSchemeDock(); } catch(e) {}
     } catch(e) {}
@@ -3010,7 +3003,7 @@ function __isOriginalPatternSelected() {
     const originalCapo = getSongCapo();
     const candidates = [];
 
-    // 方案A：未转调时严格沿用原谱；转调后优先延续原谱风格。
+    // 方案A（统一）：未转调时严格沿用原谱；转调后优先延续原谱风格。
     if (getUserTranspose() === 0) {
       candidates.push({
         id: 'A',
@@ -3109,6 +3102,29 @@ function __isOriginalPatternSelected() {
     refreshSchemeDock();
   }
 
+  function applyCurrentSchemeAndTranspose(options){
+    options = options || {};
+    try {
+      if (typeof applyViewerPrefsToScore === 'function') applyViewerPrefsToScore();
+      if (typeof rebuildDisplayChordTimeline === 'function') rebuildDisplayChordTimeline();
+      if (typeof scheduleChordRewrite === 'function') scheduleChordRewrite(30);
+      if (typeof updateMetaRow === 'function') updateMetaRow();
+      if (typeof syncUI === 'function') syncUI();
+      if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+      const shouldRewrite = (typeof __shouldRewritePatternAfterTranspose === 'function' && __shouldRewritePatternAfterTranspose()) || !!options.forcePatternRewrite;
+      if (shouldRewrite && typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+      if (shouldRewrite && typeof window.applyCurrentPatternToOriginalTab === 'function') {
+        setTimeout(function(){
+          try { window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('applyCurrentSchemeAndTranspose rewrite failed', e); }
+        }, options.delayMs || 60);
+      }
+      if (typeof window.__updateDebugBadges === 'function') window.__updateDebugBadges();
+    } catch (e) {
+      console.warn('applyCurrentSchemeAndTranspose failed', e);
+    }
+    refreshSchemeDock();
+  }
+
   function setCurrentScheme(id){
     ensureSchemeState();
     const st = window.__schemeState || {};
@@ -3116,7 +3132,7 @@ function __isOriginalPatternSelected() {
     if (!schemes.some(function(s){ return s && s.id === id; })) return;
     st.currentSchemeId = id;
     window.__schemeState = st;
-    applySelectedSchemeEffects();
+    applyCurrentSchemeAndTranspose({ forcePatternRewrite: !!window.__tabRewriteModeActive, delayMs: 70 });
   }
 
   function ensureSchemeState(){
@@ -3132,6 +3148,7 @@ function __isOriginalPatternSelected() {
   window.__ensureSchemeState = ensureSchemeState;
   window.__refreshSchemeDock = refreshSchemeDock;
   window.__setCurrentScheme = setCurrentScheme;
+  window.__applyCurrentSchemeAndTranspose = applyCurrentSchemeAndTranspose;
 
   document.addEventListener('DOMContentLoaded', function(){
     ['A','B','C'].forEach(function(id){
