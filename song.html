@@ -1135,10 +1135,25 @@ document.addEventListener('DOMContentLoaded', () => {
     __internalScoreRebuildRunning = true;
     __internalScoreRebuildReason = reason;
     try {
-      if (window.__tabRewriteModeActive && window.__originalXmlText) {
+      const selectedTracks = Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : null;
+      const shouldRewriteTab = !!window.__originalXmlText && ((window.__tabRewriteModeActive) || (typeof __isOriginalPatternSelected === 'function' && !__isOriginalPatternSelected()));
+      if (window.__currentGtzUrl) {
+        await loadGtzIntoAlphaTab(window.__atApi, window.__currentGtzUrl, { visibleTrackIndices: selectedTracks });
+        if (shouldRewriteTab) {
+          setTimeout(() => {
+            try {
+              applyCurrentPatternToOriginalTab();
+              if (Array.isArray(selectedTracks)) {
+                __visibleTrackIndices = selectedTracks.slice();
+                if (typeof renderVisibleTracks === 'function' && window.__atApi) renderVisibleTracks(window.__atApi);
+              }
+            } catch (e) {
+              console.warn('post-reload applyCurrentPatternToOriginalTab failed', e);
+            }
+          }, 30);
+        }
+      } else if (shouldRewriteTab) {
         applyCurrentPatternToOriginalTab();
-      } else if (window.__currentGtzUrl) {
-        await loadGtzIntoAlphaTab(window.__atApi, window.__currentGtzUrl);
       } else {
         applyViewerPrefsToScore();
       }
@@ -1191,7 +1206,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return bytes;
   }
 
-  async function loadGtzIntoAlphaTab(api, gtzUrl) {
+  async function loadGtzIntoAlphaTab(api, gtzUrl, options = {}) {
     try { api.stop(); } catch(e) {}
     setPlayerUI({ current: 0, total: 0, playing: false });
 
@@ -1215,6 +1230,13 @@ document.addEventListener('DOMContentLoaded', () => {
       zoom: st?.zoom ?? (vs?.zoom != null ? Math.round(vs.zoom * 100) : 100),
       visibleTrackIndices: st?.visibleTrackIndices ?? vs?.visibleTrackIndices ?? null
     };
+    const pendingVisibleTracks = Array.isArray(options?.visibleTrackIndices) ? options.visibleTrackIndices.slice() : null;
+    if (pendingVisibleTracks) {
+      window.__pendingVisibleTrackIndices = pendingVisibleTracks.slice();
+      window.__gtzState.visibleTrackIndices = pendingVisibleTracks.slice();
+    } else {
+      window.__pendingVisibleTrackIndices = null;
+    }
     window.__gtzMeta = gtz?.meta || null;
     updateMetaRow(window.__gtzMeta || null);
 
@@ -1770,7 +1792,12 @@ function pad4(num) {
       window.__atApi.scoreLoaded.on((e) => {
         __currentScore = e.score || window.__atApi.score;
         const st = window.__gtzState || {};
-        __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
+        if (Array.isArray(window.__pendingVisibleTrackIndices)) {
+          __visibleTrackIndices = window.__pendingVisibleTrackIndices.slice();
+          window.__pendingVisibleTrackIndices = null;
+        } else {
+          __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
+        }
 
         if (!viewerPrefs.__initializedFromSong) {
           viewerPrefs.scoreFontSizePx = st.fontSizePx || viewerPrefs.scoreFontSizePx;
@@ -2787,6 +2814,8 @@ function __isOriginalPatternSelected() {
 
   function loadXmlTextIntoAlphaTab(api, xmlText) {
     if (!api || !xmlText) return;
+    const selectedTracks = Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : null;
+    if (selectedTracks) window.__pendingVisibleTrackIndices = selectedTracks.slice();
     try {
       const parsed = buildMusicTimelineFromXML(xmlText);
       window.__musicTimelineRaw = parsed;
