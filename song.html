@@ -974,9 +974,10 @@ document.addEventListener('DOMContentLoaded', () => {
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
-    applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
+    applyViewerPrefsToScore();
+    scheduleInternalScoreRebuild('transpose-change', window.__tabRewriteModeActive ? 10 : 30);
   }
 
   function resetTranspose() {
@@ -984,9 +985,10 @@ document.addEventListener('DOMContentLoaded', () => {
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
-    applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
+    applyViewerPrefsToScore();
+    scheduleInternalScoreRebuild('transpose-reset', window.__tabRewriteModeActive ? 10 : 30);
   }
 
   function changeScoreFont(delta) {
@@ -1109,6 +1111,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  let __internalScoreRebuildTimer = null;
+  let __internalScoreRebuildRunning = false;
+  let __internalScoreRebuildQueued = false;
+  let __internalScoreRebuildReason = '';
+
   function applyViewerPrefsToScore() {
     if (!window.__atApi) return;
     applyLyricsFont(window.__atApi, viewerPrefs.scoreFontSizePx);
@@ -1116,6 +1123,45 @@ document.addEventListener('DOMContentLoaded', () => {
     applyScoreTransposition(window.__atApi);
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
     scheduleChordRewrite(30);
+  }
+
+  async function runInternalScoreRebuildNow(reason = 'manual') {
+    if (!window.__atApi) return;
+    if (__internalScoreRebuildRunning) {
+      __internalScoreRebuildQueued = true;
+      __internalScoreRebuildReason = reason;
+      return;
+    }
+    __internalScoreRebuildRunning = true;
+    __internalScoreRebuildReason = reason;
+    try {
+      if (window.__tabRewriteModeActive && window.__originalXmlText) {
+        applyCurrentPatternToOriginalTab();
+      } else if (window.__currentGtzUrl) {
+        await loadGtzIntoAlphaTab(window.__atApi, window.__currentGtzUrl);
+      } else {
+        applyViewerPrefsToScore();
+      }
+    } catch (e) {
+      console.warn('runInternalScoreRebuildNow failed', reason, e);
+      applyViewerPrefsToScore();
+    } finally {
+      __internalScoreRebuildRunning = false;
+      if (__internalScoreRebuildQueued) {
+        __internalScoreRebuildQueued = false;
+        const nextReason = __internalScoreRebuildReason || reason;
+        scheduleInternalScoreRebuild(nextReason, 0);
+      }
+    }
+  }
+
+  function scheduleInternalScoreRebuild(reason = 'manual', delay = 40) {
+    try { if (__internalScoreRebuildTimer) clearTimeout(__internalScoreRebuildTimer); } catch (e) {}
+    __internalScoreRebuildReason = reason;
+    __internalScoreRebuildTimer = setTimeout(() => {
+      __internalScoreRebuildTimer = null;
+      runInternalScoreRebuildNow(reason);
+    }, Math.max(0, delay | 0));
   }
 
 
