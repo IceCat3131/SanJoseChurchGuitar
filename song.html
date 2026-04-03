@@ -236,7 +236,7 @@ function remapTimelineTimesIfNeeded() {
 
 function rebuildDisplayChordTimeline() {
   const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
-  const semitones = getUserTranspose();
+  const semitones = getDisplayedChordShift();
   const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
   window.__chordTimeline = raw.map((c, i) => ({
     ...c,
@@ -724,12 +724,43 @@ document.addEventListener('DOMContentLoaded', () => {
     return Number.isFinite(metaCapo) ? Math.max(0, Math.min(12, metaCapo)) : 0;
   }
 
+  function getCurrentScheme() {
+    try {
+      const st = window.__schemeState || {};
+      const id = st.currentSchemeId || 'A';
+      const arr = Array.isArray(st.schemes) ? st.schemes : [];
+      return arr.find(s => s && s.id === id) || arr[0] || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function isSchemeCapoActive() {
+    try {
+      if (typeof window.__isOriginalPatternSelected === 'function' && window.__isOriginalPatternSelected()) return false;
+    } catch (e) {}
+    return !!window.__tabRewriteModeActive;
+  }
+
   function getEffectiveCapo() {
+    const scheme = getCurrentScheme();
+    const capo = parseInt(scheme && scheme.capo, 10);
+    if (isSchemeCapoActive() && Number.isFinite(capo)) {
+      return Math.max(0, Math.min(12, capo));
+    }
     return getSongCapo();
   }
 
   function getDisplayedCapoLabel() {
-    return getSongCapo();
+    return getEffectiveCapo();
+  }
+
+  function getDisplayedChordShift() {
+    if (!isSchemeCapoActive()) return getUserTranspose();
+    const scheme = getCurrentScheme();
+    const schemeCapo = parseInt(scheme && scheme.capo, 10);
+    const capo = Number.isFinite(schemeCapo) ? schemeCapo : getSongCapo();
+    return getSongCapo() + getUserTranspose() - capo;
   }
 
   function getUserTranspose() {
@@ -859,7 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function rewriteRenderedChordTexts() {
     const root = document.getElementById('alphaTab');
     if (!root) return;
-    const semitones = getUserTranspose();
+    const semitones = getDisplayedChordShift();
     const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
     const chordFontPx = getChordFontSizePx();
     const nodes = root.querySelectorAll('text, tspan');
@@ -995,6 +1026,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function setPlaybackSpeedPercent(value) {
     viewerPrefs.playbackSpeedPercent = Math.min(150, Math.max(50, parseInt(value, 10) || 100));
     saveViewerPrefs();
+    try { if (typeof window.__ensureSchemeState === 'function') window.__ensureSchemeState(); } catch (e) {}
     refreshAdjustUI();
     updateMetaRow();
     try { if (window.__atApi) window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
@@ -1014,6 +1046,7 @@ document.addEventListener('DOMContentLoaded', () => {
 if (window.__V20_STATE){__V20_updateState({transpose: window.__V20_STATE.transpose + delta});}
     viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, getUserTranspose() + delta));
     saveViewerPrefs();
+    try { if (typeof window.__ensureSchemeState === 'function') window.__ensureSchemeState(); } catch (e) {}
     refreshAdjustUI();
     updateMetaRow();
     applyViewerPrefsToScore();
@@ -1156,6 +1189,7 @@ if (window.__V20_STATE){__V20_updateState({transpose:0});}
 
   function updateMetaRow(meta) {
     __currentMeta = meta || __currentMeta || {};
+    try { if (typeof window.__ensureSchemeState === 'function') window.__ensureSchemeState(); } catch (e) {}
   }
 
   function refreshAdjustUI() {
@@ -2882,7 +2916,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v14</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v15</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0 · scheme: A（原谱）</div>
 <script>
 (function(){
@@ -2901,6 +2935,7 @@ function __isOriginalPatternSelected() {
       var scheme='A'; try { scheme = (window.__schemeState && window.__schemeState.currentSchemeId) || 'A'; } catch(e) {}
       if (modeEl) var schemeText = (scheme === 'A') ? 'A（原谱）' : scheme;
       if (modeEl) modeEl.textContent = 'mode: ' + mode + ' · transpose: ' + tr + ' · scheme: ' + schemeText;
+      try { if (typeof window.__refreshSchemeDock === 'function') window.__refreshSchemeDock(); } catch(e) {}
     } catch(e) {}
   }
   window.__updateDebugBadges = updateDebugBadges;
@@ -2910,6 +2945,9 @@ function __isOriginalPatternSelected() {
 
 <script>
 (function(){
+  const SHAPE_FAMILY_ORDER = ['G','C','D','A','E','F'];
+  const SHAPE_FAMILY_WEIGHT = { G:0, C:1, D:2, A:3, E:4, F:5 };
+
   function detectBaseShapeFamily(){
     try {
       const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
@@ -2923,7 +2961,7 @@ function __isOriginalPatternSelected() {
         'F':'F','Fm':'F','F7':'F','Fmaj7':'F','Fm7':'F','Fsus4':'F','Fsus2':'F'
       };
       raw.slice(0, 24).forEach(function(item){
-        const c = String((item && item.chord) || '').trim();
+        const c = String((item && item.chordRaw) || '').trim();
         if (!c) return;
         const m = c.match(/^[A-G](?:#|b)?(?:m|maj7|m7|7|sus2|sus4)?/);
         if (!m) return;
@@ -2937,27 +2975,219 @@ function __isOriginalPatternSelected() {
     } catch(e) { return 'G'; }
   }
 
+  function getFamilyIndex(fam){
+    const idx = NOTE_TO_INDEX[String(fam || '').trim()];
+    return Number.isFinite(idx) ? idx : NOTE_TO_INDEX.G;
+  }
+
+  function normalizeSignedDelta(n){
+    let v = Number(n) || 0;
+    while (v > 6) v -= 12;
+    while (v < -6) v += 12;
+    return v;
+  }
+
+  function buildDisplayChordPreview(delta, preferFlats){
+    const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
+    const out = [];
+    const seen = new Set();
+    for (const item of raw) {
+      const chord = String((item && item.chordRaw) || '').trim();
+      if (!chord) continue;
+      const next = delta ? transposeChordSymbol(chord, delta, preferFlats) : chord;
+      if (!next || seen.has(next)) continue;
+      seen.add(next);
+      out.push(next);
+      if (out.length >= 4) break;
+    }
+    return out;
+  }
+
+  function buildSchemeCandidate(id, label, family, totalShift, baseFamily, preferFlats, reason){
+    const baseIdx = getFamilyIndex(baseFamily);
+    const famIdx = getFamilyIndex(family);
+    const rawDelta = famIdx - baseIdx;
+    const options = [rawDelta, rawDelta - 12, rawDelta + 12].map(normalizeSignedDelta);
+    let best = null;
+    options.forEach(function(delta){
+      const capo = totalShift - delta;
+      if (capo < 0 || capo > 12) return;
+      const penalty = (capo > 5 ? 30 : 0) + Math.abs(capo - 2) + (SHAPE_FAMILY_WEIGHT[family] || 0);
+      if (!best || penalty < best.penalty) best = { capo, delta, penalty };
+    });
+    if (!best) return null;
+    return {
+      id,
+      label,
+      capo: best.capo,
+      baseShapeFamily: family,
+      displayShift: best.delta,
+      previewChords: buildDisplayChordPreview(best.delta, preferFlats),
+      reason: reason || ''
+    };
+  }
+
+  function generateSchemes(){
+    const st = window.__schemeState || {};
+    const baseFamily = st.baseShapeFamily || detectBaseShapeFamily();
+    const preferFlats = prefersFlatsFromKeyName((window.__currentMeta && window.__currentMeta.key_name) || '');
+    const totalShift = getSongCapo() + getUserTranspose();
+    const originalCapo = getSongCapo();
+    const candidates = [];
+
+    // 方案A：未转调时严格沿用原谱；转调后优先延续原谱风格。
+    if (getUserTranspose() === 0) {
+      candidates.push({
+        id: 'A',
+        label: '方案A',
+        capo: originalCapo,
+        baseShapeFamily: baseFamily,
+        displayShift: 0,
+        previewChords: buildDisplayChordPreview(0, preferFlats),
+        reason: '默认沿用原谱方案'
+      });
+    } else {
+      const a = buildSchemeCandidate('A', '方案A', baseFamily, totalShift, baseFamily, preferFlats, '优先保持原谱手感');
+      if (a) candidates.push(a);
+    }
+
+    SHAPE_FAMILY_ORDER.forEach(function(fam){
+      if (fam === baseFamily && getUserTranspose() !== 0) return;
+      if (getUserTranspose() === 0 && fam === baseFamily) return;
+      const c = buildSchemeCandidate('X_' + fam, '候选', fam, totalShift, baseFamily, preferFlats, '备选方案');
+      if (c) candidates.push(c);
+    });
+
+    const unique = [];
+    const seen = new Set();
+    for (const item of candidates) {
+      if (!item) continue;
+      const key = item.baseShapeFamily + ':' + item.capo;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(item);
+    }
+
+    const ranked = unique.slice().sort(function(a,b){
+      const pa = (a.id === 'A' ? -100 : 0) + (a.capo > 5 ? 30 : 0) + Math.abs(a.capo - 2) + (SHAPE_FAMILY_WEIGHT[a.baseShapeFamily] || 0);
+      const pb = (b.id === 'A' ? -100 : 0) + (b.capo > 5 ? 30 : 0) + Math.abs(b.capo - 2) + (SHAPE_FAMILY_WEIGHT[b.baseShapeFamily] || 0);
+      return pa - pb;
+    });
+
+    const top = ranked.slice(0, 3);
+    while (top.length < 3) {
+      top.push({
+        id: String.fromCharCode(65 + top.length),
+        label: '方案' + String.fromCharCode(65 + top.length),
+        capo: originalCapo,
+        baseShapeFamily: baseFamily,
+        displayShift: 0,
+        previewChords: buildDisplayChordPreview(0, preferFlats),
+        reason: '占位方案'
+      });
+    }
+    top.forEach(function(item, idx){
+      item.id = String.fromCharCode(65 + idx);
+      item.label = '方案' + item.id;
+    });
+    return top;
+  }
+
+  function refreshSchemeDock(){
+    const dock = document.getElementById('scheme-dock');
+    if (!dock) return;
+    const st = window.__schemeState || {};
+    const schemes = Array.isArray(st.schemes) ? st.schemes : [];
+    const active = st.currentSchemeId || 'A';
+    ['A','B','C'].forEach(function(id){
+      const btn = document.getElementById('scheme-btn-' + id);
+      if (!btn) return;
+      const scheme = schemes.find(function(s){ return s && s.id === id; });
+      btn.classList.toggle('is-active', active === id);
+      btn.disabled = !scheme;
+      btn.textContent = scheme ? (id + ' · CP' + scheme.capo) : id;
+      btn.title = scheme ? ((scheme.baseShapeFamily || '--') + '组 · ' + (scheme.reason || '')) : id;
+    });
+    const info = document.getElementById('scheme-info');
+    if (info) {
+      const scheme = schemes.find(function(s){ return s && s.id === active; }) || schemes[0];
+      if (scheme) {
+        const preview = Array.isArray(scheme.previewChords) ? scheme.previewChords.join(' · ') : '';
+        info.textContent = scheme.label + '：' + (scheme.baseShapeFamily || '--') + '组 · Capo ' + scheme.capo + (preview ? (' · ' + preview) : '');
+      } else {
+        info.textContent = '方案：--';
+      }
+    }
+  }
+
+  function applySelectedSchemeEffects(){
+    try {
+      if (typeof rebuildDisplayChordTimeline === 'function') rebuildDisplayChordTimeline();
+      if (typeof scheduleChordRewrite === 'function') scheduleChordRewrite(30);
+      if (typeof syncUI === 'function') syncUI();
+      if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+      if (typeof window.__updateDebugBadges === 'function') window.__updateDebugBadges();
+      if (typeof window.__tabRewriteModeActive !== 'undefined' && typeof window.applyCurrentPatternToOriginalTab === 'function' && window.__tabRewriteModeActive) {
+        setTimeout(function(){ try { window.applyCurrentPatternToOriginalTab(); } catch(e){} }, 40);
+      }
+    } catch (e) { console.warn('applySelectedSchemeEffects failed', e); }
+    refreshSchemeDock();
+  }
+
+  function setCurrentScheme(id){
+    ensureSchemeState();
+    const st = window.__schemeState || {};
+    const schemes = Array.isArray(st.schemes) ? st.schemes : [];
+    if (!schemes.some(function(s){ return s && s.id === id; })) return;
+    st.currentSchemeId = id;
+    window.__schemeState = st;
+    applySelectedSchemeEffects();
+  }
+
   function ensureSchemeState(){
     const st = window.__schemeState || {};
-    if (!st.currentSchemeId) st.currentSchemeId = 'A';
-    if (!Array.isArray(st.schemes)) st.schemes = [];
-    if (!st.baseShapeFamily) st.baseShapeFamily = detectBaseShapeFamily();
-    st.schemes = [{
-      id: 'A',
-      label: '方案A',
-      capo: Number((window.__gtzMeta && window.__gtzMeta.capo) || 0) || 0,
-      baseShapeFamily: st.baseShapeFamily,
-      reason: '默认沿用原谱方案'
-    }];
+    const prevId = st.currentSchemeId || 'A';
+    st.baseShapeFamily = detectBaseShapeFamily();
+    st.schemes = generateSchemes();
+    st.currentSchemeId = st.schemes.some(function(s){ return s && s.id === prevId; }) ? prevId : 'A';
     window.__schemeState = st;
+    refreshSchemeDock();
   }
 
   window.__ensureSchemeState = ensureSchemeState;
+  window.__refreshSchemeDock = refreshSchemeDock;
+  window.__setCurrentScheme = setCurrentScheme;
+
   document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(ensureSchemeState, 800);
-    setTimeout(ensureSchemeState, 1800);
+    ['A','B','C'].forEach(function(id){
+      const btn = document.getElementById('scheme-btn-' + id);
+      if (btn) btn.addEventListener('click', function(){ setCurrentScheme(id); });
+    });
+    setTimeout(ensureSchemeState, 600);
+    setTimeout(ensureSchemeState, 1500);
+    setInterval(refreshSchemeDock, 1200);
   });
 })();
+</script>
+
+<div id="scheme-dock" style="position:fixed;left:12px;bottom:12px;z-index:99998;display:flex;flex-direction:column;gap:6px;min-width:236px;font:12px/1.35 Arial,sans-serif;color:#555;background:rgba(255,255,255,.94);border:1px solid rgba(0,0,0,.08);border-radius:14px;padding:10px 10px 8px;box-shadow:0 4px 18px rgba(0,0,0,.08);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+    <strong style="font-size:12px;color:#444;">和弦方案</strong>
+    <span style="font-size:11px;color:#888;">A/B/C</span>
+  </div>
+  <div style="display:flex;gap:6px;">
+    <button id="scheme-btn-A" type="button" style="flex:1;min-width:0;border:1px solid rgba(0,0,0,.12);background:#fff;border-radius:999px;padding:6px 8px;font:12px/1 Arial,sans-serif;">A</button>
+    <button id="scheme-btn-B" type="button" style="flex:1;min-width:0;border:1px solid rgba(0,0,0,.12);background:#fff;border-radius:999px;padding:6px 8px;font:12px/1 Arial,sans-serif;">B</button>
+    <button id="scheme-btn-C" type="button" style="flex:1;min-width:0;border:1px solid rgba(0,0,0,.12);background:#fff;border-radius:999px;padding:6px 8px;font:12px/1 Arial,sans-serif;">C</button>
+  </div>
+  <div id="scheme-info" style="font-size:11px;color:#777;white-space:normal;">方案：--</div>
+  <div style="font-size:10px;color:#999;">当前先以原谱为方案A，B/C为系统推荐方案。</div>
+</div>
+<style>
+  #scheme-dock button.is-active{background:#111;color:#fff;border-color:#111;}
+  #scheme-dock button:disabled{opacity:.5;}
+</style>
+
 </script>
 
 </body>
