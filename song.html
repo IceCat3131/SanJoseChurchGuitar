@@ -773,27 +773,26 @@ document.addEventListener('DOMContentLoaded', () => {
    * 所以这里一定要把“显示层 semitones”和“播放层 semitones”拆开。
    */
   function getTrackTransposeSemitones(track) {
-    const base = getUserTranspose();
-    if (window.__tabRewriteModeActive && trackUsesTab(track)) {
+    const user = getUserTranspose();
+    const schemeShift = getDisplayedChordShift();
+    if (!trackUsesTab(track)) {
+      return user;
+    }
+    if (window.__tabRewriteModeActive) {
       return 0;
     }
-    return base;
+    return schemeShift;
   }
 
   function getTrackPlaybackSemitones(track) {
-    const base = getUserTranspose();
+    const user = getUserTranspose();
     if (!trackUsesTab(track)) {
-      return base;
+      return user;
     }
-    // 原谱模式：TAB 轨播放层必须 = 用户转调 + 歌曲自带 CAPO。
-    // 否则就会出现：显示数字跟着转调变化，但实际播放音高始终只吃 CAPO 的问题。
-    //
-    // 自动伴奏/改写模式：新的 TAB XML 已经把用户转调后的按法写进去了，
-    // 这里再叠加 base 会导致重复转调，所以只补歌曲自带 CAPO。
     if (window.__tabRewriteModeActive) {
       return getEffectiveCapo();
     }
-    return base + getEffectiveCapo();
+    return getDisplayedChordShift() + getEffectiveCapo();
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -2875,7 +2874,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v20-step4</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v20-step5</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0 · scheme: A（原谱）</div>
 <script>
 (function(){
@@ -2986,54 +2985,50 @@ function __isOriginalPatternSelected() {
     };
   }
 
+  
   function generateSchemes(){
     const st = window.__schemeState || {};
     const baseFamily = st.baseShapeFamily || detectBaseShapeFamily();
     const preferFlats = prefersFlatsFromKeyName((window.__currentMeta && window.__currentMeta.key_name) || '');
-    const totalShift = getSongCapo() + getUserTranspose();
     const originalCapo = getSongCapo();
-    const candidates = [];
+    const baseIdx = getFamilyIndex(baseFamily);
+    const targetIdx = (baseIdx + originalCapo + getUserTranspose() + 120) % 12;
 
-    // 方案A：未转调时严格沿用原谱；转调后优先延续原谱风格。
-    if (getUserTranspose() === 0) {
-      candidates.push({
-        id: 'A',
-        label: '方案A',
-        capo: originalCapo,
-        baseShapeFamily: baseFamily,
-        displayShift: 0,
-        previewChords: buildDisplayChordPreview(0, preferFlats),
-        reason: '默认沿用原谱方案'
-      });
-    } else {
-      const a = buildSchemeCandidate('A', '方案A', baseFamily, totalShift, baseFamily, preferFlats, '优先保持原谱手感');
-      if (a) candidates.push(a);
+    function makeCandidate(id,label,family,reason){
+      const famIdx = getFamilyIndex(family);
+      let capo = (targetIdx - famIdx + 12) % 12;
+      let displayShift = famIdx - baseIdx;
+      while (displayShift > 6) displayShift -= 12;
+      while (displayShift < -6) displayShift += 12;
+      if (capo > 6) return null;
+      return {
+        id:id,
+        label:label,
+        capo:capo,
+        baseShapeFamily:family,
+        displayShift:displayShift,
+        previewChords: buildDisplayChordPreview(displayShift, preferFlats),
+        reason: reason || ''
+      };
     }
 
-    SHAPE_FAMILY_ORDER.forEach(function(fam){
-      if (fam === baseFamily && getUserTranspose() !== 0) return;
-      if (getUserTranspose() === 0 && fam === baseFamily) return;
-      const c = buildSchemeCandidate('X_' + fam, '候选', fam, totalShift, baseFamily, preferFlats, '备选方案');
-      if (c) candidates.push(c);
-    });
-
-    const unique = [];
-    const seen = new Set();
-    for (const item of candidates) {
-      if (!item) continue;
-      const key = item.baseShapeFamily + ':' + item.capo;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      unique.push(item);
-    }
-
-    const ranked = unique.slice().sort(function(a,b){
-      const pa = (a.id === 'A' ? -100 : 0) + (a.capo > 5 ? 30 : 0) + Math.abs(a.capo - 2) + (SHAPE_FAMILY_WEIGHT[a.baseShapeFamily] || 0);
-      const pb = (b.id === 'A' ? -100 : 0) + (b.capo > 5 ? 30 : 0) + Math.abs(b.capo - 2) + (SHAPE_FAMILY_WEIGHT[b.baseShapeFamily] || 0);
+    const rankedFamilies = SHAPE_FAMILY_ORDER.slice().sort(function(a,b){
+      const pa = Math.abs((((targetIdx - getFamilyIndex(a) + 12) % 12)) - 2) + (SHAPE_FAMILY_WEIGHT[a]||0);
+      const pb = Math.abs((((targetIdx - getFamilyIndex(b) + 12) % 12)) - 2) + (SHAPE_FAMILY_WEIGHT[b]||0);
       return pa - pb;
     });
 
-    const top = ranked.slice(0, 3);
+    const candidates = [];
+    const a = makeCandidate('A','方案A', getUserTranspose()===0 ? baseFamily : baseFamily, '默认/优先原谱风格');
+    if (a) candidates.push(a);
+
+    rankedFamilies.forEach(function(fam){
+      if (candidates.some(function(x){ return x.baseShapeFamily===fam; })) return;
+      const c = makeCandidate('X_'+fam,'候选',fam,'备选方案');
+      if (c) candidates.push(c);
+    });
+
+    const top = candidates.slice(0,3);
     while (top.length < 3) {
       top.push({
         id: String.fromCharCode(65 + top.length),
@@ -3051,6 +3046,7 @@ function __isOriginalPatternSelected() {
     });
     return top;
   }
+
 
   function refreshSchemeDock(){
     const dock = document.getElementById('scheme-dock');
@@ -3084,6 +3080,7 @@ function __isOriginalPatternSelected() {
       if (typeof rebuildDisplayChordTimeline === 'function') rebuildDisplayChordTimeline();
       if (typeof scheduleChordRewrite === 'function') scheduleChordRewrite(30);
       if (typeof syncUI === 'function') syncUI();
+      try { if (typeof applyViewerPrefsToScore === 'function') applyViewerPrefsToScore(); } catch(e) {}
       if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
       if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
       if (typeof window.__updateDebugBadges === 'function') window.__updateDebugBadges();
