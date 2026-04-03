@@ -9,7 +9,7 @@
   <script src="assets/alphatab/alphaTab.js"></script>
 <script>
 
-// ===== V20 STATE LAYER (STEP1) =====
+// ===== V20 STATE LAYER (STEP1B) =====
 window.__V20_STATE = {
   transpose: 0,
   schemeId: "A",
@@ -17,18 +17,25 @@ window.__V20_STATE = {
   pattern: null
 };
 
-function __V20_updateState(patch) {
-  Object.assign(window.__V20_STATE, patch);
-  __V20_applyState();
-}
-
-function __V20_applyState() {
-  if (typeof window.currentTranspose === "number") {
-    window.currentTranspose = window.__V20_STATE.transpose;
-  }
-  if (typeof window.currentSchemeId !== "undefined") {
-    window.currentSchemeId = window.__V20_STATE.schemeId;
-  }
+function __V20_syncFromRealState() {
+  try {
+    const st = window.__schemeState || {};
+    if (st.currentSchemeId) window.__V20_STATE.schemeId = st.currentSchemeId;
+  } catch (_) {}
+  try {
+    if (typeof getUserTranspose === 'function') {
+      window.__V20_STATE.transpose = getUserTranspose() || 0;
+    } else if (window.viewerPrefs && typeof window.viewerPrefs.transposeSemitones === 'number') {
+      window.__V20_STATE.transpose = window.viewerPrefs.transposeSemitones || 0;
+    }
+  } catch (_) {}
+  try {
+    const rs = window.__rhythmState || {};
+    if (typeof __isOriginalPatternSelected === 'function') {
+      window.__V20_STATE.mode = __isOriginalPatternSelected() ? "original" : "rhythm";
+    }
+    window.__V20_STATE.pattern = rs.patternName || null;
+  } catch (_) {}
 }
 
 // ===== GTZ 和弦时间轴 + 节拍/节奏跟随 =====
@@ -1043,7 +1050,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function changeTranspose(delta) {
-if (window.__V20_STATE){__V20_updateState({transpose: window.__V20_STATE.transpose + delta});}
     viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, getUserTranspose() + delta));
     saveViewerPrefs();
     try { if (typeof window.__ensureSchemeState === 'function') window.__ensureSchemeState(); } catch (e) {}
@@ -1057,13 +1063,14 @@ if (window.__V20_STATE){__V20_updateState({transpose: window.__V20_STATE.transpo
         if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
         setTimeout(() => {
           try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('transpose pattern rewrite failed', e); }
-        }, 60);
+        
+  try { __V20_syncFromRealState(); } catch (e) {}
+}, 60);
       } catch (e) { console.warn('transpose pattern rewrite failed', e); }
     }
   }
 
   function resetTranspose() {
-if (window.__V20_STATE){__V20_updateState({transpose:0});}
     viewerPrefs.transposeSemitones = 0;
     saveViewerPrefs();
     refreshAdjustUI();
@@ -1076,7 +1083,9 @@ if (window.__V20_STATE){__V20_updateState({transpose:0});}
         if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
         setTimeout(() => {
           try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
-        }, 60);
+        
+  try { __V20_syncFromRealState(); } catch (e) {}
+}, 60);
       } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
     }
   }
@@ -2560,6 +2569,8 @@ function switchRhythmPatternSafe(){
   if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
   if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
   if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+
+  try { __V20_syncFromRealState(); } catch (e) {}
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2585,6 +2596,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
       if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+      try { __V20_syncFromRealState(); } catch (e) {}
     } catch (e) {
       console.warn('safe patch init failed', e);
     }
@@ -2916,7 +2928,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v15</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v20-step1b</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0 · scheme: A（原谱）</div>
 <script>
 (function(){
@@ -3142,6 +3154,8 @@ function __isOriginalPatternSelected() {
     st.currentSchemeId = id;
     window.__schemeState = st;
     applySelectedSchemeEffects();
+  
+    try { __V20_syncFromRealState(); } catch (e) {}
   }
 
   function ensureSchemeState(){
