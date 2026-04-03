@@ -988,7 +988,12 @@ document.addEventListener('DOMContentLoaded', () => {
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
     if (__shouldRewritePatternAfterTranspose()) {
-      try { applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('transpose pattern rewrite failed', e); }
+      try {
+        if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+        setTimeout(() => {
+          try { applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('transpose pattern rewrite failed', e); }
+        }, 60);
+      } catch (e) { console.warn('transpose pattern rewrite failed', e); }
     }
   }
 
@@ -1001,7 +1006,12 @@ document.addEventListener('DOMContentLoaded', () => {
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
     if (__shouldRewritePatternAfterTranspose()) {
-      try { applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
+      try {
+        if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+        setTimeout(() => {
+          try { applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
+        }, 60);
+      } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
     }
   }
 
@@ -2837,7 +2847,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v9</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v10</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
