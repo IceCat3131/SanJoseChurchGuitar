@@ -14,7 +14,10 @@ window.__chordTimelineRaw = [];
 window.__measureTimelineRaw = [];
 window.__chordTimeline = [];
 window.__rhythmState = { meter: '--', patternId: '--', steps: [], stepsPerBar: 0 };
-window.__buildVersion = 'transpose-fix-v5';
+window.__buildVersion = 'transpose-fix-v6';
+window.__pendingForcedVisibleTrackIndices = null;
+window.__pendingPatternTransposeValue = null;
+window.__pendingPatternModeKey = 'original';
 window.__pendingPatternReloadAfterTranspose = false;
 window.__pendingPatternReloadToken = 0;
 window.__internalRebuildTimer = null;
@@ -993,6 +996,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const modeKey = getCurrentRhythmModeKey();
     if (modeKey === 'original') return;
     const token = ++window.__pendingPatternReloadToken;
+    try {
+      const currentSelected = (typeof getSelectedTrackIndicesSafe === 'function') ? getSelectedTrackIndicesSafe() : [];
+      window.__pendingForcedVisibleTrackIndices = Array.isArray(currentSelected) ? currentSelected.slice() : null;
+    } catch (e) {}
+    window.__pendingPatternModeKey = modeKey;
     window.__pendingPatternReloadAfterTranspose = true;
     if (window.__internalRebuildTimer) clearTimeout(window.__internalRebuildTimer);
     window.__internalRebuildTimer = setTimeout(() => {
@@ -1763,7 +1771,12 @@ function pad4(num) {
       window.__atApi.scoreLoaded.on((e) => {
         __currentScore = e.score || window.__atApi.score;
         const st = window.__gtzState || {};
-        __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
+        if (Array.isArray(window.__pendingForcedVisibleTrackIndices)) {
+          __visibleTrackIndices = window.__pendingForcedVisibleTrackIndices.slice();
+          window.__pendingForcedVisibleTrackIndices = null;
+        } else {
+          __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
+        }
 
         if (!viewerPrefs.__initializedFromSong) {
           viewerPrefs.scoreFontSizePx = st.fontSizePx || viewerPrefs.scoreFontSizePx;
@@ -1790,6 +1803,19 @@ function pad4(num) {
         rebuildDisplayChordTimeline();
         rebuildRhythmState();
         updateRhythmPlayback(__playbackState.current || 0);
+
+        if (window.__pendingPatternTransposeValue != null) {
+          const pendingTranspose = window.__pendingPatternTransposeValue;
+          window.__pendingPatternTransposeValue = null;
+          setTimeout(() => {
+            try {
+              if (getUserTranspose() === pendingTranspose) {
+                applyScoreTransposition(window.__atApi);
+                renderVisibleTracks(window.__atApi);
+              }
+            } catch (e) { console.warn('pending pattern transpose reapply failed', e); }
+          }, 60);
+        }
 
         if (window.__pendingPatternReloadAfterTranspose) {
           const modeKey = getCurrentRhythmModeKey();
@@ -2793,6 +2819,12 @@ function __isOriginalPatternSelected() {
   function loadXmlTextIntoAlphaTab(api, xmlText) {
     if (!api || !xmlText) return;
     try {
+      const currentSelected = (typeof getSelectedTrackIndicesSafe === 'function') ? getSelectedTrackIndicesSafe() : [];
+      if (Array.isArray(currentSelected) && currentSelected.length) {
+        window.__pendingForcedVisibleTrackIndices = currentSelected.slice();
+      }
+    } catch (e) {}
+    try {
       const parsed = buildMusicTimelineFromXML(xmlText);
       window.__musicTimelineRaw = parsed;
       window.__chordTimelineRaw = parsed.chords.slice();
@@ -2812,6 +2844,14 @@ function __isOriginalPatternSelected() {
 
   function applyCurrentPatternToOriginalTab() {
     if (!window.__atApi || !window.__originalXmlText) return;
+    try {
+      const currentSelected = (typeof getSelectedTrackIndicesSafe === 'function') ? getSelectedTrackIndicesSafe() : [];
+      if (Array.isArray(currentSelected) && currentSelected.length) {
+        window.__pendingForcedVisibleTrackIndices = currentSelected.slice();
+      }
+    } catch (e) {}
+    window.__pendingPatternTransposeValue = getUserTranspose();
+    window.__pendingPatternModeKey = getCurrentRhythmModeKey();
     if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
     rebuildAutoTabTrack();
     const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
@@ -2867,6 +2907,24 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="build-version" style="position:fixed;right:10px;bottom:8px;z-index:99999;font-size:12px;color:#666;background:rgba(255,255,255,.85);padding:2px 6px;border-radius:999px;border:1px solid rgba(0,0,0,.08);">build: transpose-fix-v5</div>
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;z-index:99999;font-size:12px;color:#666;background:rgba(255,255,255,.85);padding:2px 6px;border-radius:999px;border:1px solid rgba(0,0,0,.08);">build: transpose-fix-v6</div>
+<div id="debug-mode-state" style="position:fixed;right:10px;bottom:34px;z-index:99999;font-size:12px;color:#666;background:rgba(255,255,255,.85);padding:2px 6px;border-radius:999px;border:1px solid rgba(0,0,0,.08);">mode: original · transpose: 0</div>
+
+<script>
+(function(){
+  function refreshDebugState(){
+    const el = document.getElementById('debug-mode-state');
+    if (!el) return;
+    let mode = 'original';
+    try { mode = (typeof getCurrentRhythmModeKey === 'function') ? getCurrentRhythmModeKey() : 'original'; } catch(e) {}
+    const transpose = (typeof getUserTranspose === 'function') ? getUserTranspose() : 0;
+    el.textContent = `mode: ${mode} · transpose: ${transpose}`;
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    setInterval(refreshDebugState, 400);
+    setTimeout(refreshDebugState, 800);
+  });
+})();
+</script>
 </body>
 </html>
