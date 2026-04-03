@@ -14,6 +14,10 @@ window.__chordTimelineRaw = [];
 window.__measureTimelineRaw = [];
 window.__chordTimeline = [];
 window.__rhythmState = { meter: '--', patternId: '--', steps: [], stepsPerBar: 0 };
+window.__buildVersion = 'transpose-fix-v5';
+window.__pendingPatternReloadAfterTranspose = false;
+window.__pendingPatternReloadToken = 0;
+window.__internalRebuildTimer = null;
 window.__autoAccompanimentSong = [];
 window.__autoAccompanimentCurrentBar = null;
 
@@ -969,15 +973,48 @@ document.addEventListener('DOMContentLoaded', () => {
     try { if (window.__atApi) window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
   }
 
+
+  function getCurrentRhythmModeKey() {
+    try {
+      if (typeof window.__isOriginalPatternSelected === 'function' && window.__isOriginalPatternSelected()) {
+        return 'original';
+      }
+      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+      const idx = window.__currentPatternChoiceIndexByMeter ? window.__currentPatternChoiceIndexByMeter[meter] : null;
+      if (idx == null || idx === window.__originalPatternChoiceSentinel) return 'original';
+      return `pattern:${meter}:${idx}`;
+    } catch (e) {
+      return 'original';
+    }
+  }
+
+  function scheduleInternalPatternRebuild() {
+    if (!window.__atApi || !window.__originalXmlText) return;
+    const modeKey = getCurrentRhythmModeKey();
+    if (modeKey === 'original') return;
+    const token = ++window.__pendingPatternReloadToken;
+    window.__pendingPatternReloadAfterTranspose = true;
+    if (window.__internalRebuildTimer) clearTimeout(window.__internalRebuildTimer);
+    window.__internalRebuildTimer = setTimeout(() => {
+      if (token !== window.__pendingPatternReloadToken) return;
+      try {
+        loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText);
+      } catch (e) {
+        console.warn('scheduleInternalPatternRebuild failed', e);
+        window.__pendingPatternReloadAfterTranspose = false;
+      }
+    }, 10);
+  }
+
   function changeTranspose(delta) {
     viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, getUserTranspose() + delta));
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
+    applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
-    applyViewerPrefsToScore();
-    scheduleInternalScoreRebuild('transpose-change', window.__tabRewriteModeActive ? 10 : 30);
+    scheduleInternalPatternRebuild();
   }
 
   function resetTranspose() {
@@ -985,10 +1022,10 @@ document.addEventListener('DOMContentLoaded', () => {
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
+    applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
-    applyViewerPrefsToScore();
-    scheduleInternalScoreRebuild('transpose-reset', window.__tabRewriteModeActive ? 10 : 30);
+    scheduleInternalPatternRebuild();
   }
 
   function changeScoreFont(delta) {
@@ -1111,49 +1148,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  let __internalScoreRebuildTimer = null;
-  let __internalScoreRebuildRunning = false;
-  let __internalScoreRebuildQueued = false;
-  let __internalScoreRebuildReason = '';
-  window.__pendingPatternReapplyAfterLoad = false;
-  window.__pendingPatternReapplyReason = '';
-
-  window.__pendingRhythmSelectionForReload = null;
-
-  function captureCurrentRhythmSelection() {
-    try {
-      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-      const sentinel = (typeof window.__originalPatternChoiceSentinel === 'number') ? window.__originalPatternChoiceSentinel : -1;
-      let idx = null;
-      if (window.__currentPatternChoiceIndexByMeter && Object.prototype.hasOwnProperty.call(window.__currentPatternChoiceIndexByMeter, meter)) {
-        idx = window.__currentPatternChoiceIndexByMeter[meter];
-      }
-      if (idx == null) {
-        if (typeof window.__isOriginalPatternSelected === 'function' && window.__isOriginalPatternSelected()) idx = sentinel;
-        else idx = 0;
-      }
-      return { meter, idx };
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function rememberRhythmSelectionForReload() {
-    window.__pendingRhythmSelectionForReload = captureCurrentRhythmSelection();
-  }
-
-  function restoreRhythmSelectionAfterLoad() {
-    const pending = window.__pendingRhythmSelectionForReload;
-    if (!pending) return;
-    try {
-      const meter = (window.__rhythmState && window.__rhythmState.meter) || pending.meter || '--';
-      if (!window.__currentPatternChoiceIndexByMeter) window.__currentPatternChoiceIndexByMeter = {};
-      window.__currentPatternChoiceIndexByMeter[meter] = pending.idx;
-    } catch (e) {
-      console.warn('restoreRhythmSelectionAfterLoad failed', e);
-    }
-  }
-
   function applyViewerPrefsToScore() {
     if (!window.__atApi) return;
     applyLyricsFont(window.__atApi, viewerPrefs.scoreFontSizePx);
@@ -1161,55 +1155,6 @@ document.addEventListener('DOMContentLoaded', () => {
     applyScoreTransposition(window.__atApi);
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
     scheduleChordRewrite(30);
-  }
-
-  async function runInternalScoreRebuildNow(reason = 'manual') {
-    if (!window.__atApi) return;
-    if (__internalScoreRebuildRunning) {
-      __internalScoreRebuildQueued = true;
-      __internalScoreRebuildReason = reason;
-      return;
-    }
-    __internalScoreRebuildRunning = true;
-    __internalScoreRebuildReason = reason;
-    try {
-      const selectedTracks = Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : null;
-      rememberRhythmSelectionForReload();
-      const shouldRewriteTab = !!window.__originalXmlText && ((window.__tabRewriteModeActive) || (typeof __isOriginalPatternSelected === 'function' && !__isOriginalPatternSelected()));
-      if (window.__currentGtzUrl) {
-        if (shouldRewriteTab) {
-          window.__pendingPatternReapplyAfterLoad = true;
-          window.__pendingPatternReapplyReason = reason;
-        } else {
-          window.__pendingPatternReapplyAfterLoad = false;
-          window.__pendingPatternReapplyReason = '';
-        }
-        await loadGtzIntoAlphaTab(window.__atApi, window.__currentGtzUrl, { visibleTrackIndices: selectedTracks });
-      } else if (shouldRewriteTab) {
-        applyCurrentPatternToOriginalTab();
-      } else {
-        applyViewerPrefsToScore();
-      }
-    } catch (e) {
-      console.warn('runInternalScoreRebuildNow failed', reason, e);
-      applyViewerPrefsToScore();
-    } finally {
-      __internalScoreRebuildRunning = false;
-      if (__internalScoreRebuildQueued) {
-        __internalScoreRebuildQueued = false;
-        const nextReason = __internalScoreRebuildReason || reason;
-        scheduleInternalScoreRebuild(nextReason, 0);
-      }
-    }
-  }
-
-  function scheduleInternalScoreRebuild(reason = 'manual', delay = 40) {
-    try { if (__internalScoreRebuildTimer) clearTimeout(__internalScoreRebuildTimer); } catch (e) {}
-    __internalScoreRebuildReason = reason;
-    __internalScoreRebuildTimer = setTimeout(() => {
-      __internalScoreRebuildTimer = null;
-      runInternalScoreRebuildNow(reason);
-    }, Math.max(0, delay | 0));
   }
 
 
@@ -1239,7 +1184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return bytes;
   }
 
-  async function loadGtzIntoAlphaTab(api, gtzUrl, options = {}) {
+  async function loadGtzIntoAlphaTab(api, gtzUrl) {
     try { api.stop(); } catch(e) {}
     setPlayerUI({ current: 0, total: 0, playing: false });
 
@@ -1263,13 +1208,6 @@ document.addEventListener('DOMContentLoaded', () => {
       zoom: st?.zoom ?? (vs?.zoom != null ? Math.round(vs.zoom * 100) : 100),
       visibleTrackIndices: st?.visibleTrackIndices ?? vs?.visibleTrackIndices ?? null
     };
-    const pendingVisibleTracks = Array.isArray(options?.visibleTrackIndices) ? options.visibleTrackIndices.slice() : null;
-    if (pendingVisibleTracks) {
-      window.__pendingVisibleTrackIndices = pendingVisibleTracks.slice();
-      window.__gtzState.visibleTrackIndices = pendingVisibleTracks.slice();
-    } else {
-      window.__pendingVisibleTrackIndices = null;
-    }
     window.__gtzMeta = gtz?.meta || null;
     updateMetaRow(window.__gtzMeta || null);
 
@@ -1825,12 +1763,7 @@ function pad4(num) {
       window.__atApi.scoreLoaded.on((e) => {
         __currentScore = e.score || window.__atApi.score;
         const st = window.__gtzState || {};
-        if (Array.isArray(window.__pendingVisibleTrackIndices)) {
-          __visibleTrackIndices = window.__pendingVisibleTrackIndices.slice();
-          window.__pendingVisibleTrackIndices = null;
-        } else {
-          __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
-        }
+        __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
 
         if (!viewerPrefs.__initializedFromSong) {
           viewerPrefs.scoreFontSizePx = st.fontSizePx || viewerPrefs.scoreFontSizePx;
@@ -1856,30 +1789,18 @@ function pad4(num) {
         remapTimelineTimesIfNeeded();
         rebuildDisplayChordTimeline();
         rebuildRhythmState();
-        restoreRhythmSelectionAfterLoad();
         updateRhythmPlayback(__playbackState.current || 0);
 
-        if (window.__pendingPatternReapplyAfterLoad) {
-          const pendingReason = window.__pendingPatternReapplyReason || 'scoreLoaded';
-          window.__pendingPatternReapplyAfterLoad = false;
-          window.__pendingPatternReapplyReason = '';
-          setTimeout(() => {
-            try {
-              restoreRhythmSelectionAfterLoad();
-              if (typeof applyCurrentPatternToOriginalTab === 'function') {
-                applyCurrentPatternToOriginalTab();
-              }
-              if (Array.isArray(__visibleTrackIndices) && typeof renderVisibleTracks === 'function') {
-                renderVisibleTracks(window.__atApi);
-              }
-            } catch (e) {
-              console.warn('deferred applyCurrentPatternToOriginalTab failed', pendingReason, e);
-            } finally {
-              window.__pendingRhythmSelectionForReload = null;
-            }
-          }, 0);
-        } else {
-          window.__pendingRhythmSelectionForReload = null;
+        if (window.__pendingPatternReloadAfterTranspose) {
+          const modeKey = getCurrentRhythmModeKey();
+          if (modeKey !== 'original') {
+            window.__pendingPatternReloadAfterTranspose = false;
+            setTimeout(() => {
+              try { applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('post-load pattern restore failed', e); }
+            }, 30);
+          } else {
+            window.__pendingPatternReloadAfterTranspose = false;
+          }
         }
       });
 
@@ -2592,7 +2513,6 @@ function switchRhythmPatternSafe(){
   if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
   if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
   if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
-  if (typeof __syncDesiredRhythmSelection === 'function') __syncDesiredRhythmSelection();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2618,7 +2538,6 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
       if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
-      if (typeof __syncDesiredRhythmSelection === 'function') __syncDesiredRhythmSelection();
     } catch (e) {
       console.warn('safe patch init failed', e);
     }
@@ -2666,21 +2585,6 @@ function __isOriginalPatternSelected() {
   return window.__originalTabOptionEnabled && (window.__currentPatternChoiceIndexByMeter[meter] ?? window.__originalPatternChoiceSentinel) === window.__originalPatternChoiceSentinel;
 }
 
-
-function __getCurrentRhythmSelection() {
-  const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-  const idx = (window.__currentPatternChoiceIndexByMeter && Object.prototype.hasOwnProperty.call(window.__currentPatternChoiceIndexByMeter, meter))
-    ? window.__currentPatternChoiceIndexByMeter[meter]
-    : (window.__originalTabOptionEnabled ? window.__originalPatternChoiceSentinel : 0);
-  return { meter, idx };
-}
-
-function __syncDesiredRhythmSelection() {
-  try {
-    window.__pendingRhythmSelectionForReload = __getCurrentRhythmSelection();
-  } catch (e) {}
-}
-
 (function(){
   const _oldRebuildRhythmState = window.rebuildRhythmState;
   if (typeof _oldRebuildRhythmState === 'function') {
@@ -2720,9 +2624,7 @@ function __syncDesiredRhythmSelection() {
       const choices = (typeof __getPatternChoicesForMeter === 'function') ? __getPatternChoicesForMeter(meter) : [];
       if (!choices.length) return;
       if (!window.__originalTabOptionEnabled) {
-        const out = _oldSwitch.apply(this, arguments);
-        __syncDesiredRhythmSelection();
-        return out;
+        return _oldSwitch.apply(this, arguments);
       }
       const current = (window.__currentPatternChoiceIndexByMeter[meter] ?? window.__originalPatternChoiceSentinel);
       let next;
@@ -2731,7 +2633,6 @@ function __syncDesiredRhythmSelection() {
       else next = current + 1;
       window.__currentPatternChoiceIndexByMeter[meter] = next;
 
-      __syncDesiredRhythmSelection();
       if (next === window.__originalPatternChoiceSentinel) {
         const patternNameEl = document.getElementById('rhythm-pattern-name');
         if (patternNameEl) patternNameEl.textContent = '原始乐谱';
@@ -2745,7 +2646,6 @@ function __syncDesiredRhythmSelection() {
       if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
       if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
       if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
-      __syncDesiredRhythmSelection();
     };
   }
 
@@ -2760,7 +2660,6 @@ function __syncDesiredRhythmSelection() {
         if (typeof updateRhythmPlayback === 'function') {
           updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
         }
-        __syncDesiredRhythmSelection();
       }
     }, 1200);
   });
@@ -2893,8 +2792,6 @@ function __syncDesiredRhythmSelection() {
 
   function loadXmlTextIntoAlphaTab(api, xmlText) {
     if (!api || !xmlText) return;
-    const selectedTracks = Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : null;
-    if (selectedTracks) window.__pendingVisibleTrackIndices = selectedTracks.slice();
     try {
       const parsed = buildMusicTimelineFromXML(xmlText);
       window.__musicTimelineRaw = parsed;
@@ -2915,7 +2812,6 @@ function __syncDesiredRhythmSelection() {
 
   function applyCurrentPatternToOriginalTab() {
     if (!window.__atApi || !window.__originalXmlText) return;
-    if (typeof __syncDesiredRhythmSelection === 'function') __syncDesiredRhythmSelection();
     if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
     rebuildAutoTabTrack();
     const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
@@ -2971,5 +2867,6 @@ function __syncDesiredRhythmSelection() {
 })();
 </script>
 
+<div id="build-version" style="position:fixed;right:10px;bottom:8px;z-index:99999;font-size:12px;color:#666;background:rgba(255,255,255,.85);padding:2px 6px;border-radius:999px;border:1px solid rgba(0,0,0,.08);">build: transpose-fix-v5</div>
 </body>
 </html>
