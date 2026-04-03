@@ -1118,6 +1118,42 @@ document.addEventListener('DOMContentLoaded', () => {
   window.__pendingPatternReapplyAfterLoad = false;
   window.__pendingPatternReapplyReason = '';
 
+  window.__pendingRhythmSelectionForReload = null;
+
+  function captureCurrentRhythmSelection() {
+    try {
+      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+      const sentinel = (typeof window.__originalPatternChoiceSentinel === 'number') ? window.__originalPatternChoiceSentinel : -1;
+      let idx = null;
+      if (window.__currentPatternChoiceIndexByMeter && Object.prototype.hasOwnProperty.call(window.__currentPatternChoiceIndexByMeter, meter)) {
+        idx = window.__currentPatternChoiceIndexByMeter[meter];
+      }
+      if (idx == null) {
+        if (typeof window.__isOriginalPatternSelected === 'function' && window.__isOriginalPatternSelected()) idx = sentinel;
+        else idx = 0;
+      }
+      return { meter, idx };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function rememberRhythmSelectionForReload() {
+    window.__pendingRhythmSelectionForReload = captureCurrentRhythmSelection();
+  }
+
+  function restoreRhythmSelectionAfterLoad() {
+    const pending = window.__pendingRhythmSelectionForReload;
+    if (!pending) return;
+    try {
+      const meter = (window.__rhythmState && window.__rhythmState.meter) || pending.meter || '--';
+      if (!window.__currentPatternChoiceIndexByMeter) window.__currentPatternChoiceIndexByMeter = {};
+      window.__currentPatternChoiceIndexByMeter[meter] = pending.idx;
+    } catch (e) {
+      console.warn('restoreRhythmSelectionAfterLoad failed', e);
+    }
+  }
+
   function applyViewerPrefsToScore() {
     if (!window.__atApi) return;
     applyLyricsFont(window.__atApi, viewerPrefs.scoreFontSizePx);
@@ -1138,6 +1174,7 @@ document.addEventListener('DOMContentLoaded', () => {
     __internalScoreRebuildReason = reason;
     try {
       const selectedTracks = Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : null;
+      rememberRhythmSelectionForReload();
       const shouldRewriteTab = !!window.__originalXmlText && ((window.__tabRewriteModeActive) || (typeof __isOriginalPatternSelected === 'function' && !__isOriginalPatternSelected()));
       if (window.__currentGtzUrl) {
         if (shouldRewriteTab) {
@@ -1819,6 +1856,7 @@ function pad4(num) {
         remapTimelineTimesIfNeeded();
         rebuildDisplayChordTimeline();
         rebuildRhythmState();
+        restoreRhythmSelectionAfterLoad();
         updateRhythmPlayback(__playbackState.current || 0);
 
         if (window.__pendingPatternReapplyAfterLoad) {
@@ -1827,6 +1865,7 @@ function pad4(num) {
           window.__pendingPatternReapplyReason = '';
           setTimeout(() => {
             try {
+              restoreRhythmSelectionAfterLoad();
               if (typeof applyCurrentPatternToOriginalTab === 'function') {
                 applyCurrentPatternToOriginalTab();
               }
@@ -1835,8 +1874,12 @@ function pad4(num) {
               }
             } catch (e) {
               console.warn('deferred applyCurrentPatternToOriginalTab failed', pendingReason, e);
+            } finally {
+              window.__pendingRhythmSelectionForReload = null;
             }
           }, 0);
+        } else {
+          window.__pendingRhythmSelectionForReload = null;
         }
       });
 
@@ -2549,6 +2592,7 @@ function switchRhythmPatternSafe(){
   if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
   if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
   if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+  if (typeof __syncDesiredRhythmSelection === 'function') __syncDesiredRhythmSelection();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2574,6 +2618,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
       if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+      if (typeof __syncDesiredRhythmSelection === 'function') __syncDesiredRhythmSelection();
     } catch (e) {
       console.warn('safe patch init failed', e);
     }
@@ -2621,6 +2666,21 @@ function __isOriginalPatternSelected() {
   return window.__originalTabOptionEnabled && (window.__currentPatternChoiceIndexByMeter[meter] ?? window.__originalPatternChoiceSentinel) === window.__originalPatternChoiceSentinel;
 }
 
+
+function __getCurrentRhythmSelection() {
+  const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+  const idx = (window.__currentPatternChoiceIndexByMeter && Object.prototype.hasOwnProperty.call(window.__currentPatternChoiceIndexByMeter, meter))
+    ? window.__currentPatternChoiceIndexByMeter[meter]
+    : (window.__originalTabOptionEnabled ? window.__originalPatternChoiceSentinel : 0);
+  return { meter, idx };
+}
+
+function __syncDesiredRhythmSelection() {
+  try {
+    window.__pendingRhythmSelectionForReload = __getCurrentRhythmSelection();
+  } catch (e) {}
+}
+
 (function(){
   const _oldRebuildRhythmState = window.rebuildRhythmState;
   if (typeof _oldRebuildRhythmState === 'function') {
@@ -2660,7 +2720,9 @@ function __isOriginalPatternSelected() {
       const choices = (typeof __getPatternChoicesForMeter === 'function') ? __getPatternChoicesForMeter(meter) : [];
       if (!choices.length) return;
       if (!window.__originalTabOptionEnabled) {
-        return _oldSwitch.apply(this, arguments);
+        const out = _oldSwitch.apply(this, arguments);
+        __syncDesiredRhythmSelection();
+        return out;
       }
       const current = (window.__currentPatternChoiceIndexByMeter[meter] ?? window.__originalPatternChoiceSentinel);
       let next;
@@ -2669,6 +2731,7 @@ function __isOriginalPatternSelected() {
       else next = current + 1;
       window.__currentPatternChoiceIndexByMeter[meter] = next;
 
+      __syncDesiredRhythmSelection();
       if (next === window.__originalPatternChoiceSentinel) {
         const patternNameEl = document.getElementById('rhythm-pattern-name');
         if (patternNameEl) patternNameEl.textContent = '原始乐谱';
@@ -2682,6 +2745,7 @@ function __isOriginalPatternSelected() {
       if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
       if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
       if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+      __syncDesiredRhythmSelection();
     };
   }
 
@@ -2696,6 +2760,7 @@ function __isOriginalPatternSelected() {
         if (typeof updateRhythmPlayback === 'function') {
           updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
         }
+        __syncDesiredRhythmSelection();
       }
     }, 1200);
   });
@@ -2850,6 +2915,7 @@ function __isOriginalPatternSelected() {
 
   function applyCurrentPatternToOriginalTab() {
     if (!window.__atApi || !window.__originalXmlText) return;
+    if (typeof __syncDesiredRhythmSelection === 'function') __syncDesiredRhythmSelection();
     if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
     rebuildAutoTabTrack();
     const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
