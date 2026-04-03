@@ -2857,8 +2857,8 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v12</div>
-<div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v13</div>
+<div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0 · scheme: A</div>
 <script>
 (function(){
   function updateDebugBadges(){
@@ -2873,12 +2873,66 @@ function __isOriginalPatternSelected() {
       } catch(e) {}
       var tr = 0;
       try { tr = (typeof getUserTranspose === 'function') ? getUserTranspose() : 0; } catch(e) {}
-      if (modeEl) modeEl.textContent = 'mode: ' + mode + ' · transpose: ' + tr;
+      var scheme='A'; try { scheme = (window.__schemeState && window.__schemeState.currentSchemeId) || 'A'; } catch(e) {}
+      if (modeEl) modeEl.textContent = 'mode: ' + mode + ' · transpose: ' + tr + ' · scheme: ' + scheme;
     } catch(e) {}
   }
   window.__updateDebugBadges = updateDebugBadges;
   document.addEventListener('DOMContentLoaded', function(){ setInterval(updateDebugBadges, 250); setTimeout(updateDebugBadges, 300); });
 })();
 </script>
+
+<script>
+(function(){
+  function detectBaseShapeFamily(){
+    try {
+      const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
+      const counts = {C:0,G:0,D:0,A:0,E:0,F:0};
+      const famMap = {
+        'C':'C','Cm':'C','C7':'C','Cmaj7':'C','Cm7':'C','Csus4':'C','Csus2':'C',
+        'G':'G','Gm':'G','G7':'G','Gmaj7':'G','Gm7':'G','Gsus4':'G','Gsus2':'G',
+        'D':'D','Dm':'D','D7':'D','Dmaj7':'D','Dm7':'D','Dsus4':'D','Dsus2':'D',
+        'A':'A','Am':'A','A7':'A','Amaj7':'A','Am7':'A','Asus4':'A','Asus2':'A',
+        'E':'E','Em':'E','E7':'E','Emaj7':'E','Em7':'E','Esus4':'E','Esus2':'E',
+        'F':'F','Fm':'F','F7':'F','Fmaj7':'F','Fm7':'F','Fsus4':'F','Fsus2':'F'
+      };
+      raw.slice(0, 24).forEach(function(item){
+        const c = String((item && item.chord) || '').trim();
+        if (!c) return;
+        const m = c.match(/^[A-G](?:#|b)?(?:m|maj7|m7|7|sus2|sus4)?/);
+        if (!m) return;
+        const token = m[0];
+        const fam = famMap[token] || famMap[token.replace(/[#b].*$/, '')] || token.charAt(0);
+        if (counts[fam] != null) counts[fam] += 1;
+      });
+      let best='G', bestv=-1;
+      Object.keys(counts).forEach(function(k){ if (counts[k] > bestv) { best=k; bestv=counts[k]; } });
+      return best;
+    } catch(e) { return 'G'; }
+  }
+
+  function ensureSchemeState(){
+    const st = window.__schemeState || {};
+    if (!st.currentSchemeId) st.currentSchemeId = 'A';
+    if (!Array.isArray(st.schemes)) st.schemes = [];
+    if (!st.baseShapeFamily) st.baseShapeFamily = detectBaseShapeFamily();
+    st.schemes = [{
+      id: 'A',
+      label: '方案A',
+      capo: Number((window.__gtzMeta && window.__gtzMeta.capo) || 0) || 0,
+      baseShapeFamily: st.baseShapeFamily,
+      reason: '默认沿用原谱方案'
+    }];
+    window.__schemeState = st;
+  }
+
+  window.__ensureSchemeState = ensureSchemeState;
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(ensureSchemeState, 800);
+    setTimeout(ensureSchemeState, 1800);
+  });
+})();
+</script>
+
 </body>
 </html>
