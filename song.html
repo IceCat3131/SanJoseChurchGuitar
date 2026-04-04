@@ -6,7 +6,18 @@
   <title>诗歌</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="stylesheet" href="style.css" />
-  <script src="assets/alphatab/alphaTab.js"></script>
+  <script src="assets/alphatab/alphaTab.js">
+document.addEventListener('DOMContentLoaded', () => {
+  const a = document.getElementById('ui-scheme-a');
+  const b = document.getElementById('ui-scheme-b');
+  const c = document.getElementById('ui-scheme-c');
+  if (a) a.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); __V12_5_syncRhythmPanel(); });
+  if (b) b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); if (!b.disabled) __V12_5_syncRhythmPanel(); });
+  if (c) c.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); if (!c.disabled) __V12_5_syncRhythmPanel(); });
+  setTimeout(__V12_5_syncRhythmPanel, 1200);
+});
+
+</script>
 <script>
 // ===== GTZ 和弦时间轴 + 节拍/节奏跟随 =====
 window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
@@ -576,6 +587,27 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div id="ui-search-results" class="core-search-results" hidden></div>
         </div>
+        
+        <div class="core-panel" id="panel-rhythm" hidden>
+          <div class="core-panel-head"><span>节</span></div>
+          <div class="core-panel-body" style="display:flex; gap:16px; align-items:flex-start;">
+            <div style="flex:1; min-width:180px;">
+              <div class="core-panel-note" style="margin-bottom:8px;">和弦方案</div>
+              <div class="core-panel-actions core-panel-actions-left" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="core-option-btn core-primary" id="ui-scheme-a">A</button>
+                <button type="button" class="core-option-btn" id="ui-scheme-b">B</button>
+                <button type="button" class="core-option-btn" id="ui-scheme-c">C</button>
+              </div>
+              <div class="core-panel-note" id="ui-scheme-note" style="margin-top:8px;">原谱模式固定方案A；自动伴奏模式下后续启用B/C。</div>
+            </div>
+            <div style="width:1px; align-self:stretch; background:#eee;"></div>
+            <div style="flex:1; min-width:220px;">
+              <div class="core-panel-note" style="margin-bottom:8px;">节奏组</div>
+              <div id="ui-rhythm-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+          </div>
+        </div>
+
         <div class="core-panel" id="panel-staff" hidden>
           <div class="core-panel-head"><span>谱</span></div>
           <div class="core-panel-actions core-panel-actions-left">
@@ -2062,6 +2094,81 @@ function pad4(num) {
 (function(){
   function $(id){ return document.getElementById(id); }
   function qa(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
+
+  function __V12_5_isOriginalPattern() {
+    try { return (typeof window.__isOriginalPatternSelected === 'function') && window.__isOriginalPatternSelected(); }
+    catch(e) { return true; }
+  }
+  function __V12_5_getPatternChoices() {
+    try {
+      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+      if (typeof __getPatternChoicesForMeter === 'function') return __getPatternChoicesForMeter(meter) || [];
+    } catch(e) {}
+    return [];
+  }
+  function __V12_5_selectOriginalPattern() {
+    try {
+      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+      window.__currentPatternChoiceIndexByMeter = window.__currentPatternChoiceIndexByMeter || {};
+      window.__originalPatternChoiceSentinel = (typeof window.__originalPatternChoiceSentinel === 'number') ? window.__originalPatternChoiceSentinel : -1;
+      window.__currentPatternChoiceIndexByMeter[meter] = window.__originalPatternChoiceSentinel;
+      if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
+      if (typeof syncUI === 'function') syncUI();
+      if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+      __V12_5_syncRhythmPanel();
+    } catch(e) { console.warn('select original failed', e); }
+  }
+  function __V12_5_selectPatternByIndex(idx) {
+    try {
+      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+      window.__currentPatternChoiceIndexByMeter = window.__currentPatternChoiceIndexByMeter || {};
+      window.__currentPatternChoiceIndexByMeter[meter] = idx;
+      if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
+      if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+      if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+      setTimeout(() => {
+        try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch(e) {}
+        try { if (typeof syncUI === 'function') syncUI(); } catch(e) {}
+        __V12_5_syncRhythmPanel();
+      }, 60);
+    } catch(e) { console.warn('select pattern failed', e); }
+  }
+  function __V12_5_renderRhythmList() {
+    const list = $('ui-rhythm-list');
+    if (!list) return;
+    const isOriginal = __V12_5_isOriginalPattern();
+    const choices = __V12_5_getPatternChoices();
+    const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
+    const curIdx = (window.__currentPatternChoiceIndexByMeter && window.__currentPatternChoiceIndexByMeter[meter]);
+    const originalSentinel = (typeof window.__originalPatternChoiceSentinel === 'number') ? window.__originalPatternChoiceSentinel : -1;
+    list.innerHTML = '';
+    function mkBtn(label, active, onClick){
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'core-option-btn' + (active ? ' core-primary' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); onClick(); });
+      list.appendChild(btn);
+    }
+    mkBtn('原谱', isOriginal, __V12_5_selectOriginalPattern);
+    choices.forEach((p, idx) => {
+      const label = (p && p.name) ? p.name.replace(/^分解\s*/, '') : ('节奏' + (idx+1));
+      mkBtn(label, !isOriginal && curIdx === idx, function(){ __V12_5_selectPatternByIndex(idx); });
+    });
+  }
+  function __V12_5_syncSchemeArea() {
+    const isOriginal = __V12_5_isOriginalPattern();
+    const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c'), note = $('ui-scheme-note');
+    if (a) { a.disabled = false; a.classList.add('core-primary'); }
+    if (b) { b.disabled = isOriginal; b.classList.remove('core-primary'); }
+    if (c) { c.disabled = isOriginal; c.classList.remove('core-primary'); }
+    if (note) note.textContent = isOriginal ? '原谱模式固定方案A。' : '自动伴奏模式下当前先启用方案A；B/C后续启用。';
+  }
+  function __V12_5_syncRhythmPanel() {
+    __V12_5_renderRhythmList();
+    __V12_5_syncSchemeArea();
+  }
+
   function openPanel(id){
     const layer = $('core-panel-layer');
     if(!layer) return;
@@ -2506,7 +2613,7 @@ if (typeof rebuildAutoAccompanimentSong === 'function' && !window.__rebuildAutoA
   };
 }
 
-function openPanel('panel-rhythm'){
+function switchRhythmPatternSafe(){
   const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
   const choices = __getPatternChoicesForMeter(meter);
   if (!choices.length) return;
@@ -2525,15 +2632,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   const btnToolbar = document.getElementById('ui-rhythm');
   if (btnToolbar) {
+    btnToolbar.textContent = '节';
     btnToolbar.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
       openPanel('panel-rhythm');
-      try {
-        const state = window.__rhythmState || {};
-        if (typeof __isOriginalPatternSelected === 'function' && __isOriginalPatternSelected()) btnToolbar.textContent = '原';
-        else btnToolbar.textContent = (state.patternName || '节').replace(/^分解\s*/, '').replace(/^扫弦\s*/, '扫');
-      } catch (_) {}
+      __V12_5_syncRhythmPanel();
+      btnToolbar.textContent = '节';
     });
   }
   // Build once after initial page settle
@@ -2857,13 +2962,7 @@ function __isOriginalPatternSelected() {
   function refreshRhythmButtonText(){
     const btn = document.getElementById('ui-rhythm');
     if (!btn) return;
-    if (typeof __isOriginalPatternSelected === 'function' && __isOriginalPatternSelected()) {
-      btn.textContent = '原';
-      return;
-    }
-    const state = window.__rhythmState || {};
-    const name = state.patternName || '节';
-    btn.textContent = name.replace(/^分解\s*/, '').replace(/^扫弦\s*/, '扫');
+    btn.textContent = '节';
   }
   document.addEventListener('DOMContentLoaded', () => {
     setInterval(refreshRhythmButtonText, 500);
@@ -2872,7 +2971,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_5</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">V12_5a</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
@@ -2895,5 +2994,11 @@ function __isOriginalPatternSelected() {
   document.addEventListener('DOMContentLoaded', function(){ setInterval(updateDebugBadges, 250); setTimeout(updateDebugBadges, 300); });
 })();
 </script>
+
+<div id="v12_5a_build_badge" style="position:fixed;right:10px;bottom:8px;z-index:99999;
+font:12px/1.2 Arial,sans-serif;color:#666;background:rgba(255,255,255,.92);
+border:1px solid #ddd;border-radius:6px;padding:4px 8px;box-shadow:0 1px 4px rgba(0,0,0,.08);">
+  build: V12_5a
+</div>
 </body>
 </html>
