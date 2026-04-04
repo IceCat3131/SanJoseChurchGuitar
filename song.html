@@ -8,6 +8,111 @@
   <link rel="stylesheet" href="style.css" />
   <script src="assets/alphatab/alphaTab.js"></script>
 <script>
+
+// ===== V20 STEP6: scheme-driven original/rhythm tab rebuild =====
+function __V20_schemeIsActive() {
+  try {
+    const s = getCurrentScheme();
+    return !!(s && s.id && s.id !== 'A');
+  } catch (e) { return false; }
+}
+
+function __V20_measureChordForStart(startMs) {
+  const chords = Array.isArray(window.__chordTimeline) ? window.__chordTimeline : [];
+  let chordObj = null;
+  for (let i = 0; i < chords.length; i++) {
+    const c = chords[i];
+    if ((c.timeMs || 0) <= (startMs || 0)) chordObj = c; else break;
+  }
+  return chordObj || chords[0] || null;
+}
+
+function __V20_getShapePositions(chordObj, meterText) {
+  const resolved = getAutoShapeForChord(chordObj && chordObj.chordDisplay, chordObj && chordObj.chordRaw);
+  if (!resolved || !resolved.shape) return [];
+  const shape = resolved.shape;
+  const bassString = getBassStringFromShape(shape);
+  const pattern = getAutoPatternForMeter(meterText || '4/4', bassString);
+  const usable = pattern.map(function(stringNo){
+    const fret = shape[6 - stringNo];
+    if (fret === 'x' || fret === 'X' || fret == null) return null;
+    return { string: stringNo, fret: Number(fret) || 0 };
+  }).filter(Boolean);
+  if (usable.length) return usable;
+  const fallback = [];
+  for (let i=0;i<shape.length;i++){
+    const fret = shape[i];
+    if (fret === 'x' || fret === 'X' || fret == null) continue;
+    fallback.push({ string: 6 - i, fret: Number(fret) || 0 });
+  }
+  return fallback;
+}
+
+function __V20_replaceNoteTechnical(doc, noteEl, pos) {
+  if (!pos || !noteEl || noteEl.querySelector('rest')) return;
+  const midi = OPEN_STRING_MIDI[pos.string] + Number(pos.fret || 0);
+  const pitch = midiToPitch(midi);
+
+  let pitchEl = noteEl.querySelector(':scope > pitch');
+  if (!pitchEl) {
+    pitchEl = doc.createElement('pitch');
+    noteEl.insertBefore(pitchEl, noteEl.firstChild);
+  }
+  while (pitchEl.firstChild) pitchEl.removeChild(pitchEl.firstChild);
+  pitchEl.appendChild(createTextEl(doc, 'step', pitch.step));
+  if (pitch.alter != null) pitchEl.appendChild(createTextEl(doc, 'alter', pitch.alter));
+  pitchEl.appendChild(createTextEl(doc, 'octave', pitch.octave));
+
+  let notations = noteEl.querySelector(':scope > notations');
+  if (!notations) {
+    notations = doc.createElement('notations');
+    noteEl.appendChild(notations);
+  }
+  let technical = notations.querySelector(':scope > technical');
+  if (!technical) {
+    technical = doc.createElement('technical');
+    notations.appendChild(technical);
+  }
+  let stringEl = technical.querySelector(':scope > string');
+  if (!stringEl) {
+    stringEl = doc.createElement('string');
+    technical.appendChild(stringEl);
+  }
+  stringEl.textContent = String(pos.string);
+
+  let fretEl = technical.querySelector(':scope > fret');
+  if (!fretEl) {
+    fretEl = doc.createElement('fret');
+    technical.appendChild(fretEl);
+  }
+  fretEl.textContent = String(Math.max(0, Number(pos.fret) || 0));
+}
+
+function __V20_rewriteOriginalSchemeTabTrack(xmlText) {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+  const part = findTabPartNode(xmlDoc);
+  if (!part) return xmlText;
+  const measures = Array.from(part.querySelectorAll(':scope > measure'));
+  const measureTimeline = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
+
+  measures.forEach(function(measureEl){
+    const barNo = parseInt(measureEl.getAttribute('number') || '0', 10);
+    const measureObj = measureTimeline.find(function(m){ return Number(m.measure) === barNo; }) || null;
+    const chordObj = __V20_measureChordForStart(measureObj ? measureObj.startMs : 0);
+    const meterText = (measureObj && measureObj.meter) || '4/4';
+    const positions = __V20_getShapePositions(chordObj, meterText);
+    if (!positions.length) return;
+    const noteEls = Array.from(measureEl.querySelectorAll(':scope > note')).filter(function(n){ return !n.querySelector('rest'); });
+    noteEls.forEach(function(noteEl, idx){
+      const pos = positions[idx % positions.length];
+      __V20_replaceNoteTechnical(xmlDoc, noteEl, pos);
+    });
+  });
+
+  return new XMLSerializer().serializeToString(xmlDoc);
+}
+
 // ===== GTZ 和弦时间轴 + 节拍/节奏跟随 =====
 window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
 window.__chordTimelineRaw = [];
@@ -713,7 +818,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function isSchemeCapoActive() {
-    return true;
+    const scheme = getCurrentScheme();
+    return !!(scheme && scheme.id);
   }
 
   function getEffectiveCapo() {
@@ -773,26 +879,27 @@ document.addEventListener('DOMContentLoaded', () => {
    * 所以这里一定要把“显示层 semitones”和“播放层 semitones”拆开。
    */
   function getTrackTransposeSemitones(track) {
-    const user = getUserTranspose();
-    const schemeShift = getDisplayedChordShift();
-    if (!trackUsesTab(track)) {
-      return user;
-    }
-    if (window.__tabRewriteModeActive) {
+    const base = getUserTranspose();
+    if (window.__tabRewriteModeActive && trackUsesTab(track)) {
       return 0;
     }
-    return schemeShift;
+    return base;
   }
 
   function getTrackPlaybackSemitones(track) {
-    const user = getUserTranspose();
+    const base = getUserTranspose();
     if (!trackUsesTab(track)) {
-      return user;
+      return base;
     }
+    // 原谱模式：TAB 轨播放层必须 = 用户转调 + 歌曲自带 CAPO。
+    // 否则就会出现：显示数字跟着转调变化，但实际播放音高始终只吃 CAPO 的问题。
+    //
+    // 自动伴奏/改写模式：新的 TAB XML 已经把用户转调后的按法写进去了，
+    // 这里再叠加 base 会导致重复转调，所以只补歌曲自带 CAPO。
     if (window.__tabRewriteModeActive) {
       return getEffectiveCapo();
     }
-    return getDisplayedChordShift() + getEffectiveCapo();
+    return base + getEffectiveCapo();
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -1009,7 +1116,8 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
       const idx = window.__currentPatternChoiceIndexByMeter ? window.__currentPatternChoiceIndexByMeter[meter] : null;
-      return idx !== window.__originalPatternChoiceSentinel;
+      if (idx !== window.__originalPatternChoiceSentinel) return true;
+      return !!__V20_schemeIsActive() || !!getUserTranspose();
     } catch (e) {
       return false;
     }
@@ -1023,20 +1131,33 @@ document.addEventListener('DOMContentLoaded', () => {
     updateMetaRow();
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
-    try { if (typeof applySelectedSchemeEffects === 'function') applySelectedSchemeEffects(); } catch (e) {}
     updateRhythmPlayback(__playbackState.current || 0);
+    if (__shouldRewritePatternAfterTranspose()) {
+      try {
+        if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+        setTimeout(() => {
+          try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('transpose pattern rewrite failed', e); }
+        }, 60);
+      } catch (e) { console.warn('transpose pattern rewrite failed', e); }
+    }
   }
 
   function resetTranspose() {
     viewerPrefs.transposeSemitones = 0;
     saveViewerPrefs();
-    try { if (typeof window.__ensureSchemeState === 'function') window.__ensureSchemeState(); } catch (e) {}
     refreshAdjustUI();
     updateMetaRow();
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
-    try { if (typeof applySelectedSchemeEffects === 'function') applySelectedSchemeEffects(); } catch (e) {}
     updateRhythmPlayback(__playbackState.current || 0);
+    if (__shouldRewritePatternAfterTranspose()) {
+      try {
+        if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+        setTimeout(() => {
+          try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
+        }, 60);
+      } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
+    }
   }
 
   function changeScoreFont(delta) {
@@ -2822,9 +2943,17 @@ function __isOriginalPatternSelected() {
     const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
     const idx = window.__currentPatternChoiceIndexByMeter[meter];
     if (idx === window.__originalPatternChoiceSentinel) {
-      window.__tabRewriteModeActive = false;
-      loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText);
-      showIndependentTrackWhenNeeded();
+      const needSchemeRewrite = __V20_schemeIsActive() || !!getUserTranspose();
+      if (needSchemeRewrite) {
+        const xmlText = __V20_rewriteOriginalSchemeTabTrack(window.__originalXmlText);
+        window.__tabRewriteModeActive = true;
+        hideIndependentTrackWhenRewriting();
+        loadXmlTextIntoAlphaTab(window.__atApi, xmlText);
+      } else {
+        window.__tabRewriteModeActive = false;
+        loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText);
+        showIndependentTrackWhenNeeded();
+      }
       return;
     }
     const xmlText = rewriteXmlTabTrack(window.__originalXmlText);
@@ -2840,7 +2969,7 @@ function __isOriginalPatternSelected() {
   if (typeof oldSwitch === 'function') {
     window.switchRhythmPatternSafe = function() {
       oldSwitch.apply(this, arguments);
-      setTimeout(function(){ try { if (typeof applySelectedSchemeEffects === 'function') applySelectedSchemeEffects(); } catch(e){} try { applyCurrentPatternToOriginalTab(); } catch(e){} }, 50);
+      setTimeout(applyCurrentPatternToOriginalTab, 50);
     };
   }
 
@@ -2874,7 +3003,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v20-step5</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v20-step6</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0 · scheme: A（原谱）</div>
 <script>
 (function(){
@@ -2985,50 +3114,54 @@ function __isOriginalPatternSelected() {
     };
   }
 
-  
   function generateSchemes(){
     const st = window.__schemeState || {};
     const baseFamily = st.baseShapeFamily || detectBaseShapeFamily();
     const preferFlats = prefersFlatsFromKeyName((window.__currentMeta && window.__currentMeta.key_name) || '');
+    const totalShift = getSongCapo() + getUserTranspose();
     const originalCapo = getSongCapo();
-    const baseIdx = getFamilyIndex(baseFamily);
-    const targetIdx = (baseIdx + originalCapo + getUserTranspose() + 120) % 12;
+    const candidates = [];
 
-    function makeCandidate(id,label,family,reason){
-      const famIdx = getFamilyIndex(family);
-      let capo = (targetIdx - famIdx + 12) % 12;
-      let displayShift = famIdx - baseIdx;
-      while (displayShift > 6) displayShift -= 12;
-      while (displayShift < -6) displayShift += 12;
-      if (capo > 6) return null;
-      return {
-        id:id,
-        label:label,
-        capo:capo,
-        baseShapeFamily:family,
-        displayShift:displayShift,
-        previewChords: buildDisplayChordPreview(displayShift, preferFlats),
-        reason: reason || ''
-      };
+    // 方案A：未转调时严格沿用原谱；转调后优先延续原谱风格。
+    if (getUserTranspose() === 0) {
+      candidates.push({
+        id: 'A',
+        label: '方案A',
+        capo: originalCapo,
+        baseShapeFamily: baseFamily,
+        displayShift: 0,
+        previewChords: buildDisplayChordPreview(0, preferFlats),
+        reason: '默认沿用原谱方案'
+      });
+    } else {
+      const a = buildSchemeCandidate('A', '方案A', baseFamily, totalShift, baseFamily, preferFlats, '优先保持原谱手感');
+      if (a) candidates.push(a);
     }
 
-    const rankedFamilies = SHAPE_FAMILY_ORDER.slice().sort(function(a,b){
-      const pa = Math.abs((((targetIdx - getFamilyIndex(a) + 12) % 12)) - 2) + (SHAPE_FAMILY_WEIGHT[a]||0);
-      const pb = Math.abs((((targetIdx - getFamilyIndex(b) + 12) % 12)) - 2) + (SHAPE_FAMILY_WEIGHT[b]||0);
-      return pa - pb;
-    });
-
-    const candidates = [];
-    const a = makeCandidate('A','方案A', getUserTranspose()===0 ? baseFamily : baseFamily, '默认/优先原谱风格');
-    if (a) candidates.push(a);
-
-    rankedFamilies.forEach(function(fam){
-      if (candidates.some(function(x){ return x.baseShapeFamily===fam; })) return;
-      const c = makeCandidate('X_'+fam,'候选',fam,'备选方案');
+    SHAPE_FAMILY_ORDER.forEach(function(fam){
+      if (fam === baseFamily && getUserTranspose() !== 0) return;
+      if (getUserTranspose() === 0 && fam === baseFamily) return;
+      const c = buildSchemeCandidate('X_' + fam, '候选', fam, totalShift, baseFamily, preferFlats, '备选方案');
       if (c) candidates.push(c);
     });
 
-    const top = candidates.slice(0,3);
+    const unique = [];
+    const seen = new Set();
+    for (const item of candidates) {
+      if (!item) continue;
+      const key = item.baseShapeFamily + ':' + item.capo;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(item);
+    }
+
+    const ranked = unique.slice().sort(function(a,b){
+      const pa = (a.id === 'A' ? -100 : 0) + (a.capo > 5 ? 30 : 0) + Math.abs(a.capo - 2) + (SHAPE_FAMILY_WEIGHT[a.baseShapeFamily] || 0);
+      const pb = (b.id === 'A' ? -100 : 0) + (b.capo > 5 ? 30 : 0) + Math.abs(b.capo - 2) + (SHAPE_FAMILY_WEIGHT[b.baseShapeFamily] || 0);
+      return pa - pb;
+    });
+
+    const top = ranked.slice(0, 3);
     while (top.length < 3) {
       top.push({
         id: String.fromCharCode(65 + top.length),
@@ -3046,7 +3179,6 @@ function __isOriginalPatternSelected() {
     });
     return top;
   }
-
 
   function refreshSchemeDock(){
     const dock = document.getElementById('scheme-dock');
@@ -3080,8 +3212,6 @@ function __isOriginalPatternSelected() {
       if (typeof rebuildDisplayChordTimeline === 'function') rebuildDisplayChordTimeline();
       if (typeof scheduleChordRewrite === 'function') scheduleChordRewrite(30);
       if (typeof syncUI === 'function') syncUI();
-      try { if (typeof applyViewerPrefsToScore === 'function') applyViewerPrefsToScore(); } catch(e) {}
-      if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
       if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
       if (typeof window.__updateDebugBadges === 'function') window.__updateDebugBadges();
       if (typeof window.applyCurrentPatternToOriginalTab === 'function') {
@@ -3099,6 +3229,7 @@ function __isOriginalPatternSelected() {
     st.currentSchemeId = id;
     window.__schemeState = st;
     applySelectedSchemeEffects();
+    try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') setTimeout(window.applyCurrentPatternToOriginalTab, 40); } catch(e) {}
   }
 
   function ensureSchemeState(){
