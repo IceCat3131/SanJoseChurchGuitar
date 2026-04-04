@@ -579,20 +579,20 @@ document.addEventListener('DOMContentLoaded', () => {
         
         <div class="core-panel" id="panel-rhythm" hidden>
           <div class="core-panel-head"><span>节</span></div>
-          <div class="core-panel-body" style="display:flex; gap:16px; align-items:flex-start;">
-            <div style="flex:1; min-width:180px;">
+          <div class="core-panel-body" style="display:flex;gap:16px;align-items:flex-start;">
+            <div style="flex:1;min-width:180px;">
               <div class="core-panel-note" style="margin-bottom:8px;">和弦方案</div>
-              <div class="core-panel-actions core-panel-actions-left" style="display:flex; gap:8px; flex-wrap:wrap;">
+              <div class="core-panel-actions core-panel-actions-left" style="display:flex;gap:8px;flex-wrap:wrap;">
                 <button type="button" class="core-option-btn core-primary" id="ui-scheme-a">A</button>
                 <button type="button" class="core-option-btn" id="ui-scheme-b">B</button>
                 <button type="button" class="core-option-btn" id="ui-scheme-c">C</button>
               </div>
-              <div class="core-panel-note" id="ui-scheme-note" style="margin-top:8px;">原谱模式固定方案A。</div>
+              <div class="core-panel-note" id="ui-scheme-note" style="margin-top:8px;">原谱模式固定方案A；自动伴奏模式下 B/C 预留。</div>
             </div>
-            <div style="width:1px; align-self:stretch; background:#eee;"></div>
-            <div style="flex:1; min-width:220px;">
+            <div style="width:1px;align-self:stretch;background:#eee;"></div>
+            <div style="flex:1;min-width:220px;">
               <div class="core-panel-note" style="margin-bottom:8px;">节奏组</div>
-              <div id="ui-rhythm-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+              <div id="ui-rhythm-list" style="display:flex;flex-direction:column;gap:8px;"></div>
             </div>
           </div>
         </div>
@@ -2085,10 +2085,9 @@ function pad4(num) {
   function qa(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
 
   function __V12_5_isOriginalPattern() {
-    try { return (typeof __isOriginalPatternSelected === 'function') && __isOriginalPatternSelected(); }
+    try { return (typeof window.__isOriginalPatternSelected === 'function') && window.__isOriginalPatternSelected(); }
     catch(e) { return true; }
   }
-
   function __V12_5_getPatternChoices() {
     try {
       const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
@@ -2096,7 +2095,6 @@ function pad4(num) {
     } catch(e) {}
     return [];
   }
-
   function __V12_5_selectOriginalPattern() {
     try {
       const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
@@ -2109,7 +2107,6 @@ function pad4(num) {
       __V12_5_syncRhythmPanel();
     } catch(e) { console.warn('select original failed', e); }
   }
-
   function __V12_5_selectPatternByIndex(idx) {
     try {
       const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
@@ -2118,14 +2115,13 @@ function pad4(num) {
       if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
       if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
       if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
-      setTimeout(() => {
+      setTimeout(function(){
         try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch(e) {}
         try { if (typeof syncUI === 'function') syncUI(); } catch(e) {}
         __V12_5_syncRhythmPanel();
       }, 60);
     } catch(e) { console.warn('select pattern failed', e); }
   }
-
   function __V12_5_renderRhythmList() {
     const list = $('ui-rhythm-list');
     if (!list) return;
@@ -2134,37 +2130,32 @@ function pad4(num) {
     const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
     const curIdx = (window.__currentPatternChoiceIndexByMeter && window.__currentPatternChoiceIndexByMeter[meter]);
     list.innerHTML = '';
-
-    function mkBtn(label, active, handler) {
+    function mkBtn(label, active, onClick){
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'core-option-btn' + (active ? ' core-primary' : '');
       btn.textContent = label;
-      btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); handler(); });
+      btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); onClick(); });
       list.appendChild(btn);
     }
-
     mkBtn('原谱', isOriginal, __V12_5_selectOriginalPattern);
-    choices.forEach((p, idx) => {
-      const label = (p && p.name) ? p.name.replace(/^分解\s*/, '') : ('节奏' + (idx + 1));
+    choices.forEach(function(p, idx){
+      const label = (p && p.name) ? String(p.name).replace(/^分解\s*/, '') : ('节奏' + (idx + 1));
       mkBtn(label, !isOriginal && curIdx === idx, function(){ __V12_5_selectPatternByIndex(idx); });
     });
   }
-
   function __V12_5_syncSchemeArea() {
     const isOriginal = __V12_5_isOriginalPattern();
     const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c'), note = $('ui-scheme-note');
     if (a) { a.disabled = false; a.classList.add('core-primary'); }
     if (b) { b.disabled = isOriginal; b.classList.remove('core-primary'); }
     if (c) { c.disabled = isOriginal; c.classList.remove('core-primary'); }
-    if (note) note.textContent = isOriginal ? '原谱模式固定方案A。' : '自动伴奏模式下当前先启用方案A；B/C后续启用。';
+    if (note) note.textContent = isOriginal ? '原谱模式固定方案A。' : '自动伴奏模式下 B/C 预留。';
   }
-
   function __V12_5_syncRhythmPanel() {
     __V12_5_renderRhythmList();
     __V12_5_syncSchemeArea();
   }
-
 
   function openPanel(id){
     const layer = $('core-panel-layer');
@@ -2625,7 +2616,7 @@ function switchRhythmPatternSafe(){
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('btn-switch-rhythm');
   if (btn) {
-    btn.addEventListener('click', switchRhythmPatternSafe);
+    btn.remove();
   }
   const btnToolbar = document.getElementById('ui-rhythm');
   if (btnToolbar) {
@@ -2635,7 +2626,6 @@ document.addEventListener('DOMContentLoaded', () => {
       e.stopPropagation();
       openPanel('panel-rhythm');
       __V12_5_syncRhythmPanel();
-      btnToolbar.textContent = '节';
     });
   }
   // Build once after initial page settle
@@ -2643,6 +2633,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
       if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+      __V12_5_syncRhythmPanel();
     } catch (e) {
       console.warn('safe patch init failed', e);
     }
@@ -2968,7 +2959,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_5b</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_5c</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
@@ -2991,8 +2982,8 @@ function __isOriginalPatternSelected() {
   document.addEventListener('DOMContentLoaded', function(){ setInterval(updateDebugBadges, 250); setTimeout(updateDebugBadges, 300); });
 })();
 </script>
-<script>
 
+<script>
 document.addEventListener('DOMContentLoaded', () => {
   const a = document.getElementById('ui-scheme-a');
   const b = document.getElementById('ui-scheme-b');
@@ -3000,9 +2991,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (a) a.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); __V12_5_syncRhythmPanel(); });
   if (b) b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); if (!b.disabled) __V12_5_syncRhythmPanel(); });
   if (c) c.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); if (!c.disabled) __V12_5_syncRhythmPanel(); });
-  setTimeout(__V12_5_syncRhythmPanel, 1200);
 });
-
 </script>
+
 </body>
 </html>
