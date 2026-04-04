@@ -33,17 +33,20 @@ function __V20_getShapePositions(chordObj, meterText) {
   const shape = resolved.shape;
   const bassString = getBassStringFromShape(shape);
   const pattern = getAutoPatternForMeter(meterText || '4/4', bassString);
+  const capoAbs = (typeof getEffectiveCapo === 'function') ? (parseInt(getEffectiveCapo(), 10) || 0) : 0;
+
   const usable = pattern.map(function(stringNo){
     const fret = shape[6 - stringNo];
     if (fret === 'x' || fret === 'X' || fret == null) return null;
-    return { string: stringNo, fret: Number(fret) || 0 };
+    return { string: stringNo, fret: capoAbs + (Number(fret) || 0) };
   }).filter(Boolean);
   if (usable.length) return usable;
+
   const fallback = [];
   for (let i=0;i<shape.length;i++){
     const fret = shape[i];
     if (fret === 'x' || fret === 'X' || fret == null) continue;
-    fallback.push({ string: 6 - i, fret: Number(fret) || 0 });
+    fallback.push({ string: 6 - i, fret: capoAbs + (Number(fret) || 0) });
   }
   return fallback;
 }
@@ -3003,7 +3006,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v20-step7</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-v20-step7b</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0 · scheme: A（原谱）</div>
 <script>
 (function(){
