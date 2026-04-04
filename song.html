@@ -213,13 +213,14 @@ function remapTimelineTimesIfNeeded() {
 
 function rebuildDisplayChordTimeline() {
   const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
-  const semitones = getUserTranspose();
   const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
   const keepOriginalChordNames = __V12_isOriginalPatternActive();
+  const scheme = __V12_7_getCurrentScheme();
+  const semitones = keepOriginalChordNames ? 0 : (scheme.shift || 0);
   window.__chordTimeline = raw.map((c, i) => ({
     ...c,
     index: i,
-    chordDisplay: keepOriginalChordNames ? c.chordRaw : (semitones ? transposeChordSymbol(c.chordRaw, semitones, preferFlats) : c.chordRaw)
+    chordDisplay: semitones ? transposeChordSymbol(c.chordRaw, semitones, preferFlats) : c.chordRaw
   }));
   rebuildAutoAccompanimentSong();
   updateRhythmPlayback(__playbackState.current || 0);
@@ -712,14 +713,16 @@ function getSongCapo() {
   }
 
   function getEffectiveCapo() {
-    return getSongCapo();
+    if (__V12_isOriginalPatternActive()) return getSongCapo();
+    return (__V12_7_getCurrentScheme().capo ?? getSongCapo());
   }
 
   function getDisplayedCapoLabel() {
     if (__V12_isOriginalPatternActive()) {
       return Math.max(0, Math.min(12, getSongCapo() + getUserTranspose()));
     }
-    return getSongCapo();
+    const scheme = __V12_7_getCurrentScheme();
+    return Math.max(0, Math.min(12, scheme.capo ?? getSongCapo()));
   }
 
   function getUserTranspose() {
@@ -1018,6 +1021,7 @@ function getSongCapo() {
         }, 60);
       } catch (e) { console.warn('transpose pattern rewrite failed', e); }
     }
+    try { __V12_6_syncSchemeUI(); } catch (e) {}
   }
 
   function resetTranspose() {
@@ -1036,6 +1040,7 @@ function getSongCapo() {
         }, 60);
       } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
     }
+    try { __V12_6_syncSchemeUI(); } catch (e) {}
   }
 
   function changeScoreFont(delta) {
@@ -2872,7 +2877,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_6b</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_7</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
@@ -2941,9 +2946,9 @@ function __isOriginalPatternSelected() {
     layer.setAttribute('aria-hidden','false');
     panel.hidden = false;
     const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c');
-    if (a) a.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('A'); });
-    if (b) b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('B'); });
-    if (c) c.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('C'); });
+    if (a) a.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_7_setScheme('A'); });
+    if (b) b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_7_setScheme('B'); });
+    if (c) c.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_7_setScheme('C'); });
     syncRhythmPanel();
   }
 
@@ -2994,17 +2999,17 @@ function __isOriginalPatternSelected() {
   }
 
 
-  window.__V12_6_SCHEME = window.__V12_6_SCHEME || 'A';
+  window.__V12_7_SCHEME = window.__V12_7_SCHEME || 'A';
 
-  function __V12_6_setScheme(id){
+  function __V12_7_setScheme(id){
     if (isOriginal()) return;
-    window.__V12_6_SCHEME = id;
-    __V12_6_syncSchemeUI();
+    window.__V12_7_SCHEME = id;
+    __V12_7_syncSchemeUI();
   }
 
-  function __V12_6_syncSchemeUI(){
+  function __V12_7_syncSchemeUI(){
     const original = isOriginal();
-    const cur = original ? 'A' : (window.__V12_6_SCHEME || 'A');
+    const cur = original ? 'A' : (window.__V12_7_SCHEME || 'A');
     const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c'), note = $('ui-scheme-note');
     if (a){
       a.disabled = false;
@@ -3019,16 +3024,17 @@ function __isOriginalPatternSelected() {
       c.classList.toggle('core-primary', cur === 'C');
     }
     if (note){
+      const scheme = __V12_7_getCurrentScheme();
       note.textContent = original
         ? '原谱模式固定方案A。'
-        : ('自动伴奏模式当前方案：' + cur + '。A/B/C 现在可切换，算法下一步接入。');
+        : ('自动伴奏模式当前方案：' + cur + '（' + scheme.root + '组 / CP' + scheme.capo + '）。');
     }
   }
 
   function syncRhythmPanel(){
     const list = $('ui-rhythm-list');
     const original = isOriginal();
-    __V12_6_syncSchemeUI();
+    __V12_7_syncSchemeUI();
     if (!list) return;
     list.innerHTML = '';
     function addBtn(label, active, cb){
