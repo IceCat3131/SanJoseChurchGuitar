@@ -215,10 +215,11 @@ function rebuildDisplayChordTimeline() {
   const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
   const semitones = getUserTranspose();
   const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
+  const keepOriginalChordNames = __V12_isOriginalPatternActive();
   window.__chordTimeline = raw.map((c, i) => ({
     ...c,
     index: i,
-    chordDisplay: semitones ? transposeChordSymbol(c.chordRaw, semitones, preferFlats) : c.chordRaw
+    chordDisplay: keepOriginalChordNames ? c.chordRaw : (semitones ? transposeChordSymbol(c.chordRaw, semitones, preferFlats) : c.chordRaw)
   }));
   rebuildAutoAccompanimentSong();
   updateRhythmPlayback(__playbackState.current || 0);
@@ -696,7 +697,16 @@ document.addEventListener('DOMContentLoaded', () => {
     try { localStorage.setItem('sjcg.viewerPrefs.v1', JSON.stringify(viewerPrefs)); } catch (e) {}
   }
 
-  function getSongCapo() {
+  
+function __V12_isOriginalPatternActive() {
+  try {
+    return (typeof window.__isOriginalPatternSelected === 'function') && window.__isOriginalPatternSelected();
+  } catch (e) {
+    return false;
+  }
+}
+
+function getSongCapo() {
     const metaCapo = parseInt(window.__gtzMeta?.capo, 10);
     return Number.isFinite(metaCapo) ? Math.max(0, Math.min(12, metaCapo)) : 0;
   }
@@ -706,6 +716,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getDisplayedCapoLabel() {
+    if (__V12_isOriginalPatternActive()) {
+      return Math.max(0, Math.min(12, getSongCapo() + getUserTranspose()));
+    }
     return getSongCapo();
   }
 
@@ -746,8 +759,9 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   function getTrackTransposeSemitones(track) {
     const base = getUserTranspose();
-    if (window.__tabRewriteModeActive && trackUsesTab(track)) {
-      return 0;
+    if (trackUsesTab(track)) {
+      if (window.__tabRewriteModeActive) return 0;
+      if (__V12_isOriginalPatternActive()) return 0;
     }
     return base;
   }
@@ -2857,7 +2871,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: transpose-fix-V12_2</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_3</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
