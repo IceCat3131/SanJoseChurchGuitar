@@ -2872,7 +2872,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_6</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_6aa</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
@@ -2940,6 +2940,10 @@ function __isOriginalPatternSelected() {
     layer.hidden = false;
     layer.setAttribute('aria-hidden','false');
     panel.hidden = false;
+    const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c');
+    if (a) a.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('A'); });
+    if (b) b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('B'); });
+    if (c) c.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('C'); });
     syncRhythmPanel();
   }
 
@@ -2989,14 +2993,42 @@ function __isOriginalPatternSelected() {
     }catch(e){}
   }
 
+
+  window.__V12_6_SCHEME = window.__V12_6_SCHEME || 'A';
+
+  function __V12_6_setScheme(id){
+    if (__V12_5_isOriginalPattern()) return;
+    window.__V12_6_SCHEME = id;
+    __V12_6_syncSchemeUI();
+  }
+
+  function __V12_6_syncSchemeUI(){
+    const original = __V12_5_isOriginalPattern();
+    const cur = original ? 'A' : (window.__V12_6_SCHEME || 'A');
+    const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c'), note = $('ui-scheme-note');
+    if (a){
+      a.disabled = false;
+      a.classList.toggle('core-primary', cur === 'A');
+    }
+    if (b){
+      b.disabled = original;
+      b.classList.toggle('core-primary', cur === 'B');
+    }
+    if (c){
+      c.disabled = original;
+      c.classList.toggle('core-primary', cur === 'C');
+    }
+    if (note){
+      note.textContent = original
+        ? '原谱模式固定方案A。'
+        : ('自动伴奏模式当前方案：' + cur + '。A/B/C 现在可切换，算法下一步接入。');
+    }
+  }
+
   function syncRhythmPanel(){
     const list = $('ui-rhythm-list');
-    const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c'), note = $('ui-scheme-note');
     const original = isOriginal();
-    if (a) { a.disabled = false; a.classList.add('core-primary'); }
-    if (b) { b.disabled = original; b.classList.remove('core-primary'); }
-    if (c) { c.disabled = original; c.classList.remove('core-primary'); }
-    if (note) note.textContent = original ? '原谱模式固定方案A。' : '自动伴奏模式下A可用，B/C后续启用。';
+    __V12_6_syncSchemeUI();
     if (!list) return;
     list.innerHTML = '';
     function addBtn(label, active, cb){
