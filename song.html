@@ -2872,7 +2872,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_5d</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_5e</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
@@ -2962,8 +2962,13 @@ function __isOriginalPatternSelected() {
       window.__originalPatternChoiceSentinel = (typeof window.__originalPatternChoiceSentinel === 'number') ? window.__originalPatternChoiceSentinel : -1;
       window.__currentPatternChoiceIndexByMeter[meter] = window.__originalPatternChoiceSentinel;
       if (typeof window.rebuildRhythmState === 'function') window.rebuildRhythmState();
-      if (typeof window.syncUI === 'function') window.syncUI();
       if (typeof window.updateRhythmPlayback === 'function') window.updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+      setTimeout(function(){
+        try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch(e){}
+        try { if (typeof window.syncUI === 'function') window.syncUI(); } catch(e){}
+        syncRhythmPanel();
+      }, 60);
+      return;
     }catch(e){}
     syncRhythmPanel();
   }
