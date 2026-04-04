@@ -213,13 +213,13 @@ function remapTimelineTimesIfNeeded() {
 
 function rebuildDisplayChordTimeline() {
   const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
+  const semitones = getUserTranspose();
   const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
   const keepOriginalChordNames = __V12_isOriginalPatternActive();
-  const schemeData = keepOriginalChordNames ? null : __V12_7_currentSchemeData();
   window.__chordTimeline = raw.map((c, i) => ({
     ...c,
     index: i,
-    chordDisplay: keepOriginalChordNames ? c.chordRaw : transposeChordSymbol(c.chordRaw, schemeData ? schemeData.displayShift : 0, preferFlats)
+    chordDisplay: keepOriginalChordNames ? c.chordRaw : (semitones ? transposeChordSymbol(c.chordRaw, semitones, preferFlats) : c.chordRaw)
   }));
   rebuildAutoAccompanimentSong();
   updateRhythmPlayback(__playbackState.current || 0);
@@ -712,17 +712,14 @@ function getSongCapo() {
   }
 
   function getEffectiveCapo() {
-    if (__V12_isOriginalPatternActive()) return getSongCapo();
-    const d = (typeof __V12_7_currentSchemeData === 'function') ? __V12_7_currentSchemeData() : null;
-    return d ? d.capo : getSongCapo();
+    return getSongCapo();
   }
 
   function getDisplayedCapoLabel() {
     if (__V12_isOriginalPatternActive()) {
       return Math.max(0, Math.min(12, getSongCapo() + getUserTranspose()));
     }
-    const d = (typeof __V12_7_currentSchemeData === 'function') ? __V12_7_currentSchemeData() : null;
-    return d ? d.capo : getSongCapo();
+    return getSongCapo();
   }
 
   function getUserTranspose() {
@@ -1018,11 +1015,8 @@ function getSongCapo() {
         if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
         setTimeout(() => {
           try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('transpose pattern rewrite failed', e); }
-          try { __V12_6_syncSchemeUI(); } catch(e) {}
         }, 60);
       } catch (e) { console.warn('transpose pattern rewrite failed', e); }
-    } else {
-      try { __V12_6_syncSchemeUI(); } catch(e) {}
     }
   }
 
@@ -1039,11 +1033,8 @@ function getSongCapo() {
         if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
         setTimeout(() => {
           try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
-          try { __V12_6_syncSchemeUI(); } catch(e) {}
         }, 60);
       } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
-    } else {
-      try { __V12_6_syncSchemeUI(); } catch(e) {}
     }
   }
 
@@ -2881,7 +2872,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">V12_7_20260404_01</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_7_20260404_02</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
@@ -2950,9 +2941,9 @@ function __isOriginalPatternSelected() {
     layer.setAttribute('aria-hidden','false');
     panel.hidden = false;
     const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c');
-    if (a) a.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_7_20260404_01_setScheme('A'); });
-    if (b) b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_7_20260404_01_setScheme('B'); });
-    if (c) c.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_7_20260404_01_setScheme('C'); });
+    if (a) a.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('A'); });
+    if (b) b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('B'); });
+    if (c) c.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('C'); });
     syncRhythmPanel();
   }
 
@@ -2980,7 +2971,6 @@ function __isOriginalPatternSelected() {
         try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch(e){}
         try { if (typeof window.syncUI === 'function') window.syncUI(); } catch(e){}
         syncRhythmPanel();
-        try { __V12_6_syncSchemeUI(); } catch(e){}
       }, 60);
       return;
     }catch(e){}
@@ -3004,17 +2994,17 @@ function __isOriginalPatternSelected() {
   }
 
 
-  window.__V12_7_20260404_01_SCHEME = window.__V12_7_20260404_01_SCHEME || 'A';
+  window.__V12_6_SCHEME = window.__V12_6_SCHEME || 'A';
 
-  function __V12_7_20260404_01_setScheme(id){
+  function __V12_6_setScheme(id){
     if (isOriginal()) return;
-    window.__V12_7_20260404_01_SCHEME = id;
-    __V12_7_20260404_01_syncSchemeUI();
+    window.__V12_6_SCHEME = id;
+    __V12_6_syncSchemeUI();
   }
 
-  function __V12_7_20260404_01_syncSchemeUI(){
+  function __V12_6_syncSchemeUI(){
     const original = isOriginal();
-    const cur = original ? 'A' : (window.__V12_7_20260404_01_SCHEME || 'A');
+    const cur = original ? 'A' : (window.__V12_6_SCHEME || 'A');
     const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c'), note = $('ui-scheme-note');
     if (a){
       a.disabled = false;
@@ -3038,7 +3028,7 @@ function __isOriginalPatternSelected() {
   function syncRhythmPanel(){
     const list = $('ui-rhythm-list');
     const original = isOriginal();
-    __V12_7_20260404_01_syncSchemeUI();
+    __V12_6_syncSchemeUI();
     if (!list) return;
     list.innerHTML = '';
     function addBtn(label, active, cb){
@@ -3097,5 +3087,96 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div style="position:fixed;bottom:10px;right:10px;font-size:12px;color:#666;">build: V12_7_20260404_01</div></body>
+
+<script>
+(function(){
+  window.__V127_scheme = window.__V127_scheme || 'A';
+  function $x(id){ return document.getElementById(id); }
+  function isOriginalMode(){
+    try { return (typeof __V12_5_isOriginalPattern === 'function') ? __V12_5_isOriginalPattern() :
+                 ((typeof __isOriginalPatternSelected === 'function') && __isOriginalPatternSelected()); }
+    catch(e){ return true; }
+  }
+  function schemeExtraCapo(){
+    if (isOriginalMode()) return 0;
+    const s = window.__V127_scheme || 'A';
+    if (s === 'B') return 2;
+    if (s === 'C') return 4;
+    return 0;
+  }
+  function schemeShift(){
+    // to keep sounding key same: chord names shift down by extra capo
+    return isOriginalMode() ? 0 : -schemeExtraCapo();
+  }
+  window.getEffectiveCapo = function(){
+    const base = (typeof getSongCapo === 'function') ? getSongCapo() : 0;
+    if (isOriginalMode()) return base;
+    return Math.max(0, Math.min(12, base + schemeExtraCapo()));
+  };
+  window.getDisplayedCapoLabel = function(){
+    const base = (typeof getSongCapo === 'function') ? getSongCapo() : 0;
+    if (isOriginalMode()) {
+      const t = (typeof getUserTranspose === 'function') ? getUserTranspose() : 0;
+      return Math.max(0, Math.min(12, base + t));
+    }
+    return Math.max(0, Math.min(12, base + schemeExtraCapo()));
+  };
+  window.rebuildDisplayChordTimeline = function() {
+    const preferFlats = prefersFlatsFromKeyName((window.__currentMeta && window.__currentMeta.key_name) || '');
+    const semitones = (typeof getUserTranspose === 'function' ? getUserTranspose() : 0) + schemeShift();
+    const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
+    const keepOriginalChordNames = (typeof __V12_isOriginalPatternActive === 'function') ? __V12_isOriginalPatternActive() : isOriginalMode();
+    window.__chordTimeline = raw.map((c, i) => ({
+      ...c,
+      index: i,
+      chordDisplay: keepOriginalChordNames ? c.chordRaw : (semitones ? transposeChordSymbol(c.chordRaw, semitones, preferFlats) : c.chordRaw)
+    }));
+    if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+    if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+  };
+  window.__V127_syncSchemeUI = function(){
+    const original = isOriginalMode();
+    const cur = original ? 'A' : (window.__V127_scheme || 'A');
+    const a=$x('ui-scheme-a'), b=$x('ui-scheme-b'), c=$x('ui-scheme-c'), note=$x('ui-scheme-note');
+    [a,b,c].forEach(btn=>{ if(btn) btn.classList.remove('core-primary'); });
+    if(a){ a.disabled=false; if(cur==='A') a.classList.add('core-primary'); }
+    if(b){ b.disabled=original; if(cur==='B') b.classList.add('core-primary'); }
+    if(c){ c.disabled=original; if(cur==='C') c.classList.add('core-primary'); }
+    if(note){
+      note.textContent = original
+        ? '原谱模式固定方案A。'
+        : ('自动伴奏方案 ' + cur + '：CP' + window.getDisplayedCapoLabel() + '；和弦按当前方案重算。');
+    }
+  };
+  window.__V127_applyScheme = function(){
+    if (isOriginalMode()) { window.__V127_syncSchemeUI(); return; }
+    try { if (typeof window.rebuildDisplayChordTimeline === 'function') window.rebuildDisplayChordTimeline(); } catch(e){}
+    try { if (typeof window.rebuildAutoAccompanimentSong === 'function') window.rebuildAutoAccompanimentSong(); } catch(e){}
+    try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch(e){}
+    try { if (typeof window.syncUI === 'function') window.syncUI(); } catch(e){}
+    window.__V127_syncSchemeUI();
+  };
+  window.__V127_setScheme = function(s){
+    if (isOriginalMode()) return;
+    window.__V127_scheme = s;
+    window.__V127_applyScheme();
+  };
+
+  function bindSchemeButtons(){
+    const a=$x('ui-scheme-a'), b=$x('ui-scheme-b'), c=$x('ui-scheme-c');
+    if(a && !a.__v127bound){ a.__v127bound=1; a.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); window.__V127_setScheme('A');});}
+    if(b && !b.__v127bound){ b.__v127bound=1; b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); window.__V127_setScheme('B');});}
+    if(c && !c.__v127bound){ c.__v127bound=1; c.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); window.__V127_setScheme('C');});}
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    bindSchemeButtons();
+    setTimeout(function(){
+      window.__V127_syncSchemeUI();
+    },1200);
+  });
+})();
+</script>
+
+</body>
 </html>
