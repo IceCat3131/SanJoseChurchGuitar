@@ -2872,7 +2872,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_7b</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">V12_7</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
@@ -2941,10 +2941,6 @@ function __isOriginalPatternSelected() {
     layer.setAttribute('aria-hidden','false');
     panel.hidden = false;
     const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c');
-    if (a) a.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('A'); });
-    if (b) b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('B'); });
-    if (c) c.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('C'); });
-    const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c');
     if (a) a.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_7_setScheme('A'); });
     if (b) b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_7_setScheme('B'); });
     if (c) c.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_7_setScheme('C'); });
@@ -2998,17 +2994,17 @@ function __isOriginalPatternSelected() {
   }
 
 
-  window.__V12_6_SCHEME = window.__V12_6_SCHEME || 'A';
+  window.__V12_7_SCHEME = window.__V12_7_SCHEME || 'A';
 
-  function __V12_6_setScheme(id){
+  function __V12_7_setScheme(id){
     if (isOriginal()) return;
-    window.__V12_6_SCHEME = id;
-    __V12_6_syncSchemeUI();
+    window.__V12_7_SCHEME = id;
+    __V12_7_syncSchemeUI();
   }
 
-  function __V12_6_syncSchemeUI(){
+  function __V12_7_syncSchemeUI(){
     const original = isOriginal();
-    const cur = original ? 'A' : (window.__V12_6_SCHEME || 'A');
+    const cur = original ? 'A' : (window.__V12_7_SCHEME || 'A');
     const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c'), note = $('ui-scheme-note');
     if (a){
       a.disabled = false;
@@ -3032,7 +3028,7 @@ function __isOriginalPatternSelected() {
   function syncRhythmPanel(){
     const list = $('ui-rhythm-list');
     const original = isOriginal();
-    __V12_6_syncSchemeUI();
+    __V12_7_syncSchemeUI();
     if (!list) return;
     list.innerHTML = '';
     function addBtn(label, active, cb){
@@ -3091,5 +3087,11 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
+
+<div id="v12_7_build_badge" style="position:fixed;right:10px;bottom:8px;z-index:99999;
+font:12px/1.2 Arial,sans-serif;color:#666;background:rgba(255,255,255,.92);
+border:1px solid #ddd;border-radius:6px;padding:4px 8px;box-shadow:0 1px 4px rgba(0,0,0,.08);">
+  build: V12_7
+</div>
 </body>
 </html>
