@@ -306,6 +306,15 @@ function normalizeAutoChordLookup(chord) {
   return raw.replace(/\s+/g, '').replace(/△/g, 'maj');
 }
 
+
+function __V12_7_getSchemeAwareChordName(chordDisplay, chordRaw) {
+  if (!__V12_7_isAutoMode()) return chordDisplay || chordRaw || '';
+  const spec = __V12_7_getActiveSchemeSpec();
+  const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
+  const base = chordRaw || chordDisplay || '';
+  const shift = spec ? spec.displayShift : 0;
+  return shift ? transposeChordSymbol(base, shift, preferFlats) : base;
+}
 function getAutoShapeForChord(chordDisplay, chordRaw) {
   const candidates = [chordDisplay, chordRaw].map(normalizeAutoChordLookup).filter(Boolean);
   for (const c of candidates) {
@@ -749,12 +758,22 @@ function __V12_isOriginalPatternActive() {
       const displayShift = __V12_7_normSigned(famPitch - basePitch);
       let score = Math.abs(capo - 2) + (__V12_7_FAMILY_WEIGHT[fam] || 0);
       if (capo > 4) score += 2;
+      // prefer base family slightly only when it is still comfortable
+      
       out.push({ family:fam, capo:capo, displayShift:displayShift, score:score });
     }
-    out.sort((a,b) => a.score - b.score);
-    const top = out.slice(0,3);
-    while (top.length < 3) top.push(top[top.length-1] || { family:baseFamily, capo:getSongCapo(), displayShift:0, score:99 });
-    return { A: top[0], B: top[1], C: top[2] };
+    out.sort((a,b) => a.score - b.score || a.capo - b.capo);
+    const unique = [];
+    const seen = new Set();
+    for (const x of out) {
+      const k = x.family + ':' + x.capo;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      unique.push(x);
+      if (unique.length >= 3) break;
+    }
+    while (unique.length < 3) unique.push(unique[unique.length-1] || {family:baseFamily, capo:getSongCapo(), displayShift:0, score:99});
+    return { A: unique[0], B: unique[1], C: unique[2] };
   }
 
   function __V12_7_isAutoMode() {
@@ -1088,6 +1107,8 @@ function getSongCapo() {
           try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('transpose pattern rewrite failed', e); }
         
     try { if (typeof __V12_6_syncSchemeUI === 'function') __V12_6_syncSchemeUI(); } catch(e) {}
+    try { if (__V12_7_isAutoMode()) { rebuildDisplayChordTimeline(); rebuildAutoAccompanimentSong(); if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } } catch(e) {}
+    try { if (typeof __V12_6_syncSchemeUI === 'function') __V12_6_syncSchemeUI(); } catch(e) {}
   }, 60);
       } catch (e) { console.warn('transpose pattern rewrite failed', e); }
     }
@@ -1108,6 +1129,8 @@ function getSongCapo() {
         setTimeout(() => {
           try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
         
+    try { if (typeof __V12_6_syncSchemeUI === 'function') __V12_6_syncSchemeUI(); } catch(e) {}
+    try { if (__V12_7_isAutoMode()) { rebuildDisplayChordTimeline(); rebuildAutoAccompanimentSong(); if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } } catch(e) {}
     try { if (typeof __V12_6_syncSchemeUI === 'function') __V12_6_syncSchemeUI(); } catch(e) {}
   }, 60);
       } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
@@ -2949,7 +2972,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_7_20260404_06</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_7_20260404_07</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
