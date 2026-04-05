@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="style.css" />
   <script src="assets/alphatab/alphaTab.js"></script>
 <script>
+window.__V12_6_SCHEME_ENGINE_VERSION = 'rewrite-fix-v4';
 // ===== GTZ 和弦时间轴 + 节拍/节奏跟随 =====
 window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
 window.__chordTimelineRaw = [];
@@ -16,7 +17,6 @@ window.__chordTimeline = [];
 window.__rhythmState = { meter: '--', patternId: '--', steps: [], stepsPerBar: 0 };
 window.__autoAccompanimentSong = [];
 window.__autoAccompanimentCurrentBar = null;
-window.__V12_6_SCHEME_ENGINE_VERSION = 'rewrite-fix-v3';
 
 function decodeBase64ToText(b64) {
   const binary = atob(b64);
@@ -3022,7 +3022,7 @@ function __isOriginalPatternSelected() {
     if (note){
       note.textContent = original
         ? '原谱模式固定方案A。'
-        : ('自动伴奏模式当前方案：' + cur + '。已接入 scheme 引擎测试版。');
+        : ('自动伴奏模式当前方案：' + cur + '。A/B/C 现在可切换，算法下一步接入。');
     }
   }
 
@@ -3275,26 +3275,16 @@ function __isOriginalPatternSelected() {
     return window.__autoAccompanimentTabTrack || [];
   };
   window.applyScheme = function(){
-    try { generateSchemes(); } catch(e) {}
-    try { if (typeof rebuildDisplayChordTimeline === 'function') rebuildDisplayChordTimeline(); } catch(e) {}
-    try { if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong(); } catch(e) {}
-    try { if (typeof rebuildAutoTabTrack === 'function') rebuildAutoTabTrack(); } catch(e) {}
-    try { if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0); } catch(e) {}
-
-    const rerender = function(delay){
-      setTimeout(function(){
-        try { if (typeof window.applyCurrentPatternToOriginalTab === 'function' && !v12SchemeIsOriginal()) window.applyCurrentPatternToOriginalTab(); } catch(e) {}
-        try { if (typeof window.rewriteRenderedChordTexts === 'function') window.rewriteRenderedChordTexts(); } catch(e) {}
-        try { if (typeof window.scheduleChordRewrite === 'function') window.scheduleChordRewrite(10); } catch(e) {}
-        try { if (typeof window.syncUI === 'function') window.syncUI(); } catch(e) {}
-        try { if (typeof window.__V12_6_syncSchemeUI === 'function') window.__V12_6_syncSchemeUI(); } catch(e) {}
-      }, delay);
-    };
-
-    rerender(0);
-    rerender(80);
-    rerender(260);
-    rerender(700);
+    if (typeof rebuildDisplayChordTimeline === 'function') rebuildDisplayChordTimeline();
+    if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
+    if (typeof rebuildAutoTabTrack === 'function') rebuildAutoTabTrack();
+    if (typeof scheduleChordRewrite === 'function') scheduleChordRewrite(10);
+    if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+    setTimeout(function(){
+      try { if (typeof window.applyCurrentPatternToOriginalTab === 'function' && !v12SchemeIsOriginal()) window.applyCurrentPatternToOriginalTab(); } catch(e) {}
+      try { if (typeof window.syncUI === 'function') window.syncUI(); } catch(e) {}
+      try { if (typeof window.__V12_6_syncSchemeUI === 'function') window.__V12_6_syncSchemeUI(); } catch(e) {}
+    }, 30);
   };
   window.onTransposeChange = function(){
     generateSchemes();
@@ -3423,22 +3413,42 @@ function __isOriginalPatternSelected() {
       note.textContent = '自动伴奏模式：未生成可用方案。';
       return;
     }
-    note.textContent = `自动伴奏方案 ${cur}：${scheme.family}组 / CP${scheme.capo} / score ${scheme.score.toFixed(2)} / 方案数 ${list.length} / rewrite-fix-v3`;
+    note.textContent = `自动伴奏方案 ${cur}：${scheme.family}组 / CP${scheme.capo} / score ${scheme.score.toFixed(2)} / 方案数 ${list.length} / rewrite-fix-v4`;
   };
 
   const oldChangeTranspose = window.changeTranspose;
   window.changeTranspose = function(delta){
+    if (!v12SchemeIsOriginal()) {
+      viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, getUserTranspose() + delta));
+      saveViewerPrefs();
+      try { refreshAdjustUI(); } catch(e) {}
+      try { generateSchemes(); } catch(e) {}
+      try { updateMetaRow(); } catch(e) {}
+      try { applyViewerPrefsToScore(); } catch(e) {}
+      try { window.applyScheme(); } catch(e) {}
+      try { if (typeof window.__V12_6_syncSchemeUI === 'function') window.__V12_6_syncSchemeUI(); } catch(e) {}
+      return;
+    }
     const out = oldChangeTranspose ? oldChangeTranspose.apply(this, arguments) : undefined;
     generateSchemes();
-    if (!v12SchemeIsOriginal()) window.applyScheme();
     return out;
   };
 
   const oldResetTranspose = window.resetTranspose;
   window.resetTranspose = function(){
+    if (!v12SchemeIsOriginal()) {
+      viewerPrefs.transposeSemitones = 0;
+      saveViewerPrefs();
+      try { refreshAdjustUI(); } catch(e) {}
+      try { generateSchemes(); } catch(e) {}
+      try { updateMetaRow(); } catch(e) {}
+      try { applyViewerPrefsToScore(); } catch(e) {}
+      try { window.applyScheme(); } catch(e) {}
+      try { if (typeof window.__V12_6_syncSchemeUI === 'function') window.__V12_6_syncSchemeUI(); } catch(e) {}
+      return;
+    }
     const out = oldResetTranspose ? oldResetTranspose.apply(this, arguments) : undefined;
     generateSchemes();
-    if (!v12SchemeIsOriginal()) window.applyScheme();
     return out;
   };
 
