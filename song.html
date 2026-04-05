@@ -2872,7 +2872,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_6g_pure_auto_fix2</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_6h_pure_auto_fix3</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
@@ -2920,7 +2920,7 @@ function __isOriginalPatternSelected() {
             '<button type="button" class="core-option-btn" id="ui-scheme-b">B</button>'+
             '<button type="button" class="core-option-btn" id="ui-scheme-c">C</button>'+
           '</div>'+
-          '<div class="core-panel-note" id="ui-scheme-note" style="margin-top:8px;">原谱模式固定方案A；自动伴奏模式下 A/B/C 为新自动伴奏方案。</div>'+
+          '<div class="core-panel-note" id="ui-scheme-note" style="margin-top:8px;">原谱模式固定方案A；自动伴奏模式下B/C后续启用。</div>'+
         '</div>'+
         '<div style="width:1px;align-self:stretch;background:#eee;"></div>'+
         '<div style="flex:1;min-width:220px;">'+
@@ -3021,7 +3021,7 @@ function __isOriginalPatternSelected() {
     if (note){
       note.textContent = original
         ? '原谱模式固定方案A。'
-        : ('自动伴奏模式当前方案：' + cur + '。');
+        : ('自动伴奏模式当前方案：' + cur + '。A/B/C 现在可切换，算法下一步接入。');
     }
   }
 
@@ -3089,262 +3089,258 @@ function __isOriginalPatternSelected() {
 
 
 <script>
+// === PURE AUTO ENGINE HARD OVERRIDE PATCH ===
 (function(){
-  const BUILD = 'V12_6g_pure_auto_fix2';
-  function setBuildBadge(){
-    const b = document.getElementById('debug-build-badge');
-    if (b) b.textContent = 'build: ' + BUILD;
+  const BUILD = 'V12_6h_pure_auto_fix3';
+  const FAMILY_ROOTS = { C:0, D:2, E:4, F:5, G:7, A:9 };
+  const FAMILY_ORDER = ['G','C','D','A','E','F'];
+  const ROOT_TO_PC = { C:0, 'B#':0, 'C#':1, Db:1, D:2, 'D#':3, Eb:3, E:4, Fb:4, F:5, 'E#':5, 'F#':6, Gb:6, G:7, 'G#':8, Ab:8, A:9, 'A#':10, Bb:10, B:11, Cb:11 };
+
+  function isAutoMode() {
+    try { return !(typeof window.__isOriginalPatternSelected === 'function' && window.__isOriginalPatternSelected()); }
+    catch (e) { return false; }
   }
-  function isOriginalMode(){
-    try { return (typeof window.__isOriginalPatternSelected === 'function') && window.__isOriginalPatternSelected(); }
-    catch(e){ return true; }
+
+  function normChordRaw(ch) {
+    return String(ch || '').trim();
   }
-  function getKeyPrefersFlats(){
-    try { return prefersFlatsFromKeyName((window.__currentMeta && window.__currentMeta.key_name) || ''); } catch(e){ return true; }
+
+  function parseRoot(sym) {
+    const s = normChordRaw(sym);
+    const m = s.match(/^([A-G](?:#|b)?)(.*)$/);
+    if (!m) return null;
+    return { root: m[1], rest: m[2] || '' };
   }
-  function uniqueChordRaws(){
+
+  function pcOfRoot(root) {
+    return Object.prototype.hasOwnProperty.call(ROOT_TO_PC, root) ? ROOT_TO_PC[root] : null;
+  }
+
+  function firstRawChord() {
     const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
-    const seen = new Set();
-    const out = [];
-    raw.forEach(c => {
-      const k = String((c && c.chordRaw) || '').trim();
-      if (!k || seen.has(k)) return;
-      seen.add(k);
-      out.push(k);
-    });
-    return out;
+    return raw.length ? normChordRaw(raw[0].chordRaw) : 'C';
   }
-  function resolveShapeForChordName(chordName){
-    const c = normalizeAutoChordLookup(chordName);
-    if (!c) return null;
-    if (AUTO_CHORD_SHAPES[c]) return { key: c, shape: AUTO_CHORD_SHAPES[c].slice() };
-    const slash = c.split('/')[0];
-    if (AUTO_CHORD_SHAPES[slash]) return { key: slash, shape: AUTO_CHORD_SHAPES[slash].slice() };
-    return null;
-  }
-  function buildSchemeForCapo(capo){
+
+  function soundingPcForSong() {
+    const first = parseRoot(firstRawChord());
     const songCapo = (typeof getSongCapo === 'function') ? getSongCapo() : 0;
-    const transpose = (typeof getUserTranspose === 'function') ? getUserTranspose() : 0;
-    const preferFlats = getKeyPrefersFlats();
-    const shift = songCapo + transpose - capo;
+    const trans = (typeof getUserTranspose === 'function') ? getUserTranspose() : 0;
+    if (!first) return 0;
+    const base = pcOfRoot(first.root);
+    if (base == null) return 0;
+    return (base + songCapo + trans + 120) % 12;
+  }
+
+  function transposeSymbol(sym, semitones, preferFlats) {
+    try { return (typeof transposeChordSymbol === 'function') ? transposeChordSymbol(sym, semitones, !!preferFlats) : sym; }
+    catch (e) { return sym; }
+  }
+
+  function buildScheme(family, capo, score) {
+    const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
+    const songCapo = (typeof getSongCapo === 'function') ? getSongCapo() : 0;
+    const preferFlats = true;
     const chordMap = {};
     const shapeMap = {};
-    let supported = 0, unsupported = 0;
-    uniqueChordRaws().forEach(raw => {
-      const disp = shift ? transposeChordSymbol(raw, shift, preferFlats) : raw;
-      chordMap[raw] = disp;
-      const resolved = resolveShapeForChordName(disp);
-      if (resolved && resolved.shape) {
-        shapeMap[raw] = resolved.shape.slice();
-        shapeMap[disp] = resolved.shape.slice();
-        supported += 1;
-      } else {
-        unsupported += 1;
-      }
+    raw.forEach((c) => {
+      const key = normChordRaw(c.chordRaw);
+      if (!key || chordMap[key]) return;
+      const display = transposeSymbol(key, songCapo + getUserTranspose() - capo, preferFlats);
+      chordMap[key] = display;
+      try {
+        const resolved = (typeof getAutoShapeForChord === 'function')
+          ? getAutoShapeForChord(display, key)
+          : null;
+        if (resolved && resolved.shape) shapeMap[key] = resolved.shape.slice();
+      } catch (e) {}
     });
-    const score = unsupported * 100 + Math.abs(capo - songCapo) * 3 + Math.abs(capo - 2) * 1.5;
-    return {
-      capo,
-      score,
-      supported,
-      unsupported,
-      chordMap,
-      shapeMap
-    };
+    return { family, capo, score, chordMap, shapeMap };
   }
-  function generateSchemes(){
-    const candidates = [];
-    for (let capo = 0; capo <= 6; capo += 1) candidates.push(buildSchemeForCapo(capo));
-    candidates.sort((a,b) => (a.score - b.score) || (b.supported - a.supported) || (a.capo - b.capo));
-    const chosen = [];
-    const seenCapo = new Set();
-    candidates.forEach(c => {
-      if (chosen.length >= 3) return;
-      if (seenCapo.has(c.capo)) return;
-      seenCapo.add(c.capo);
-      chosen.push(c);
-    });
-    while (chosen.length < 3) {
-      chosen.push(chosen[chosen.length - 1] || buildSchemeForCapo(Math.max(0, Math.min(6, (typeof getSongCapo === 'function' ? getSongCapo() : 0)))));
-    }
-    chosen[0].id = 'A';
-    chosen[1].id = 'B';
-    chosen[2].id = 'C';
-    return chosen;
-  }
-  function getSchemeIndexById(id){ return id === 'B' ? 1 : (id === 'C' ? 2 : 0); }
-  function ensureState(){
-    window.__V12_AUTO_ENGINE = window.__V12_AUTO_ENGINE || { schemes: [], schemeIndex: 0, lastTranspose: null, lastSongCapo: null, applying: false };
-    return window.__V12_AUTO_ENGINE;
-  }
-  function refreshSchemesIfNeeded(){
-    const st = ensureState();
-    const transpose = (typeof getUserTranspose === 'function') ? getUserTranspose() : 0;
+
+  function generateSchemes() {
     const songCapo = (typeof getSongCapo === 'function') ? getSongCapo() : 0;
-    if (!st.schemes.length || st.lastTranspose !== transpose || st.lastSongCapo !== songCapo) {
-      st.schemes = generateSchemes();
-      st.lastTranspose = transpose;
-      st.lastSongCapo = songCapo;
-      if (st.schemeIndex > 2) st.schemeIndex = 0;
-    }
-    st.currentScheme = st.schemes[st.schemeIndex] || st.schemes[0] || null;
-    window.__V12_6_SCHEME = st.currentScheme ? st.currentScheme.id : 'A';
-    return st.currentScheme;
-  }
-  function currentScheme(){
-    if (isOriginalMode()) return null;
-    return refreshSchemesIfNeeded();
-  }
-
-  const oldGetDisplayedCapoLabel = window.getDisplayedCapoLabel || getDisplayedCapoLabel;
-  window.getDisplayedCapoLabel = getDisplayedCapoLabel = function(){
-    if (isOriginalMode()) return oldGetDisplayedCapoLabel();
-    const s = currentScheme();
-    return s ? s.capo : oldGetDisplayedCapoLabel();
-  };
-
-  const oldGetAutoShapeForChord = window.getAutoShapeForChord || getAutoShapeForChord;
-  window.getAutoShapeForChord = getAutoShapeForChord = function(chordDisplay, chordRaw){
-    if (!isOriginalMode()) {
-      const s = currentScheme();
-      if (s) {
-        const raw = String(chordRaw || '').trim();
-        const disp = String(chordDisplay || '').trim();
-        const mapped = raw && s.chordMap[raw] ? s.chordMap[raw] : disp;
-        const direct = s.shapeMap[raw] || s.shapeMap[mapped];
-        if (direct) return { key: mapped || raw, shape: direct.slice() };
-      }
-    }
-    return oldGetAutoShapeForChord(chordDisplay, chordRaw);
-  };
-
-  const oldRewriteRenderedChordTexts = window.rewriteRenderedChordTexts || rewriteRenderedChordTexts;
-  window.rewriteRenderedChordTexts = rewriteRenderedChordTexts = function(){
-    if (isOriginalMode()) return oldRewriteRenderedChordTexts();
-    const root = document.getElementById('alphaTab');
-    if (!root) return;
-    const chordFontPx = (typeof getChordFontSizePx === 'function') ? getChordFontSizePx() : 16;
-    const scheme = currentScheme();
-    const nodes = root.querySelectorAll('text, tspan');
-    nodes.forEach((el) => {
-      if (el.children && el.children.length) return;
-      const current = (el.textContent || '').trim();
-      if (!current) return;
-      const original = el.getAttribute('data-orig-chord') || current;
-      if (!looksLikeChordSymbol(original)) return;
-      if (!el.getAttribute('data-orig-chord')) el.setAttribute('data-orig-chord', original);
-      const next = (scheme && scheme.chordMap[original]) ? scheme.chordMap[original] : original;
-      if (next && next !== current) el.textContent = next;
-      try { el.style.fontSize = chordFontPx + 'px'; } catch (e) {}
+    const targetPc = soundingPcForSong();
+    const out = [];
+    FAMILY_ORDER.forEach((family) => {
+      const rootPc = FAMILY_ROOTS[family];
+      let capo = (targetPc - rootPc + 12) % 12;
+      if (capo > 6) return;
+      const score = Math.abs(capo - songCapo) * 10 + Math.abs(capo - 2);
+      out.push(buildScheme(family, capo, score));
     });
-  };
-
-  function applySchemeToTimelineAndViews(){
-    if (isOriginalMode()) return;
-    const scheme = currentScheme();
-    if (!scheme) return;
-    const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
-    window.__chordTimeline = raw.map((c, i) => ({ ...c, index: i, chordDisplay: scheme.chordMap[c.chordRaw] || c.chordRaw }));
-    try { if (typeof window.__rebuildAutoAccompanimentSongOriginal === 'function') window.__rebuildAutoAccompanimentSongOriginal(); else if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong(); } catch(e){ console.warn(e); }
-    try { if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0); } catch(e){}
-    try { if (typeof scheduleChordRewrite === 'function') scheduleChordRewrite(10); else rewriteRenderedChordTexts(); } catch(e){}
-    try { if (typeof updateMetaRow === 'function') updateMetaRow(); } catch(e){}
-    try { if (typeof syncUI === 'function') syncUI(); } catch(e){}
-    try { if (typeof __V12_6_syncSchemeUI === 'function') __V12_6_syncSchemeUI(); } catch(e){}
+    out.sort((a,b) => a.score - b.score || a.capo - b.capo);
+    return out.slice(0, 3);
   }
 
-  const oldRebuildDisplayChordTimeline = window.rebuildDisplayChordTimeline || rebuildDisplayChordTimeline;
-  window.rebuildDisplayChordTimeline = rebuildDisplayChordTimeline = function(){
-    if (isOriginalMode()) return oldRebuildDisplayChordTimeline();
-    refreshSchemesIfNeeded();
-    applySchemeToTimelineAndViews();
+  function getCurrentSchemeIndex() {
+    const tag = String(window.__V12_6_SCHEME || 'A');
+    return tag === 'B' ? 1 : tag === 'C' ? 2 : 0;
+  }
+
+  function getCurrentScheme() {
+    if (!Array.isArray(window.__PURE_AUTO_SCHEMES__) || !window.__PURE_AUTO_SCHEMES__.length) {
+      window.__PURE_AUTO_SCHEMES__ = generateSchemes();
+    }
+    const idx = Math.min(getCurrentSchemeIndex(), window.__PURE_AUTO_SCHEMES__.length - 1);
+    return window.__PURE_AUTO_SCHEMES__[Math.max(0, idx)] || null;
+  }
+
+  function setBuildBadge() {
+    try {
+      const badge = document.getElementById('debug-build-badge');
+      if (badge) badge.textContent = 'build: ' + BUILD;
+    } catch (e) {}
+  }
+
+  function rebuildTimelineFromScheme() {
+    const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
+    const scheme = getCurrentScheme();
+    if (!isAutoMode() || !scheme) return false;
+    window.__chordTimeline = raw.map((c, i) => ({
+      ...c,
+      index: i,
+      chordDisplay: scheme.chordMap[normChordRaw(c.chordRaw)] || c.chordRaw
+    }));
+    return true;
+  }
+
+  function rewriteChordTextsFromTimeline() {
+    const root = document.getElementById('alphaTab');
+    const timeline = Array.isArray(window.__chordTimeline) ? window.__chordTimeline : [];
+    if (!root || !timeline.length) return;
+    const nodes = Array.from(root.querySelectorAll('text, tspan')).filter((el) => {
+      if (el.children && el.children.length) return false;
+      const txt = (el.textContent || '').trim();
+      return !!txt && /^[A-G](?:#|b)?/.test(txt);
+    });
+    let idx = 0;
+    nodes.forEach((el) => {
+      const replacement = timeline[idx] && timeline[idx].chordDisplay;
+      if (replacement) {
+        el.textContent = replacement;
+        idx += 1;
+      }
+    });
+  }
+
+  function applyScheme(forceRewriteTab) {
+    if (!isAutoMode()) return;
+    window.__PURE_AUTO_SCHEMES__ = generateSchemes();
+    const scheme = getCurrentScheme();
+    if (!scheme) return;
+    rebuildTimelineFromScheme();
+    try { if (typeof window.rebuildAutoAccompanimentSong === 'function') window.rebuildAutoAccompanimentSong(); } catch (e) { console.warn(e); }
+    try { if (typeof window.rebuildAutoTabTrack === 'function') window.rebuildAutoTabTrack(); } catch (e) {}
+    try { if (typeof window.updateRhythmPlayback === 'function') window.updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0); } catch (e) {}
+    setTimeout(() => {
+      try { rewriteChordTextsFromTimeline(); } catch (e) {}
+      try { if (typeof window.syncUI === 'function') window.syncUI(); } catch (e) {}
+      if (forceRewriteTab) {
+        try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn(e); }
+      }
+    }, 80);
+    const note = document.getElementById('ui-scheme-note');
+    if (note) note.textContent = '自动伴奏当前方案：' + (window.__V12_6_SCHEME || 'A') + ' · family ' + scheme.family + ' · CP' + scheme.capo;
+  }
+
+  const __oldGetDisplayedCapoLabel = window.getDisplayedCapoLabel;
+  window.getDisplayedCapoLabel = function() {
+    if (isAutoMode()) {
+      const scheme = getCurrentScheme();
+      if (scheme) return scheme.capo;
+    }
+    return __oldGetDisplayedCapoLabel ? __oldGetDisplayedCapoLabel.apply(this, arguments) : 0;
   };
 
-  const oldChangeTranspose = window.changeTranspose || changeTranspose;
-  window.changeTranspose = changeTranspose = function(delta){
-    if (isOriginalMode()) return oldChangeTranspose(delta);
-    viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, getUserTranspose() + delta));
-    try { saveViewerPrefs(); } catch(e){}
-    try { refreshAdjustUI(); } catch(e){}
-    refreshSchemesIfNeeded();
-    applySchemeToTimelineAndViews();
+  const __oldRebuildDisplayChordTimeline = window.rebuildDisplayChordTimeline;
+  window.rebuildDisplayChordTimeline = function() {
+    if (isAutoMode()) {
+      rebuildTimelineFromScheme();
+      try { if (typeof window.rebuildAutoAccompanimentSong === 'function') window.rebuildAutoAccompanimentSong(); } catch (e) {}
+      try { if (typeof window.updateRhythmPlayback === 'function') window.updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0); } catch (e) {}
+      setTimeout(rewriteChordTextsFromTimeline, 40);
+      return;
+    }
+    return __oldRebuildDisplayChordTimeline ? __oldRebuildDisplayChordTimeline.apply(this, arguments) : undefined;
   };
 
-  const oldResetTranspose = window.resetTranspose || resetTranspose;
-  window.resetTranspose = resetTranspose = function(){
-    if (isOriginalMode()) return oldResetTranspose();
-    viewerPrefs.transposeSemitones = 0;
-    try { saveViewerPrefs(); } catch(e){}
-    try { refreshAdjustUI(); } catch(e){}
-    refreshSchemesIfNeeded();
-    applySchemeToTimelineAndViews();
+  const __oldGetAutoShapeForChord = window.getAutoShapeForChord;
+  window.getAutoShapeForChord = function(chordDisplay, chordRaw) {
+    if (isAutoMode()) {
+      const scheme = getCurrentScheme();
+      const key = normChordRaw(chordRaw);
+      if (scheme && scheme.shapeMap && scheme.shapeMap[key]) {
+        return { key: key, shape: scheme.shapeMap[key].slice() };
+      }
+      const display = scheme && scheme.chordMap ? scheme.chordMap[key] : chordDisplay;
+      if (__oldGetAutoShapeForChord) return __oldGetAutoShapeForChord.call(this, display, chordRaw);
+    }
+    return __oldGetAutoShapeForChord ? __oldGetAutoShapeForChord.apply(this, arguments) : null;
   };
 
-  const oldRebuildRhythmState = window.rebuildRhythmState || rebuildRhythmState;
-  window.rebuildRhythmState = rebuildRhythmState = function(){
-    const out = oldRebuildRhythmState();
-    if (!isOriginalMode()) {
-      refreshSchemesIfNeeded();
-      setTimeout(applySchemeToTimelineAndViews, 20);
+  const __oldSetScheme = window.__V12_6_setScheme;
+  window.__V12_6_setScheme = function(id) {
+    if (!isAutoMode()) {
+      return __oldSetScheme ? __oldSetScheme.apply(this, arguments) : undefined;
+    }
+    window.__V12_6_SCHEME = id;
+    try { if (typeof window.__V12_6_syncSchemeUI === 'function') window.__V12_6_syncSchemeUI(); } catch (e) {}
+    applyScheme(true);
+  };
+
+  const __oldChangeTranspose = window.changeTranspose;
+  window.changeTranspose = function(delta) {
+    if (isAutoMode()) {
+      try {
+        viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, getUserTranspose() + delta));
+        if (typeof saveViewerPrefs === 'function') saveViewerPrefs();
+      } catch (e) {}
+      applyScheme(true);
+      return;
+    }
+    return __oldChangeTranspose ? __oldChangeTranspose.apply(this, arguments) : undefined;
+  };
+
+  const __oldResetTranspose = window.resetTranspose;
+  window.resetTranspose = function() {
+    if (isAutoMode()) {
+      try {
+        viewerPrefs.transposeSemitones = 0;
+        if (typeof saveViewerPrefs === 'function') saveViewerPrefs();
+      } catch (e) {}
+      applyScheme(true);
+      return;
+    }
+    return __oldResetTranspose ? __oldResetTranspose.apply(this, arguments) : undefined;
+  };
+
+  const __oldRewriteRenderedChordTexts = window.rewriteRenderedChordTexts;
+  window.rewriteRenderedChordTexts = function() {
+    if (isAutoMode()) {
+      rewriteChordTextsFromTimeline();
+      return;
+    }
+    return __oldRewriteRenderedChordTexts ? __oldRewriteRenderedChordTexts.apply(this, arguments) : undefined;
+  };
+
+  const __oldSyncSchemeUI = window.__V12_6_syncSchemeUI;
+  window.__V12_6_syncSchemeUI = function() {
+    const out = __oldSyncSchemeUI ? __oldSyncSchemeUI.apply(this, arguments) : undefined;
+    if (isAutoMode()) {
+      const scheme = getCurrentScheme();
+      const note = document.getElementById('ui-scheme-note');
+      if (note && scheme) note.textContent = '自动伴奏当前方案：' + (window.__V12_6_SCHEME || 'A') + ' · family ' + scheme.family + ' · CP' + scheme.capo;
     }
     return out;
   };
 
-  function setSchemeById(id){
-    const st = ensureState();
-    st.schemeIndex = getSchemeIndexById(id);
-    window.__V12_6_SCHEME = id;
-    refreshSchemesIfNeeded();
-    applySchemeToTimelineAndViews();
-  }
-
-  function installCaptureHandlers(){
-    const map = {
-      'ui-scheme-a': () => setSchemeById('A'),
-      'ui-scheme-b': () => setSchemeById('B'),
-      'ui-scheme-c': () => setSchemeById('C'),
-      'ui-key-plus': () => changeTranspose(1),
-      'ui-key-minus': () => changeTranspose(-1),
-      'ui-key-reset': () => resetTranspose()
-    };
-    Object.keys(map).forEach(id => {
-      const el = document.getElementById(id);
-      if (!el || el.__v126gCaptureInstalled) return;
-      el.__v126gCaptureInstalled = true;
-      el.addEventListener('click', function(e){
-        if (id.startsWith('ui-scheme-')) {
-          if (isOriginalMode()) return;
-          e.preventDefault(); e.stopImmediatePropagation();
-          map[id]();
-          return;
-        }
-        if (!isOriginalMode()) {
-          e.preventDefault(); e.stopImmediatePropagation();
-          map[id]();
-        }
-      }, true);
-    });
-  }
-
-  function updateSchemeNote(){
-    const note = document.getElementById('ui-scheme-note');
-    if (!note) return;
-    if (isOriginalMode()) { note.textContent = '原谱模式固定方案A。'; return; }
-    const s = currentScheme();
-    note.textContent = s ? ('自动伴奏模式当前方案：' + (s.id || 'A') + ' · CP=' + s.capo + ' · 可按和弦=' + s.supported + '/' + (s.supported + s.unsupported)) : '自动伴奏模式。';
-  }
-
-  function heartbeat(){
+  document.addEventListener('DOMContentLoaded', function() {
     setBuildBadge();
-    installCaptureHandlers();
-    updateSchemeNote();
-    if (!isOriginalMode()) refreshSchemesIfNeeded();
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(heartbeat, 50);
-    setTimeout(heartbeat, 300);
-    setInterval(heartbeat, 500);
+    setTimeout(() => {
+      try {
+        if (isAutoMode()) applyScheme(true);
+      } catch (e) { console.warn(e); }
+    }, 1200);
   });
 })();
 </script>
