@@ -2872,7 +2872,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_6d_auto_engine</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_6e_auto_engine_fix1</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
@@ -2892,6 +2892,64 @@ function __isOriginalPatternSelected() {
     } catch(e) {}
   }
   window.__updateDebugBadges = updateDebugBadges;
+
+
+  function rewriteSchemeChordTexts(){
+    const root = document.getElementById('alphaTab');
+    if (!root) return;
+    const chordFontPx = (typeof getChordFontSizePx === 'function') ? getChordFontSizePx() : 16;
+    const preferFlats = prefersFlatsFromKeyName ? prefersFlatsFromKeyName((window.__currentMeta && window.__currentMeta.key_name) || '') : false;
+    const keepOriginalChordNames = !isAutoMode();
+    const scheme = isAutoMode() ? state.currentScheme : null;
+    const nodes = root.querySelectorAll('text, tspan');
+    nodes.forEach((el) => {
+      if (el.children && el.children.length) return;
+      const current = (el.textContent || '').trim();
+      if (!current) return;
+      const original = el.getAttribute('data-orig-chord') || current;
+      if (!looksLikeChordSymbol(original)) return;
+      if (!el.getAttribute('data-orig-chord')) el.setAttribute('data-orig-chord', original);
+      let next = original;
+      if (!keepOriginalChordNames) {
+        if (scheme && scheme.chordMap && Object.prototype.hasOwnProperty.call(scheme.chordMap, original)) {
+          next = scheme.chordMap[original];
+        } else {
+          const concert = transposeChordSafe(original, getConcertTranspose(), preferFlats);
+          next = scheme ? transposeChordSafe(concert, -(scheme.capo || 0), !!scheme.preferFlats) : concert;
+        }
+      }
+      if (next && next !== current) el.textContent = next;
+      try { el.style.fontSize = chordFontPx + 'px'; } catch (e) {}
+    });
+  }
+
+  if (typeof rewriteRenderedChordTexts === 'function') {
+    const __oldRewriteRenderedChordTexts = rewriteRenderedChordTexts;
+    rewriteRenderedChordTexts = function(){
+      if (!isAutoMode()) return __oldRewriteRenderedChordTexts();
+      rewriteSchemeChordTexts();
+    };
+  }
+
+  if (typeof scheduleChordRewrite === 'function') {
+    const __oldScheduleChordRewrite = scheduleChordRewrite;
+    scheduleChordRewrite = function(delay = 80) {
+      if (!isAutoMode()) return __oldScheduleChordRewrite(delay);
+      try { if (window.__chordRewriteTimer) clearTimeout(window.__chordRewriteTimer); } catch (e) {}
+      window.__chordRewriteTimer = setTimeout(() => {
+        try { rewriteSchemeChordTexts(); } catch (e) { console.warn('rewriteSchemeChordTexts failed', e); }
+      }, delay);
+    };
+  }
+
+  const __oldRefreshAdjustUI = typeof refreshAdjustUI === 'function' ? refreshAdjustUI : null;
+  if (__oldRefreshAdjustUI) {
+    refreshAdjustUI = function(){
+      const out = __oldRefreshAdjustUI();
+      out.capo = getDisplayedCapoLabel();
+      return out;
+    };
+  }
   document.addEventListener('DOMContentLoaded', function(){ setInterval(updateDebugBadges, 250); setTimeout(updateDebugBadges, 300); });
 })();
 </script>
@@ -3090,7 +3148,7 @@ function __isOriginalPatternSelected() {
 
 <script>
 (function(){
-  const BUILD = 'V12_6d_auto_engine';
+  const BUILD = 'V12_6e_auto_engine_fix1';
   const state = window.__AUTO_SCHEME_ENGINE_STATE = window.__AUTO_SCHEME_ENGINE_STATE || {
     schemes: [],
     schemeIndex: 0,
@@ -3305,6 +3363,7 @@ function __isOriginalPatternSelected() {
     });
     if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
     if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
+    if (typeof scheduleChordRewrite === 'function') scheduleChordRewrite(10);
     syncSchemeUi();
   }
   rebuildDisplayChordTimeline = renderByScheme;
@@ -3353,10 +3412,12 @@ function __isOriginalPatternSelected() {
     if (opts && Number.isInteger(opts.schemeIndex)) state.schemeIndex = Math.max(0, Math.min(opts.schemeIndex, 2));
     generateSchemes(!!(opts && opts.force));
     renderByScheme();
+    if (typeof scheduleChordRewrite === 'function') scheduleChordRewrite(10);
     if (typeof updateMetaRow === 'function') updateMetaRow();
     if (typeof refreshAdjustUI === 'function') refreshAdjustUI();
     setTimeout(() => {
       try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('applyCurrentPatternToOriginalTab failed', e); }
+      try { if (typeof scheduleChordRewrite === 'function') scheduleChordRewrite(10); } catch (e) {}
     }, 60);
   }
   window.__applyAutoSchemeEngine = applyAutoScheme;
@@ -3429,6 +3490,64 @@ function __isOriginalPatternSelected() {
     }
   };
 
+
+
+  function rewriteSchemeChordTexts(){
+    const root = document.getElementById('alphaTab');
+    if (!root) return;
+    const chordFontPx = (typeof getChordFontSizePx === 'function') ? getChordFontSizePx() : 16;
+    const preferFlats = prefersFlatsFromKeyName ? prefersFlatsFromKeyName((window.__currentMeta && window.__currentMeta.key_name) || '') : false;
+    const keepOriginalChordNames = !isAutoMode();
+    const scheme = isAutoMode() ? state.currentScheme : null;
+    const nodes = root.querySelectorAll('text, tspan');
+    nodes.forEach((el) => {
+      if (el.children && el.children.length) return;
+      const current = (el.textContent || '').trim();
+      if (!current) return;
+      const original = el.getAttribute('data-orig-chord') || current;
+      if (!looksLikeChordSymbol(original)) return;
+      if (!el.getAttribute('data-orig-chord')) el.setAttribute('data-orig-chord', original);
+      let next = original;
+      if (!keepOriginalChordNames) {
+        if (scheme && scheme.chordMap && Object.prototype.hasOwnProperty.call(scheme.chordMap, original)) {
+          next = scheme.chordMap[original];
+        } else {
+          const concert = transposeChordSafe(original, getConcertTranspose(), preferFlats);
+          next = scheme ? transposeChordSafe(concert, -(scheme.capo || 0), !!scheme.preferFlats) : concert;
+        }
+      }
+      if (next && next !== current) el.textContent = next;
+      try { el.style.fontSize = chordFontPx + 'px'; } catch (e) {}
+    });
+  }
+
+  if (typeof rewriteRenderedChordTexts === 'function') {
+    const __oldRewriteRenderedChordTexts = rewriteRenderedChordTexts;
+    rewriteRenderedChordTexts = function(){
+      if (!isAutoMode()) return __oldRewriteRenderedChordTexts();
+      rewriteSchemeChordTexts();
+    };
+  }
+
+  if (typeof scheduleChordRewrite === 'function') {
+    const __oldScheduleChordRewrite = scheduleChordRewrite;
+    scheduleChordRewrite = function(delay = 80) {
+      if (!isAutoMode()) return __oldScheduleChordRewrite(delay);
+      try { if (window.__chordRewriteTimer) clearTimeout(window.__chordRewriteTimer); } catch (e) {}
+      window.__chordRewriteTimer = setTimeout(() => {
+        try { rewriteSchemeChordTexts(); } catch (e) { console.warn('rewriteSchemeChordTexts failed', e); }
+      }, delay);
+    };
+  }
+
+  const __oldRefreshAdjustUI = typeof refreshAdjustUI === 'function' ? refreshAdjustUI : null;
+  if (__oldRefreshAdjustUI) {
+    refreshAdjustUI = function(){
+      const out = __oldRefreshAdjustUI();
+      out.capo = getDisplayedCapoLabel();
+      return out;
+    };
+  }
   document.addEventListener('DOMContentLoaded', function(){
     setTimeout(function(){
       try {
