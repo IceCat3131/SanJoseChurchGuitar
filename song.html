@@ -2872,7 +2872,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_6c_base_restore</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_6c_fix2</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
@@ -3084,6 +3084,326 @@ function __isOriginalPatternSelected() {
   } else {
     install();
   }
+})();
+</script>
+
+
+<script>
+(function(){
+  const FAMILY_SPECS = [
+    { family:'G', root:'G' },
+    { family:'C', root:'C' },
+    { family:'D', root:'D' },
+    { family:'A', root:'A' },
+    { family:'E', root:'E' },
+    { family:'F', root:'F' }
+  ];
+  const NOTE_TO_INDEX_LOCAL = { C:0, 'C#':1, Db:1, D:2, 'D#':3, Eb:3, E:4, F:5, 'F#':6, Gb:6, G:7, 'G#':8, Ab:8, A:9, 'A#':10, Bb:10, B:11 };
+
+  function v12SchemeIsOriginal(){
+    try { return typeof window.__isOriginalPatternSelected === 'function' && window.__isOriginalPatternSelected(); }
+    catch(e){ return true; }
+  }
+
+  function parseKeyRootIndex(){
+    const keyName = String((window.__currentMeta && window.__currentMeta.key_name) || (window.__gtzMeta && window.__gtzMeta.key_name) || '').trim();
+    const m = keyName.match(/^([A-G](?:#|b)?)/);
+    const root = m ? m[1] : '';
+    return NOTE_TO_INDEX_LOCAL[root] != null ? NOTE_TO_INDEX_LOCAL[root] : null;
+  }
+
+  function capoFromTargetAndFamily(targetIdx, familyRoot){
+    const familyIdx = NOTE_TO_INDEX_LOCAL[familyRoot];
+    if (targetIdx == null || familyIdx == null) return null;
+    const capo = (targetIdx - familyIdx + 12) % 12;
+    return capo <= 6 ? capo : null;
+  }
+
+  function getTargetKeyIndex(){
+    const base = parseKeyRootIndex();
+    if (base == null) return null;
+    const semitones = (typeof getUserTranspose === 'function') ? getUserTranspose() : 0;
+    return (base + semitones % 12 + 12) % 12;
+  }
+
+  function getTargetChordSymbol(rawChord){
+    const raw = String(rawChord || '').trim();
+    if (!raw) return raw;
+    const semitones = (typeof getUserTranspose === 'function') ? getUserTranspose() : 0;
+    const preferFlats = (typeof prefersFlatsFromKeyName === 'function') ? prefersFlatsFromKeyName((window.__currentMeta && window.__currentMeta.key_name) || '') : false;
+    return (typeof transposeChordSymbol === 'function' && semitones)
+      ? transposeChordSymbol(raw, semitones, preferFlats)
+      : raw;
+  }
+
+  function getShapeForChordLocal(chordSymbol){
+    try {
+      if (typeof getAutoShapeForChord === 'function') return getAutoShapeForChord(chordSymbol, chordSymbol);
+    } catch(e) {}
+    return null;
+  }
+
+  function estimateShapePenalty(shape){
+    if (!Array.isArray(shape)) return 3;
+    const nums = shape.filter(v => Number.isFinite(+v)).map(v => +v);
+    if (!nums.length) return 2;
+    const minFret = Math.min(...nums);
+    const maxFret = Math.max(...nums);
+    let p = 0;
+    if (minFret >= 1) p += 1.2;
+    if (minFret >= 3) p += 0.8;
+    if (maxFret >= 5) p += 0.7;
+    if ((maxFret - minFret) >= 4) p += 0.4;
+    return p;
+  }
+
+  function buildScheme(familySpec, capo){
+    const rawTimeline = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
+    const preferFlats = (typeof prefersFlatsFromKeyName === 'function') ? prefersFlatsFromKeyName((window.__currentMeta && window.__currentMeta.key_name) || '') : false;
+    const chordMap = {};
+    const shapeMap = {};
+    let difficulty = 0;
+    let unsupported = 0;
+    let openBonus = 0;
+    const seen = new Set();
+
+    rawTimeline.forEach(c => {
+      const raw = String(c.chordRaw || '').trim();
+      if (!raw || seen.has(raw)) return;
+      seen.add(raw);
+      const targetChord = getTargetChordSymbol(raw);
+      const familyChord = (typeof transposeChordSymbol === 'function' && capo)
+        ? transposeChordSymbol(targetChord, -capo, preferFlats)
+        : targetChord;
+      chordMap[raw] = familyChord;
+      const shapeResolved = getShapeForChordLocal(familyChord);
+      if (shapeResolved && Array.isArray(shapeResolved.shape)) {
+        shapeMap[familyChord] = shapeResolved.shape.slice();
+        difficulty += estimateShapePenalty(shapeResolved.shape);
+        if (shapeResolved.shape.some(v => +v === 0)) openBonus += 0.2;
+      } else {
+        unsupported += 1;
+      }
+    });
+
+    const score = Math.abs(capo - 2) + difficulty + unsupported * 2.5 - openBonus;
+    return {
+      id: familySpec.family,
+      family: familySpec.family,
+      root: familySpec.root,
+      capo,
+      score,
+      unsupported,
+      chordMap,
+      shapeMap
+    };
+  }
+
+  function generateSchemes(){
+    const targetIdx = getTargetKeyIndex();
+    if (targetIdx == null) {
+      window.__V12_6_SCHEME_OBJECTS = [];
+      return [];
+    }
+    const schemes = FAMILY_SPECS.map(spec => {
+      const capo = capoFromTargetAndFamily(targetIdx, spec.root);
+      if (capo == null) return null;
+      return buildScheme(spec, capo);
+    }).filter(Boolean).sort((a,b) => (a.score - b.score) || (a.capo - b.capo));
+    window.__V12_6_SCHEME_OBJECTS = schemes;
+    return schemes;
+  }
+
+  function getSchemeByLetter(letter){
+    const list = Array.isArray(window.__V12_6_SCHEME_OBJECTS) ? window.__V12_6_SCHEME_OBJECTS : [];
+    const idx = {A:0,B:1,C:2}[String(letter || 'A').toUpperCase()] ?? 0;
+    return list[idx] || list[0] || null;
+  }
+
+  function getCurrentScheme(){
+    if (v12SchemeIsOriginal()) return null;
+    generateSchemes();
+    const id = window.__V12_6_SCHEME || 'A';
+    return getSchemeByLetter(id);
+  }
+
+  window.generateSchemes = generateSchemes;
+  window.buildScheme = buildScheme;
+  window.getCurrentScheme = getCurrentScheme;
+
+  window.applyScheme = function(){
+    try { if (typeof rebuildDisplayChordTimeline === 'function') rebuildDisplayChordTimeline(); } catch(e) {}
+    try { if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong(); } catch(e) {}
+    try { if (typeof rebuildAutoTabTrack === 'function') rebuildAutoTabTrack(); } catch(e) {}
+    try { if (typeof scheduleChordRewrite === 'function') scheduleChordRewrite(10); } catch(e) {}
+    try { if (typeof updateMetaRow === 'function') updateMetaRow(); } catch(e) {}
+    try { if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0); } catch(e) {}
+    setTimeout(function(){
+      try { if (typeof window.applyCurrentPatternToOriginalTab === 'function' && !v12SchemeIsOriginal()) window.applyCurrentPatternToOriginalTab(); } catch(e) {}
+      try { if (typeof window.syncUI === 'function') window.syncUI(); } catch(e) {}
+      try { if (typeof window.__V12_6_syncSchemeUI === 'function') window.__V12_6_syncSchemeUI(); } catch(e) {}
+    }, 40);
+  };
+
+  const oldGetDisplayedCapoLabel = window.getDisplayedCapoLabel;
+  window.getDisplayedCapoLabel = function(){
+    if (!v12SchemeIsOriginal()) {
+      const scheme = getCurrentScheme();
+      if (scheme && Number.isFinite(+scheme.capo)) return +scheme.capo;
+    }
+    return oldGetDisplayedCapoLabel ? oldGetDisplayedCapoLabel.apply(this, arguments) : 0;
+  };
+
+  const oldRebuildDisplayChordTimeline = window.rebuildDisplayChordTimeline;
+  window.rebuildDisplayChordTimeline = function(){
+    if (v12SchemeIsOriginal()) {
+      return oldRebuildDisplayChordTimeline ? oldRebuildDisplayChordTimeline.apply(this, arguments) : undefined;
+    }
+    const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
+    const scheme = getCurrentScheme();
+    window.__chordTimeline = raw.map((c, i) => ({
+      ...c,
+      index: i,
+      chordDisplay: (scheme && scheme.chordMap && scheme.chordMap[c.chordRaw]) ? scheme.chordMap[c.chordRaw] : getTargetChordSymbol(c.chordRaw)
+    }));
+    return window.__chordTimeline;
+  };
+
+  const oldBuildAutoAccompanimentBar = window.buildAutoAccompanimentBar;
+  window.buildAutoAccompanimentBar = function(measureObj, chordObj){
+    if (v12SchemeIsOriginal()) {
+      return oldBuildAutoAccompanimentBar ? oldBuildAutoAccompanimentBar.apply(this, arguments) : null;
+    }
+    if (!measureObj || !chordObj) return null;
+    const scheme = getCurrentScheme();
+    const displayChord = (scheme && scheme.chordMap && scheme.chordMap[chordObj.chordRaw]) ? scheme.chordMap[chordObj.chordRaw] : chordObj.chordDisplay;
+    let resolved = null;
+    const shape = scheme && scheme.shapeMap ? scheme.shapeMap[displayChord] : null;
+    if (Array.isArray(shape)) resolved = { key: displayChord, shape: shape.slice() };
+    if (!resolved) resolved = getShapeForChordLocal(displayChord) || (typeof getAutoShapeForChord === 'function' ? getAutoShapeForChord(displayChord, chordObj.chordRaw) : null);
+    if (!resolved || !Array.isArray(resolved.shape)) {
+      return {
+        meter: measureObj.meter,
+        measure: measureObj.measure,
+        chordRaw: chordObj.chordRaw,
+        chordDisplay: displayChord,
+        bassString: null,
+        shape: null,
+        pattern: [],
+        notes: [],
+        text: '未找到按法'
+      };
+    }
+    const finalShape = resolved.shape.slice();
+    const bassString = (typeof getBassStringFromShape === 'function') ? getBassStringFromShape(finalShape) : 6;
+    let pattern = [];
+    try { pattern = (typeof getAutoPatternForMeter === 'function') ? getAutoPatternForMeter(measureObj.meter, bassString) : []; } catch(e) {}
+    const notes = pattern.map((stringNo, idx) => {
+      const fret = finalShape[6 - stringNo];
+      return { index: idx, string: stringNo, fret, label: `${stringNo}弦${fret}` };
+    }).filter(n => Number.isFinite(+n.string) && n.fret !== 'x' && n.fret !== 'X' && n.fret != null);
+    return {
+      meter: measureObj.meter,
+      measure: measureObj.measure,
+      chordRaw: chordObj.chordRaw,
+      chordDisplay: displayChord,
+      bassString,
+      shape: finalShape,
+      pattern: pattern.slice(),
+      notes,
+      text: notes.length ? notes.map(n => `${n.string}弦${n.fret}`).join(' · ') : '未找到按法'
+    };
+  };
+
+  const oldRewriteRenderedChordTexts = window.rewriteRenderedChordTexts;
+  window.rewriteRenderedChordTexts = function(){
+    if (v12SchemeIsOriginal()) {
+      return oldRewriteRenderedChordTexts ? oldRewriteRenderedChordTexts.apply(this, arguments) : undefined;
+    }
+    const root = document.getElementById('alphaTab');
+    if (!root) return;
+    const chordTimeline = Array.isArray(window.__chordTimeline) ? window.__chordTimeline : [];
+    const chordFontPx = (typeof getChordFontSizePx === 'function') ? getChordFontSizePx() : 16;
+    const nodes = Array.from(root.querySelectorAll('text, tspan')).filter((el) => {
+      if (el.children && el.children.length) return false;
+      const current = (el.textContent || '').trim();
+      if (!current) return false;
+      const original = el.getAttribute('data-orig-chord') || current;
+      const ok = (typeof looksLikeChordSymbol === 'function') ? looksLikeChordSymbol(original) : /^[A-G](?:#|b)?/.test(original);
+      if (!ok) return false;
+      if (!el.getAttribute('data-orig-chord')) el.setAttribute('data-orig-chord', original);
+      return true;
+    });
+    nodes.forEach((el, idx) => {
+      const next = (chordTimeline[idx] && chordTimeline[idx].chordDisplay) || (el.getAttribute('data-orig-chord') || el.textContent || '');
+      if (next) el.textContent = next;
+      try { el.style.fontSize = chordFontPx + 'px'; } catch(e) {}
+    });
+  };
+
+  const oldSetScheme = window.__V12_6_setScheme;
+  window.__V12_6_setScheme = function(id){
+    window.__V12_6_SCHEME = ['A','B','C'].includes(String(id || '').toUpperCase()) ? String(id).toUpperCase() : 'A';
+    if (typeof oldSetScheme === 'function') oldSetScheme.apply(this, arguments);
+    if (!v12SchemeIsOriginal()) {
+      generateSchemes();
+      window.applyScheme();
+    }
+  };
+
+  const oldSyncSchemeUI = window.__V12_6_syncSchemeUI;
+  window.__V12_6_syncSchemeUI = function(){
+    if (typeof oldSyncSchemeUI === 'function') oldSyncSchemeUI.apply(this, arguments);
+    const note = document.getElementById('ui-scheme-note');
+    if (!note) return;
+    if (v12SchemeIsOriginal()) {
+      note.textContent = '原谱模式固定方案A。';
+      return;
+    }
+    const scheme = getCurrentScheme();
+    const cur = window.__V12_6_SCHEME || 'A';
+    const list = Array.isArray(window.__V12_6_SCHEME_OBJECTS) ? window.__V12_6_SCHEME_OBJECTS : [];
+    if (!scheme) {
+      note.textContent = '自动伴奏模式：未生成可用方案。';
+      return;
+    }
+    note.textContent = `自动伴奏方案 ${cur}：${scheme.family}组 / CP${scheme.capo} / score ${scheme.score.toFixed(2)} / 方案数 ${list.length} / build V12_6c_fix2`;
+  };
+
+  const oldChangeTranspose = window.changeTranspose;
+  window.changeTranspose = function(delta){
+    if (!v12SchemeIsOriginal()) {
+      viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, (typeof getUserTranspose === 'function' ? getUserTranspose() : 0) + delta));
+      try { if (typeof saveViewerPrefs === 'function') saveViewerPrefs(); } catch(e) {}
+      try { if (typeof refreshAdjustUI === 'function') refreshAdjustUI(); } catch(e) {}
+      try { if (typeof updateMetaRow === 'function') updateMetaRow(); } catch(e) {}
+      generateSchemes();
+      window.applyScheme();
+      return;
+    }
+    return oldChangeTranspose ? oldChangeTranspose.apply(this, arguments) : undefined;
+  };
+
+  const oldResetTranspose = window.resetTranspose;
+  window.resetTranspose = function(){
+    if (!v12SchemeIsOriginal()) {
+      viewerPrefs.transposeSemitones = 0;
+      try { if (typeof saveViewerPrefs === 'function') saveViewerPrefs(); } catch(e) {}
+      try { if (typeof refreshAdjustUI === 'function') refreshAdjustUI(); } catch(e) {}
+      try { if (typeof updateMetaRow === 'function') updateMetaRow(); } catch(e) {}
+      generateSchemes();
+      window.applyScheme();
+      return;
+    }
+    return oldResetTranspose ? oldResetTranspose.apply(this, arguments) : undefined;
+  };
+
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){
+      try { generateSchemes(); } catch(e) {}
+      try { if (typeof window.__V12_6_syncSchemeUI === 'function') window.__V12_6_syncSchemeUI(); } catch(e) {}
+    }, 900);
+  });
 })();
 </script>
 
