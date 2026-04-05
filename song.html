@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="style.css" />
   <script src="assets/alphatab/alphaTab.js"></script>
 <script>
-window.__V12_6_SCHEME_ENGINE_VERSION = 'rewrite-fix-v4';
 // ===== GTZ 和弦时间轴 + 节拍/节奏跟随 =====
 window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
 window.__chordTimelineRaw = [];
@@ -17,6 +16,7 @@ window.__chordTimeline = [];
 window.__rhythmState = { meter: '--', patternId: '--', steps: [], stepsPerBar: 0 };
 window.__autoAccompanimentSong = [];
 window.__autoAccompanimentCurrentBar = null;
+window.__V12_6_SCHEME_ENGINE_VERSION = 'rewrite-test-v1';
 
 function decodeBase64ToText(b64) {
   const binary = atob(b64);
@@ -3022,7 +3022,7 @@ function __isOriginalPatternSelected() {
     if (note){
       note.textContent = original
         ? '原谱模式固定方案A。'
-        : ('自动伴奏模式当前方案：' + cur + '。A/B/C 现在可切换，算法下一步接入。');
+        : ('自动伴奏模式当前方案：' + cur + '。已接入 scheme 引擎测试版。');
     }
   }
 
@@ -3333,11 +3333,7 @@ function __isOriginalPatternSelected() {
     if (v12SchemeIsOriginal()) return base;
     const scheme = getCurrentScheme();
     const displayChord = (scheme && scheme.chordMap && chordObj && chordObj.chordRaw) ? (scheme.chordMap[chordObj.chordRaw] || chordObj.chordDisplay) : chordObj?.chordDisplay;
-    let resolved = null;
-    if (scheme && scheme.shapeMap && displayChord && Array.isArray(scheme.shapeMap[displayChord])) {
-      resolved = { key: displayChord, shape: scheme.shapeMap[displayChord].slice() };
-    }
-    if (!resolved) resolved = getShapeForChordLocal(displayChord);
+    const resolved = getShapeForChordLocal(displayChord);
     if (!resolved || !Array.isArray(resolved.shape)) {
       return { ...base, chordDisplay: displayChord, shape: null, notes: [], text: '未找到按法' };
     }
@@ -3413,42 +3409,22 @@ function __isOriginalPatternSelected() {
       note.textContent = '自动伴奏模式：未生成可用方案。';
       return;
     }
-    note.textContent = `自动伴奏方案 ${cur}：${scheme.family}组 / CP${scheme.capo} / score ${scheme.score.toFixed(2)} / 方案数 ${list.length} / rewrite-fix-v4`;
+    note.textContent = `自动伴奏方案 ${cur}：${scheme.family}组 / CP${scheme.capo} / score ${scheme.score.toFixed(2)} / 方案数 ${list.length} / rewrite-test-v1`;
   };
 
   const oldChangeTranspose = window.changeTranspose;
   window.changeTranspose = function(delta){
-    if (!v12SchemeIsOriginal()) {
-      viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, getUserTranspose() + delta));
-      saveViewerPrefs();
-      try { refreshAdjustUI(); } catch(e) {}
-      try { generateSchemes(); } catch(e) {}
-      try { updateMetaRow(); } catch(e) {}
-      try { applyViewerPrefsToScore(); } catch(e) {}
-      try { window.applyScheme(); } catch(e) {}
-      try { if (typeof window.__V12_6_syncSchemeUI === 'function') window.__V12_6_syncSchemeUI(); } catch(e) {}
-      return;
-    }
     const out = oldChangeTranspose ? oldChangeTranspose.apply(this, arguments) : undefined;
     generateSchemes();
+    if (!v12SchemeIsOriginal()) window.applyScheme();
     return out;
   };
 
   const oldResetTranspose = window.resetTranspose;
   window.resetTranspose = function(){
-    if (!v12SchemeIsOriginal()) {
-      viewerPrefs.transposeSemitones = 0;
-      saveViewerPrefs();
-      try { refreshAdjustUI(); } catch(e) {}
-      try { generateSchemes(); } catch(e) {}
-      try { updateMetaRow(); } catch(e) {}
-      try { applyViewerPrefsToScore(); } catch(e) {}
-      try { window.applyScheme(); } catch(e) {}
-      try { if (typeof window.__V12_6_syncSchemeUI === 'function') window.__V12_6_syncSchemeUI(); } catch(e) {}
-      return;
-    }
     const out = oldResetTranspose ? oldResetTranspose.apply(this, arguments) : undefined;
     generateSchemes();
+    if (!v12SchemeIsOriginal()) window.applyScheme();
     return out;
   };
 
