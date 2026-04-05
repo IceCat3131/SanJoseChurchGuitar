@@ -225,7 +225,6 @@ function rebuildDisplayChordTimeline() {
   }));
   rebuildAutoAccompanimentSong();
   updateRhythmPlayback(__playbackState.current || 0);
-  try{ if(typeof __V12_6_syncSchemeUI==='function') __V12_6_syncSchemeUI(); }catch(e){}
 }
 
 function getDefaultPatternForMeter(meter) {
@@ -306,17 +305,15 @@ function normalizeAutoChordLookup(chord) {
   return raw.replace(/\s+/g, '').replace(/△/g, 'maj');
 }
 
-
-function __V12_7_getSchemeAwareChordName(chordDisplay, chordRaw) {
-  if (!__V12_7_isAutoMode()) return chordDisplay || chordRaw || '';
-  const spec = __V12_7_getActiveSchemeSpec();
-  const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
-  const base = chordRaw || chordDisplay || '';
-  const shift = spec ? spec.displayShift : 0;
-  return shift ? transposeChordSymbol(base, shift, preferFlats) : base;
-}
 function getAutoShapeForChord(chordDisplay, chordRaw) {
-  const candidates = [chordDisplay, chordRaw].map(normalizeAutoChordLookup).filter(Boolean);
+  let schemeDisplay = chordDisplay;
+  if (__V12_7_isAutoMode()) {
+    const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
+    const spec = __V12_7_getActiveSchemeSpec();
+    const shift = spec ? spec.displayShift : getUserTranspose();
+    schemeDisplay = shift ? transposeChordSymbol(chordRaw || chordDisplay, shift, preferFlats) : (chordRaw || chordDisplay);
+  }
+  const candidates = [schemeDisplay, chordDisplay, chordRaw].map(normalizeAutoChordLookup).filter(Boolean);
   for (const c of candidates) {
     if (AUTO_CHORD_SHAPES[c]) return { key: c, shape: AUTO_CHORD_SHAPES[c].slice() };
     const slash = c.split('/')[0];
@@ -719,97 +716,81 @@ function __V12_isOriginalPatternActive() {
 }
 
 
-  const __V12_7_FAMILY_PITCH = { C:0, D:2, E:4, F:5, G:7, A:9, B:11 };
-  const __V12_7_FAMILY_ORDER = ['G','C','D','A','E','F'];
-  const __V12_7_FAMILY_WEIGHT = { G:0, C:0.2, D:0.4, A:0.6, E:0.8, F:1.2 };
-
-  function __V12_7_normSigned(n) {
-    let x = ((n % 12) + 12) % 12;
-    if (x > 6) x -= 12;
-    return x;
+  function __V12_7_isAutoMode() {
+    return !(typeof __V12_isOriginalPatternActive === 'function' && __V12_isOriginalPatternActive());
   }
 
-  function __V12_7_getBaseFamily() {
-    try {
-      const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
-      const first = raw.find(c => c && c.chordRaw) || raw[0];
-      const m = String(first && first.chordRaw || 'G').match(/^([A-G](?:#|b)?)/);
-      const root = m ? m[1] : 'G';
-      const map = { 'C#':'C', 'Db':'C', 'D#':'D', 'Eb':'D', 'F#':'F', 'Gb':'F', 'G#':'G', 'Ab':'G', 'A#':'A', 'Bb':'A' };
-      return map[root] || root[0] || 'G';
-    } catch(e) { return 'G'; }
+  function __V12_7_resolveShapeByName(chordName) {
+    const raw = normalizeAutoChordLookup(chordName);
+    if (!raw) return null;
+    if (AUTO_CHORD_SHAPES[raw]) return { key: raw, shape: AUTO_CHORD_SHAPES[raw].slice() };
+    const slash = raw.split('/')[0];
+    if (AUTO_CHORD_SHAPES[slash]) return { key: slash, shape: AUTO_CHORD_SHAPES[slash].slice() };
+    return null;
   }
 
-  function __V12_7_getTargetPitch() {
-    const baseFamily = __V12_7_getBaseFamily();
-    const basePitch = __V12_7_FAMILY_PITCH[baseFamily] ?? 7;
-    return ((basePitch + getSongCapo() + getUserTranspose()) % 12 + 12) % 12;
+  function __V12_7_shapeDifficulty(shape) {
+    if (!Array.isArray(shape)) return 999;
+    let nums = shape.filter(v => v !== 'x' && v !== 'X').map(v => Number(v)).filter(v => Number.isFinite(v));
+    if (!nums.length) return 999;
+    const maxF = Math.max(...nums), minF = Math.min(...nums);
+    let score = 0;
+    score += maxF * 0.3;
+    score += minF * 0.2;
+    score += (maxF - minF) * 0.4;
+    if (minF >= 5) score += 4;
+    if (minF >= 7) score += 8;
+    return score;
+  }
+
+  function __V12_7_computeSchemeForCapo(capo) {
+    const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
+    const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
+    const displayShift = getSongCapo() + getUserTranspose() - capo;
+    const unique = [];
+    const seen = new Set();
+    for (const c of raw) {
+      const ch = String((c && c.chordRaw) || '').trim();
+      if (!ch || seen.has(ch)) continue;
+      seen.add(ch);
+      unique.push(ch);
+    }
+    let score = 0;
+    for (const ch of unique.slice(0, 12)) {
+      const disp = displayShift ? transposeChordSymbol(ch, displayShift, preferFlats) : ch;
+      const resolved = __V12_7_resolveShapeByName(disp);
+      if (!resolved) {
+        score += 50;
+        continue;
+      }
+      score += __V12_7_shapeDifficulty(resolved.shape);
+    }
+    score += Math.abs(capo - 2) * 1.2;
+    if (capo > 4) score += 4 + (capo - 4) * 2;
+    return { capo, displayShift, score };
   }
 
   function __V12_7_computeSchemes() {
-    const baseFamily = __V12_7_getBaseFamily();
-    const targetPitch = __V12_7_getTargetPitch();
-
-    const familyBiasMap = {
-      G: ['G','F','D','C','A','E'],
-      C: ['C','G','A','D','F','E'],
-      D: ['D','C','A','G','E','F'],
-      A: ['A','G','E','D','C','F'],
-      E: ['E','D','C','A','G','F'],
-      F: ['F','G','C','D','A','E']
-    };
-    const preferred = familyBiasMap[baseFamily] || __V12_7_FAMILY_ORDER.slice();
-    const basePitch = __V12_7_FAMILY_PITCH[baseFamily] ?? 7;
-
     const candidates = [];
-    for (const fam of __V12_7_FAMILY_ORDER) {
-      const famPitch = __V12_7_FAMILY_PITCH[fam];
-      let capo = ((targetPitch - famPitch) % 12 + 12) % 12;
-      if (capo > 6) continue;
-      const displayShift = __V12_7_normSigned(famPitch - basePitch);
-      let score = 0;
-      // strongly prefer capo in 1..4, then 0, then 5..6
-      score += Math.abs(capo - 2) * 1.4;
-      if (capo === 0) score += 1.1;
-      if (capo > 4) score += 3.0;
-      // prefer familiar open families
-      score += (__V12_7_FAMILY_WEIGHT[fam] || 0);
-      // bias by preferred family order for this song
-      const biasIndex = preferred.indexOf(fam);
-      score += (biasIndex >= 0 ? biasIndex * 0.45 : 3);
-      // slight preference for keeping same family only if capo still comfortable
-      if (fam === baseFamily && capo <= 4) score -= 0.35;
-
-      candidates.push({ family:fam, capo:capo, displayShift:displayShift, score:score });
-    }
-
+    for (let capo = 0; capo <= 6; capo++) candidates.push(__V12_7_computeSchemeForCapo(capo));
     candidates.sort((a,b) => a.score - b.score || a.capo - b.capo);
-
-    const chosen = [];
-    const seenFamily = new Set();
-    for (const cand of candidates) {
-      if (seenFamily.has(cand.family)) continue;
-      seenFamily.add(cand.family);
-      chosen.push(cand);
-      if (chosen.length >= 3) break;
+    const top = [];
+    const used = new Set();
+    for (const c of candidates) {
+      if (used.has(c.capo)) continue;
+      top.push(c);
+      used.add(c.capo);
+      if (top.length >= 3) break;
     }
-    while (chosen.length < 3) {
-      chosen.push(chosen[chosen.length - 1] || { family: baseFamily, capo: getSongCapo(), displayShift: 0, score: 99 });
-    }
-    return { A: chosen[0], B: chosen[1], C: chosen[2] };
-  }
-
-  function __V12_7_isAutoMode() {
-    try { return !(typeof __V12_5_isOriginalPattern === 'function' && __V12_5_isOriginalPattern()); }
-    catch(e) { return false; }
+    while (top.length < 3) top.push(top[top.length-1] || { capo:getSongCapo(), displayShift:getUserTranspose(), score:999 });
+    return { A: top[0], B: top[1], C: top[2] };
   }
 
   function __V12_7_getActiveSchemeSpec() {
-    const sel = window.__V12_7_SCHEME || 'A';
+    const sel = window.__V12_6_SCHEME || 'A';
     const specs = __V12_7_computeSchemes();
     return specs[sel] || specs.A;
   }
-
 
 function getSongCapo() {
     const metaCapo = parseInt(window.__gtzMeta?.capo, 10);
@@ -963,9 +944,8 @@ function getSongCapo() {
     const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
     const chordFontPx = getChordFontSizePx();
     const keepOriginalChordNames = __V12_isOriginalPatternActive();
-    const autoSpec = (typeof __V12_7_isAutoMode === 'function' && __V12_7_isAutoMode() && typeof __V12_7_getActiveSchemeSpec === 'function')
-      ? __V12_7_getActiveSchemeSpec() : null;
-    const chordShift = keepOriginalChordNames ? 0 : (autoSpec ? autoSpec.displayShift : semitones);
+    const autoSpec = __V12_7_isAutoMode() ? __V12_7_getActiveSchemeSpec() : null;
+    const shift = keepOriginalChordNames ? 0 : (autoSpec ? autoSpec.displayShift : semitones);
     const nodes = root.querySelectorAll('text, tspan');
     nodes.forEach((el) => {
       if (el.children && el.children.length) return;
@@ -973,10 +953,8 @@ function getSongCapo() {
       if (!current) return;
       const original = el.getAttribute('data-orig-chord') || current;
       if (!looksLikeChordSymbol(original)) return;
-      if (!el.getAttribute('data-orig-chord')) {
-        el.setAttribute('data-orig-chord', original);
-      }
-      const next = keepOriginalChordNames ? original : (chordShift === 0 ? original : transposeChordSymbol(original, chordShift, preferFlats));
+      if (!el.getAttribute('data-orig-chord')) el.setAttribute('data-orig-chord', original);
+      const next = keepOriginalChordNames ? original : (shift === 0 ? original : transposeChordSymbol(original, shift, preferFlats));
       if (next && next !== current) {
         el.textContent = next;
       }
@@ -1122,20 +1100,18 @@ function getSongCapo() {
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
-  try{ if(typeof __V12_6_syncSchemeUI==='function') __V12_6_syncSchemeUI(); }catch(e){}
     if (__shouldRewritePatternAfterTranspose()) {
       try {
         if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
         setTimeout(() => {
           try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('transpose pattern rewrite failed', e); }
-        
-    try { if (typeof __V12_6_syncSchemeUI === 'function') __V12_6_syncSchemeUI(); } catch(e) {}
-    try { if (__V12_7_isAutoMode()) { rebuildDisplayChordTimeline(); rebuildAutoAccompanimentSong(); if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } } catch(e) {}
-    try { if (typeof __V12_6_syncSchemeUI === 'function') __V12_6_syncSchemeUI(); } catch(e) {}
-  }, 60);
+        }, 60);
       } catch (e) { console.warn('transpose pattern rewrite failed', e); }
     }
-  }
+  
+    try { if (__V12_7_isAutoMode()) { rebuildDisplayChordTimeline(); rebuildAutoAccompanimentSong(); if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } } catch(e) {}
+    try { if (typeof __V12_6_syncSchemeUI === 'function') __V12_6_syncSchemeUI(); } catch(e) {}
+}
 
   function resetTranspose() {
     viewerPrefs.transposeSemitones = 0;
@@ -1145,20 +1121,18 @@ function getSongCapo() {
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
-  try{ if(typeof __V12_6_syncSchemeUI==='function') __V12_6_syncSchemeUI(); }catch(e){}
     if (__shouldRewritePatternAfterTranspose()) {
       try {
         if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
         setTimeout(() => {
           try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
-        
-    try { if (typeof __V12_6_syncSchemeUI === 'function') __V12_6_syncSchemeUI(); } catch(e) {}
-    try { if (__V12_7_isAutoMode()) { rebuildDisplayChordTimeline(); rebuildAutoAccompanimentSong(); if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } } catch(e) {}
-    try { if (typeof __V12_6_syncSchemeUI === 'function') __V12_6_syncSchemeUI(); } catch(e) {}
-  }, 60);
+        }, 60);
       } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
     }
-  }
+  
+    try { if (__V12_7_isAutoMode()) { rebuildDisplayChordTimeline(); rebuildAutoAccompanimentSong(); if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } } catch(e) {}
+    try { if (typeof __V12_6_syncSchemeUI === 'function') __V12_6_syncSchemeUI(); } catch(e) {}
+}
 
   function changeScoreFont(delta) {
     viewerPrefs.scoreFontSizePx = Math.max(14, Math.min(52, viewerPrefs.scoreFontSizePx + delta));
@@ -1927,7 +1901,6 @@ function pad4(num) {
         rebuildDisplayChordTimeline();
         rebuildRhythmState();
         updateRhythmPlayback(__playbackState.current || 0);
-  try{ if(typeof __V12_6_syncSchemeUI==='function') __V12_6_syncSchemeUI(); }catch(e){}
       });
 
       window.__atApi.renderFinished.on(() => {
@@ -2995,7 +2968,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_7_20260404_08</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_7_20260404_09</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
@@ -3064,9 +3037,9 @@ function __isOriginalPatternSelected() {
     layer.setAttribute('aria-hidden','false');
     panel.hidden = false;
     const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c');
-    if (a) a.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('A'); });
-    if (b) b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('B'); });
-    if (c) c.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('C'); });
+    if (a) a.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_7_20260404_09_setScheme('A'); });
+    if (b) b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_7_20260404_09_setScheme('B'); });
+    if (c) c.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_7_20260404_09_setScheme('C'); });
     syncRhythmPanel();
   }
 
@@ -3117,21 +3090,17 @@ function __isOriginalPatternSelected() {
   }
 
 
-  window.__V12_6_SCHEME = window.__V12_6_SCHEME || 'A';
+  window.__V12_7_20260404_09_SCHEME = window.__V12_7_20260404_09_SCHEME || 'A';
 
-  function __V12_6_setScheme(id){
+  function __V12_7_20260404_09_setScheme(id){
     if (isOriginal()) return;
-    window.__V12_7_SCHEME = id;
-    __V12_6_syncSchemeUI();
-    try { rebuildDisplayChordTimeline(); } catch(e) {}
-    try { rebuildAutoAccompanimentSong(); } catch(e) {}
-    try { if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } catch(e) {}
-    try { if (typeof syncUI === 'function') syncUI(); } catch(e) {}
+    window.__V12_7_20260404_09_SCHEME = id;
+    __V12_7_20260404_09_syncSchemeUI();
   }
 
-  function __V12_6_syncSchemeUI(){
+  function __V12_7_20260404_09_syncSchemeUI(){
     const original = isOriginal();
-    const cur = original ? 'A' : (window.__V12_7_SCHEME || 'A');
+    const cur = original ? 'A' : (window.__V12_7_20260404_09_SCHEME || 'A');
     const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c'), note = $('ui-scheme-note');
     if (a){
       a.disabled = false;
@@ -3148,14 +3117,14 @@ function __isOriginalPatternSelected() {
     if (note){
       note.textContent = original
         ? '原谱模式固定方案A。'
-        : ('自动伴奏模式当前方案：' + cur + '。和弦按方案组显示，转调优先通过CAPO吸收。');
+        : ('自动伴奏模式当前方案：' + cur + '。CAPO、和弦、6线谱按方案重算。');
     }
   }
 
   function syncRhythmPanel(){
     const list = $('ui-rhythm-list');
     const original = isOriginal();
-    __V12_6_syncSchemeUI();
+    __V12_7_20260404_09_syncSchemeUI();
     if (!list) return;
     list.innerHTML = '';
     function addBtn(label, active, cb){
