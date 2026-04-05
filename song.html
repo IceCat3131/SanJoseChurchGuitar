@@ -748,32 +748,55 @@ function __V12_isOriginalPatternActive() {
 
   function __V12_7_computeSchemes() {
     const baseFamily = __V12_7_getBaseFamily();
-    const basePitch = __V12_7_FAMILY_PITCH[baseFamily] ?? 7;
     const targetPitch = __V12_7_getTargetPitch();
-    const out = [];
+
+    const familyBiasMap = {
+      G: ['G','F','D','C','A','E'],
+      C: ['C','G','A','D','F','E'],
+      D: ['D','C','A','G','E','F'],
+      A: ['A','G','E','D','C','F'],
+      E: ['E','D','C','A','G','F'],
+      F: ['F','G','C','D','A','E']
+    };
+    const preferred = familyBiasMap[baseFamily] || __V12_7_FAMILY_ORDER.slice();
+    const basePitch = __V12_7_FAMILY_PITCH[baseFamily] ?? 7;
+
+    const candidates = [];
     for (const fam of __V12_7_FAMILY_ORDER) {
       const famPitch = __V12_7_FAMILY_PITCH[fam];
       let capo = ((targetPitch - famPitch) % 12 + 12) % 12;
       if (capo > 6) continue;
       const displayShift = __V12_7_normSigned(famPitch - basePitch);
-      let score = Math.abs(capo - 2) + (__V12_7_FAMILY_WEIGHT[fam] || 0);
-      if (capo > 4) score += 2;
-      // prefer base family slightly only when it is still comfortable
-      
-      out.push({ family:fam, capo:capo, displayShift:displayShift, score:score });
+      let score = 0;
+      // strongly prefer capo in 1..4, then 0, then 5..6
+      score += Math.abs(capo - 2) * 1.4;
+      if (capo === 0) score += 1.1;
+      if (capo > 4) score += 3.0;
+      // prefer familiar open families
+      score += (__V12_7_FAMILY_WEIGHT[fam] || 0);
+      // bias by preferred family order for this song
+      const biasIndex = preferred.indexOf(fam);
+      score += (biasIndex >= 0 ? biasIndex * 0.45 : 3);
+      // slight preference for keeping same family only if capo still comfortable
+      if (fam === baseFamily && capo <= 4) score -= 0.35;
+
+      candidates.push({ family:fam, capo:capo, displayShift:displayShift, score:score });
     }
-    out.sort((a,b) => a.score - b.score || a.capo - b.capo);
-    const unique = [];
-    const seen = new Set();
-    for (const x of out) {
-      const k = x.family + ':' + x.capo;
-      if (seen.has(k)) continue;
-      seen.add(k);
-      unique.push(x);
-      if (unique.length >= 3) break;
+
+    candidates.sort((a,b) => a.score - b.score || a.capo - b.capo);
+
+    const chosen = [];
+    const seenFamily = new Set();
+    for (const cand of candidates) {
+      if (seenFamily.has(cand.family)) continue;
+      seenFamily.add(cand.family);
+      chosen.push(cand);
+      if (chosen.length >= 3) break;
     }
-    while (unique.length < 3) unique.push(unique[unique.length-1] || {family:baseFamily, capo:getSongCapo(), displayShift:0, score:99});
-    return { A: unique[0], B: unique[1], C: unique[2] };
+    while (chosen.length < 3) {
+      chosen.push(chosen[chosen.length - 1] || { family: baseFamily, capo: getSongCapo(), displayShift: 0, score: 99 });
+    }
+    return { A: chosen[0], B: chosen[1], C: chosen[2] };
   }
 
   function __V12_7_isAutoMode() {
@@ -2972,7 +2995,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_7_20260404_07</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_7_20260404_08</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
