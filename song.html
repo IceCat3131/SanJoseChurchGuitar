@@ -217,7 +217,7 @@ function rebuildDisplayChordTimeline() {
   const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
   const keepOriginalChordNames = __V12_isOriginalPatternActive();
   const autoSpec = __V12_7_isAutoMode() ? __V12_7_getActiveSchemeSpec() : null;
-  const chordShift = keepOriginalChordNames ? 0 : (autoSpec ? autoSpec.displayShift : semitones);
+  const chordShift = keepOriginalChordNames ? 0 : (autoSpec ? (autoSpec.displayShift + semitones) : semitones);
   window.__chordTimeline = raw.map((c, i) => ({
     ...c,
     index: i,
@@ -225,6 +225,7 @@ function rebuildDisplayChordTimeline() {
   }));
   rebuildAutoAccompanimentSong();
   updateRhythmPlayback(__playbackState.current || 0);
+  try{ if(typeof __V12_6_syncSchemeUI==='function') __V12_6_syncSchemeUI(); }catch(e){}
 }
 
 function getDefaultPatternForMeter(meter) {
@@ -1076,6 +1077,7 @@ function getSongCapo() {
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
+  try{ if(typeof __V12_6_syncSchemeUI==='function') __V12_6_syncSchemeUI(); }catch(e){}
     if (__shouldRewritePatternAfterTranspose()) {
       try {
         if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
@@ -1096,6 +1098,7 @@ function getSongCapo() {
     applyViewerPrefsToScore();
     rebuildDisplayChordTimeline();
     updateRhythmPlayback(__playbackState.current || 0);
+  try{ if(typeof __V12_6_syncSchemeUI==='function') __V12_6_syncSchemeUI(); }catch(e){}
     if (__shouldRewritePatternAfterTranspose()) {
       try {
         if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
@@ -1875,6 +1878,7 @@ function pad4(num) {
         rebuildDisplayChordTimeline();
         rebuildRhythmState();
         updateRhythmPlayback(__playbackState.current || 0);
+  try{ if(typeof __V12_6_syncSchemeUI==='function') __V12_6_syncSchemeUI(); }catch(e){}
       });
 
       window.__atApi.renderFinished.on(() => {
@@ -2942,7 +2946,7 @@ function __isOriginalPatternSelected() {
 })();
 </script>
 
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_7_20260404_03</div>
+<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_7_20260404_04</div>
 <div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
 <script>
 (function(){
