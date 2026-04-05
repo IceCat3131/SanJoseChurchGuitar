@@ -40,7 +40,7 @@
       </div>
       <div class="core-panel-layer" id="core-panel-layer" hidden>
         <div class="core-panel" id="panel-speed" hidden>
-          <div class="core-panel-head"><span>速度</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>速度</span></div>
           <div class="core-panel-body">
             <input id="ui-speed-range" type="range" min="50" max="150" step="5" value="100" />
             <div class="core-panel-value" id="ui-speed-value">100%</div>
@@ -48,7 +48,7 @@
           <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-speed-reset">恢复</button></div>
         </div>
         <div class="core-panel" id="panel-key" hidden>
-          <div class="core-panel-head"><span>转调</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>转调</span></div>
           <div class="core-panel-body core-panel-stepper">
             <button type="button" class="core-step-btn" id="ui-key-minus">−</button>
             <div class="core-panel-value" id="ui-key-value">0</div>
@@ -57,14 +57,14 @@
           <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-key-reset">恢复</button></div>
         </div>
         <div class="core-panel" id="panel-mode" hidden>
-          <div class="core-panel-head"><span>内容</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>内容</span></div>
           <div class="core-panel-actions core-panel-actions-left">
             <button type="button" class="core-option-btn" id="ui-mode-score">吉他</button>
             <button type="button" class="core-option-btn" id="ui-mode-lyrics">歌词</button>
           </div>
         </div>
         <div class="core-panel" id="panel-text" hidden>
-          <div class="core-panel-head"><span>文字</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>文字</span></div>
           <div class="core-text-grid">
             <div class="core-control-card">
               <div class="core-control-label">谱词字号</div>
@@ -79,32 +79,34 @@
               <div class="core-panel-stepper"><button type="button" class="core-step-btn" id="ui-chord-minus">−</button><div class="core-panel-value" id="ui-chord-value">16</div><button type="button" class="core-step-btn" id="ui-chord-plus">+</button></div>
             </div>
           </div>
+          <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-text-reset">恢复</button></div>
         </div>
         <div class="core-panel" id="panel-lang" hidden>
-          <div class="core-panel-head"><span>语言</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>语言</span></div>
           <div class="core-panel-actions core-panel-actions-left">
             <button type="button" class="core-option-btn" id="ui-lang-simp">简体</button>
             <button type="button" class="core-option-btn" id="ui-lang-trad">繁体</button>
           </div>
         </div>
         <div class="core-panel" id="panel-search" hidden>
-          <div class="core-panel-head"><span>搜索</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>搜索</span></div>
           <div class="core-book-row">
             <button type="button" class="core-option-btn" id="ui-book-c">大本</button>
             <button type="button" class="core-option-btn" id="ui-book-ts">小本</button>
           </div>
           <div class="core-search-row">
-            <input id="ui-search-input" class="core-search-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="输入编号，如31" />
+            <input id="ui-search-input" class="core-search-input" type="text" inputmode="search" placeholder="输入编号、歌名或歌词关键词" />
             <button type="button" class="core-option-btn core-primary" id="ui-search-go">搜索</button>
           </div>
+          <div id="ui-search-results" class="core-search-results" hidden></div>
         </div>
         <div class="core-panel" id="panel-staff" hidden>
-          <div class="core-panel-head"><span>谱</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
+          <div class="core-panel-head"><span>谱</span></div>
           <div class="core-panel-actions core-panel-actions-left">
             <button type="button" class="core-option-btn" id="ui-staff-five">五线谱</button>
             <button type="button" class="core-option-btn" id="ui-staff-jian">简谱</button>
           </div>
-          <div class="core-panel-note">切换后实时生效，点完成收起。</div>
+          <div class="core-panel-note">切换后实时生效，点面板外空白处收起。</div>
         </div>
       </div>
     </div>
@@ -151,7 +153,10 @@
     script: "simplified",
     lyricsFontSize: 24,
     data: { c: [], ts: [] },
-    loadedRanges: { c: {}, ts: {} }
+    loadedRanges: { c: {}, ts: {} },
+    searchBook: "c",
+    searchDraft: "1",
+    searchResults: []
   };
 
   const DEFAULT_VIEWER_PREFS = {
@@ -179,6 +184,12 @@
       // 繁体（tw） -> 简体（cn）
       converterToSimplified = OpenCC.Converter({ from: "tw", to: "cn" });
     }
+  }
+
+  function escapeHtml(str) {
+    return String(str || "").replace(/[&<>"']/g, function(ch) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+    });
   }
 
   function convertTextByScript(text) {
@@ -229,9 +240,17 @@
   }
 
   function getEffectiveTranspose() {
-    // Capo 只作用于 6线谱（TAB）显示，
-    // 不再作用于五线谱 / 简谱 / 整体播放转调。
     return getUserTranspose();
+  }
+
+  function trackUsesTab(track) {
+    const staves = Array.isArray(track?.staves) ? track.staves : [];
+    return staves.some((staff) => !!staff?.showTablature);
+  }
+
+  function getTrackTransposeSemitones(track) {
+    const base = getUserTranspose();
+    return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -382,14 +401,18 @@
   function applyScoreTransposition(api) {
     if (!api || !api.settings) return;
     const tracks = getAllTracks(api);
-    const trackCount = tracks.length;
-    const semitones = getEffectiveTranspose();
+    const trackTranspositions = tracks.length
+      ? tracks.map((track) => getTrackTransposeSemitones(track))
+      : [getEffectiveTranspose()];
     try {
       if (!api.settings.notation) api.settings.notation = {};
-      api.settings.notation.transpositionPitches = trackCount > 0 ? Array(trackCount).fill(semitones) : [semitones];
+      api.settings.notation.transpositionPitches = trackTranspositions.slice();
       api.updateSettings();
       if (typeof api.changeTrackTranspositionPitch === 'function' && tracks.length) {
-        try { api.changeTrackTranspositionPitch(tracks, semitones); } catch (e) { console.warn('live transpose failed', e); }
+        tracks.forEach((track, i) => {
+          const semitones = trackTranspositions[i] || 0;
+          try { api.changeTrackTranspositionPitch([track], semitones); } catch (e) { console.warn('live transpose failed', e); }
+        });
       }
       try { api.render(); } catch (e) {}
       scheduleChordRewrite(120);
@@ -458,11 +481,59 @@
     applyViewerPrefsToScore();
   }
 
+  function rerenderScorePreserveScroll() {
+    const api = window.__atApi;
+    if (!api) return;
+    const y = window.scrollY || window.pageYOffset || 0;
+    try {
+      if (typeof window.renderVisibleTracks === 'function') {
+        window.renderVisibleTracks(api);
+      } else if (typeof api.render === 'function') {
+        api.render();
+      }
+    } catch (e) {
+      console.warn('rerenderScorePreserveScroll failed', e);
+    }
+    setTimeout(() => { try { window.scrollTo({ top: y, behavior: 'instant' }); } catch (e) { try { window.scrollTo(0, y); } catch (e2) {} } }, 0);
+    setTimeout(() => { try { window.scrollTo({ top: y, behavior: 'instant' }); } catch (e) { try { window.scrollTo(0, y); } catch (e2) {} } }, 120);
+  }
+
   function changeChordFont(delta) {
     viewerPrefs.chordFontSizePx = Math.max(10, Math.min(36, getChordFontSizePx() + delta));
     saveViewerPrefs();
+    if (window.__atApi) {
+      applyChordFont(window.__atApi, getChordFontSizePx());
+      rerenderScorePreserveScroll();
+    }
     scheduleChordRewrite(10);
+    scheduleChordRewrite(160);
     refreshAdjustUI();
+  }
+
+  function resetTextSettings() {
+    viewerPrefs.scoreFontSizePx = DEFAULT_VIEWER_PREFS.scoreFontSizePx;
+    viewerPrefs.scoreSpacingFactor = DEFAULT_VIEWER_PREFS.scoreSpacingFactor;
+    viewerPrefs.chordFontSizePx = DEFAULT_VIEWER_PREFS.chordFontSizePx;
+    saveViewerPrefs();
+    applyViewerPrefsToScore();
+    rerenderScorePreserveScroll();
+    refreshAdjustUI();
+  }
+
+  async function setSearchBook(book, autoSearch = false) {
+    state.searchBook = (book === 'ts') ? 'ts' : 'c';
+    const inputEl = document.getElementById('ui-search-input');
+    const currentInput = String(inputEl?.value || '').trim();
+    if (currentInput) state.searchDraft = currentInput;
+    syncBookButtons();
+    clearSearchResults();
+    syncUI();
+
+    const value = String(state.searchDraft || currentInput || '').trim();
+    if (autoSearch && value) {
+      return await performSearch(value, state.searchBook);
+    }
+    return true;
   }
 
   function setScriptMode(mode) {
@@ -483,20 +554,44 @@
     return true;
   }
 
-  function performSearch(raw) {
+  async function performSearch(raw, bookOverride = null) {
     const value = String(raw || '').trim();
-    if (!value) return;
-    const digitsMatch = value.match(/(\d{1,4})$/);
-    if (!digitsMatch) {
-      alert('请输入正确的编号，如 31');
-      return;
+    state.searchDraft = value;
+    if (!value) {
+      clearSearchResults();
+      return false;
     }
-    const no = parseInt(digitsMatch[1], 10);
-    if (!Number.isFinite(no)) {
-      alert('请输入正确的编号，如 31');
-      return;
+
+    const targetBook = (bookOverride === 'ts' || bookOverride === 'c')
+      ? bookOverride
+      : ((state.searchBook === 'ts') ? 'ts' : 'c');
+
+    const digitsMatch = value.match(/^(\d{1,4})$/);
+    if (digitsMatch) {
+      const no = parseInt(digitsMatch[1], 10);
+      if (!Number.isFinite(no) || no <= 0) {
+        clearSearchResults();
+        return false;
+      }
+      const song = await getSong(targetBook, no);
+      if (!song) {
+        renderSearchResults([], value, targetBook);
+        return false;
+      }
+
+      state.searchBook = targetBook;
+      state.currentBook = targetBook;
+      state.currentNo = no;
+      state.searchDraft = String(no);
+      clearSearchResults();
+      updateURL();
+      await loadAndRenderCurrentSong();
+      return true;
     }
-    goToNumber(no);
+
+    const results = await searchSongsByKeywordAll(value);
+    renderSearchResults(results, value, 'all');
+    return results.length > 0;
   }
 
 
@@ -517,6 +612,7 @@
   function applyViewerPrefsToScore() {
     if (!window.__atApi) return;
     applyLyricsFont(window.__atApi, viewerPrefs.scoreFontSizePx);
+    applyChordFont(window.__atApi, getChordFontSizePx());
     applyLyricSpacing(window.__atApi, viewerPrefs.scoreSpacingFactor);
     applyScoreTransposition(window.__atApi);
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
@@ -580,9 +676,9 @@
     if (!api || !root) return;
     root.innerHTML = '';
 
-    const capo = getEffectiveCapo();
+    const offset = getEffectiveCapo() + getUserTranspose();
     const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
-    if (!capo || !lookup || !Array.isArray(lookup.staffSystems)) return;
+    if (!offset || !lookup || !Array.isArray(lookup.staffSystems)) return;
 
     for (const system of lookup.staffSystems) {
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];
@@ -704,25 +800,53 @@
 
 
   // ===== 从 .gtz.state 还原“导出时的显示效果” =====
+  function ensureAlphaTabFontResources(api) {
+    if (!api) return null;
+    const settings = api.settings;
+    if (!settings.display) settings.display = {};
+    if (!settings.display.resources) settings.display.resources = {};
+    if (!settings.display.resources.elementFonts) settings.display.resources.elementFonts = new Map();
+    const FontCtor = window.alphaTab?.model?.Font || window.alphaTab?.Font;
+    const ne = window.alphaTab?.NotationElement;
+    if (!settings.display.resources.elementFonts || typeof settings.display.resources.elementFonts.set !== 'function' || !FontCtor || !ne) {
+      return null;
+    }
+    return { settings, FontCtor, ne };
+  }
+
+  function buildAlphaTabFont(px) {
+    const FontCtor = window.alphaTab?.model?.Font || window.alphaTab?.Font;
+    if (!FontCtor || !px) return null;
+    const fontObj = new FontCtor('Microsoft YaHei', px, window.alphaTab.model.FontStyle.Plain, window.alphaTab.model.FontWeight.Regular);
+    try { fontObj.families = ['Microsoft YaHei', 'Arial', 'sans-serif']; } catch (e) {}
+    return fontObj;
+  }
+
   function applyLyricsFont(api, px) {
     if (!api || !px) return;
     try {
-      const settings = api.settings;
-      if (!settings.display) settings.display = {};
-      if (!settings.display.resources) settings.display.resources = {};
-      if (!settings.display.resources.elementFonts) settings.display.resources.elementFonts = new Map();
-
-      const FontCtor = window.alphaTab?.model?.Font || window.alphaTab?.Font;
-      const ne = window.alphaTab?.NotationElement;
-
-      if (settings.display.resources.elementFonts && typeof settings.display.resources.elementFonts.set === 'function' && FontCtor && ne) {
-        const fontObj = new FontCtor('Microsoft YaHei', px, window.alphaTab.model.FontStyle.Plain, window.alphaTab.model.FontWeight.Regular);
-        try { fontObj.families = ['Microsoft YaHei', 'Arial', 'sans-serif']; } catch (e) {}
-        if (ne.EffectLyrics != null) settings.display.resources.elementFonts.set(ne.EffectLyrics, fontObj);
-        api.updateSettings();
-      }
+      const ctx = ensureAlphaTabFontResources(api);
+      if (!ctx) return;
+      const fontObj = buildAlphaTabFont(px);
+      if (!fontObj) return;
+      if (ctx.ne.EffectLyrics != null) ctx.settings.display.resources.elementFonts.set(ctx.ne.EffectLyrics, fontObj);
+      api.updateSettings();
     } catch (e) {
       console.warn('applyLyricsFont failed', e);
+    }
+  }
+
+  function applyChordFont(api, px) {
+    if (!api || !px) return;
+    try {
+      const ctx = ensureAlphaTabFontResources(api);
+      if (!ctx) return;
+      const fontObj = buildAlphaTabFont(px);
+      if (!fontObj) return;
+      if (ctx.ne.EffectChordNames != null) ctx.settings.display.resources.elementFonts.set(ctx.ne.EffectChordNames, fontObj);
+      api.updateSettings();
+    } catch (e) {
+      console.warn('applyChordFont failed', e);
     }
   }
 
@@ -961,6 +1085,8 @@ function pad4(num) {
     if (!Number.isFinite(no) || no < 1) no = 1;
     state.currentBook = (book === "ts") ? "ts" : "c";
     state.currentNo = no;
+    state.searchBook = state.currentBook;
+    state.searchDraft = String(state.currentNo || 1);
   }
 
   function getRangeIndex(no) {
@@ -1013,10 +1139,169 @@ function pad4(num) {
     return findLocalSong(bookKey, no);
   }
 
+  function normalizeSearchText(text) {
+    return String(text || '')
+      .toLowerCase()
+      .replace(/[\s　]+/g, '')
+      .replace(/[，。、“”‘’？！：；（）()《》〈〉【】\[\]\-—_.,!?:;"'`~·]/g, '');
+  }
+
+  function flattenSongText(value, bucket) {
+    if (value == null) return;
+    if (typeof value === 'string' || typeof value === 'number') {
+      const s = String(value).trim();
+      if (s) bucket.push(s);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach(item => flattenSongText(item, bucket));
+      return;
+    }
+    if (typeof value === 'object') {
+      Object.values(value).forEach(item => flattenSongText(item, bucket));
+    }
+  }
+
+  function getSongSearchBundle(song) {
+    const titleParts = [];
+    const bodyParts = [];
+    flattenSongText(song?.title, titleParts);
+    flattenSongText(song?.full_title, titleParts);
+    flattenSongText(song?.big_title, titleParts);
+    flattenSongText(song?.subtitle, titleParts);
+    flattenSongText(song?.lyrics, bodyParts);
+    flattenSongText(song?.verses, bodyParts);
+    flattenSongText(song?.chorus, bodyParts);
+    flattenSongText(song?.content, bodyParts);
+    const titleText = titleParts.join(' ');
+    const bodyText = bodyParts.join(' ');
+    return {
+      titleText,
+      bodyText,
+      titleNorm: normalizeSearchText(titleText),
+      bodyNorm: normalizeSearchText(bodyText)
+    };
+  }
+
+  async function ensureSearchCorpus(bookKey) {
+    for (let i = 0; i < MAX_RANGES; i++) {
+      const ok = await loadRange(bookKey, i);
+      if (!ok) break;
+    }
+    return state.data[bookKey] || [];
+  }
+
+  function clearSearchResults() {
+    state.searchResults = [];
+    const box = document.getElementById('ui-search-results');
+    if (box) {
+      box.hidden = true;
+      box.innerHTML = '';
+    }
+  }
+
+  function renderSearchResults(items, query, bookKey) {
+    state.searchResults = Array.isArray(items) ? items.slice() : [];
+    const box = document.getElementById('ui-search-results');
+    if (!box) return;
+    box.innerHTML = '';
+    const list = state.searchResults;
+    const searchScopeLabel = (bookKey === 'all') ? '大本 / 小本' : (BOOKS[bookKey]?.label || '当前歌本');
+    if (!list.length) {
+      const empty = document.createElement('div');
+      empty.className = 'core-search-empty';
+      empty.textContent = `在${searchScopeLabel}中找不到“${query}”`;
+      box.appendChild(empty);
+      box.hidden = false;
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    list.forEach(item => {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'core-search-result-item';
+      row.innerHTML = `<span class="core-search-result-title">${BOOKS[item.book].label} 第 ${item.no} 首｜${escapeHtml(item.title || '未命名')}</span>${item.snippet ? `<span class="core-search-result-snippet">${escapeHtml(item.snippet)}</span>` : ''}`;
+      row.addEventListener('click', async () => {
+        state.searchBook = item.book;
+        state.currentBook = item.book;
+        state.currentNo = item.no;
+        state.searchDraft = String(item.no);
+        clearSearchResults();
+        updateURL();
+        await loadAndRenderCurrentSong();
+        closePanels();
+        syncUI();
+      });
+      frag.appendChild(row);
+    });
+    box.appendChild(frag);
+    box.hidden = false;
+  }
+
+  async function searchSongsByKeyword(bookKey, rawQuery) {
+    const query = String(rawQuery || '').trim();
+    const norm = normalizeSearchText(query);
+    if (!norm) return [];
+    const songs = await ensureSearchCorpus(bookKey);
+    const hits = [];
+    songs.forEach(song => {
+      if (!song || !song.no) return;
+      const bundle = getSongSearchBundle(song);
+      const titleHit = bundle.titleNorm.includes(norm);
+      const bodyHit = !titleHit && bundle.bodyNorm.includes(norm);
+      if (!titleHit && !bodyHit) return;
+      const sourceText = titleHit ? (bundle.titleText || '') : (bundle.bodyText || '');
+      const idx = sourceText.indexOf(query);
+      let snippet = '';
+      if (idx >= 0) {
+        const start = Math.max(0, idx - 12);
+        const end = Math.min(sourceText.length, idx + query.length + 18);
+        snippet = sourceText.slice(start, end).replace(/\s+/g, ' ').trim();
+      } else if (sourceText) {
+        snippet = sourceText.slice(0, 36).replace(/\s+/g, ' ').trim();
+      }
+      hits.push({
+        book: bookKey,
+        no: song.no,
+        title: song.title || song.full_title || `${BOOKS[bookKey].label} 第 ${song.no} 首`,
+        snippet,
+        rank: titleHit ? 0 : 1
+      });
+    });
+    hits.sort((a, b) => (a.rank - b.rank) || (a.no - b.no));
+    return hits.slice(0, 50);
+  }
+
+  async function searchSongsByKeywordAll(rawQuery) {
+    const allBooks = ['c', 'ts'];
+    const groups = await Promise.all(allBooks.map(bookKey => searchSongsByKeyword(bookKey, rawQuery)));
+    const merged = groups.flat();
+    merged.sort((a, b) => (a.rank - b.rank) || (a.no - b.no) || a.book.localeCompare(b.book));
+    return merged.slice(0, 80);
+  }
+
+  function ensureAlphaTabHost() {
+    const container = document.getElementById("score-view");
+    if (!container) return null;
+
+    let atEl = document.getElementById("alphaTab");
+    if (!atEl) {
+      atEl = document.createElement('div');
+      atEl.id = 'alphaTab';
+      atEl.className = 'at-viewport';
+      container.innerHTML = '';
+      container.appendChild(atEl);
+      window.__atApi = null;
+    }
+    return atEl;
+  }
+
   function renderScore(bookKey, no) {
     const container = document.getElementById("score-view");
     // alphaTab 渲染容器（在 HTML 里我们放了 #alphaTab）
-    const atEl = document.getElementById("alphaTab");
+    const atEl = ensureAlphaTabHost();
+    if (!container || !atEl) return;
+    atEl.style.display = '';
 
     // 首次初始化 alphaTab API
     if (!window.__atApi) {
@@ -1066,6 +1351,11 @@ function pad4(num) {
 
         enableCursor(window.__atApi);
 
+        const liveHost = document.getElementById('alphaTab');
+        if (liveHost) liveHost.style.display = '';
+        const oldFallback = document.getElementById('score-fallback-image');
+        if (oldFallback) oldFallback.remove();
+
         renderVisibleTracks(window.__atApi);
         applyScoreTransposition(window.__atApi);
         applyPlaybackTrackVisibility(window.__atApi);
@@ -1074,6 +1364,8 @@ function pad4(num) {
 
       window.__atApi.renderFinished.on(() => {
         scheduleTabCapoOverlay(40);
+        scheduleChordRewrite(40);
+        scheduleChordRewrite(180);
         try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode({ domOnly: true }); } catch (e) {}
       });
 
@@ -1082,6 +1374,9 @@ function pad4(num) {
     }
 
     // 加载 .gtz (JSON) -> 解 base64 -> load 到 alphaTab
+    const oldFallback = document.getElementById('score-fallback-image');
+    if (oldFallback) oldFallback.remove();
+
     const gtzPrefix = BOOKS[bookKey].gtzPrefix || BOOKS[bookKey].svgPrefix;
     const gtzUrl = `${gtzPrefix}${pad4(no)}_cn_g.gtz`; // 如 assets/c/c0001_cn_g.gtz
 
@@ -1090,10 +1385,14 @@ function pad4(num) {
       setPlayerStatus('加载失败: ' + (err && err.message ? err.message : err));
       // fallback: 如果没有 gtz，就尝试旧的 svg（便于过渡）
       try {
-        container.innerHTML = "";
+        const liveHost = ensureAlphaTabHost();
+        if (liveHost) liveHost.style.display = 'none';
+        const oldFallback = document.getElementById('score-fallback-image');
+        if (oldFallback) oldFallback.remove();
         const folderPrefix = BOOKS[bookKey].svgPrefix;
         const src = `${folderPrefix}${pad4(no)}_cn_g.svg`;
         const img = document.createElement("img");
+        img.id = 'score-fallback-image';
         img.alt = `${BOOKS[bookKey].label} 第 ${no} 首 吉他谱`;
         img.src = src;
         container.appendChild(img);
@@ -1305,9 +1604,15 @@ function pad4(num) {
     const layer = $('core-panel-layer');
     if(!layer) return;
     qa('.core-panel', layer).forEach(p=>p.hidden=true);
-    if(!id){ layer.hidden = true; return; }
+    if(!id){
+      layer.hidden = true;
+      layer.setAttribute('aria-hidden','true');
+      return;
+    }
     layer.hidden = false;
-    const p = $(id); if(p) p.hidden = false;
+    layer.setAttribute('aria-hidden','false');
+    const p = $(id);
+    if(p) p.hidden = false;
   }
   function closePanels(){ openPanel(null); }
 
@@ -1338,10 +1643,11 @@ function pad4(num) {
     if($('ui-font-value')) $('ui-font-value').textContent = fontText;
     if($('ui-spacing-value')) $('ui-spacing-value').textContent = spacingText;
     if($('ui-chord-value')) $('ui-chord-value').textContent = chordText;
-    if($('ui-search-input') && document.activeElement !== $('ui-search-input')) $('ui-search-input').value = String(state.currentNo || '');
-    if($('search-input') && document.activeElement !== $('search-input')) $('search-input').value = String(state.currentNo || '');
-    $('ui-book-c')?.classList.toggle('active', state.currentBook === 'c');
-    $('ui-book-ts')?.classList.toggle('active', state.currentBook === 'ts');
+    const searchPanelOpen = $('panel-search') && !$('panel-search').hidden;
+    if($('ui-search-input') && document.activeElement !== $('ui-search-input') && !searchPanelOpen) $('ui-search-input').value = String(state.searchDraft || state.currentNo || '');
+    if($('search-input') && document.activeElement !== $('search-input')) $('search-input').value = String(state.searchDraft || state.currentNo || '');
+    $('ui-book-c')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'c');
+    $('ui-book-ts')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'ts');
     $('ui-mode-score')?.classList.toggle('active', state.mode === 'score');
     $('ui-mode-lyrics')?.classList.toggle('active', state.mode === 'lyrics');
     $('ui-lang-simp')?.classList.toggle('active', state.script === 'simplified');
@@ -1353,14 +1659,14 @@ function pad4(num) {
     $('ui-prev')?.addEventListener('click', ()=>{ goPrevSong(); });
     $('ui-play')?.addEventListener('click', togglePlayPause);
     $('ui-next')?.addEventListener('click', ()=>{ goNextSong(); });
-    $('ui-speed')?.addEventListener('click', ()=>openPanel('panel-speed'));
-    $('ui-key')?.addEventListener('click', ()=>openPanel('panel-key'));
-    $('ui-mode')?.addEventListener('click', ()=>openPanel('panel-mode'));
-    $('ui-text')?.addEventListener('click', ()=>openPanel('panel-text'));
-    $('ui-track')?.addEventListener('click', ()=>{ openNewTrackPanel(); });
-    $('ui-staff')?.addEventListener('click', ()=>openPanel('panel-staff'));
-    $('ui-lang')?.addEventListener('click', ()=>openPanel('panel-lang'));
-    $('ui-search')?.addEventListener('click', ()=>openPanel('panel-search'));
+    $('ui-speed')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-speed'); });
+    $('ui-key')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-key'); });
+    $('ui-mode')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-mode'); });
+    $('ui-text')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-text'); });
+    $('ui-track')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openNewTrackPanel(); });
+    $('ui-staff')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-staff'); });
+    $('ui-lang')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-lang'); });
+    $('ui-search')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-search'); });
     qa('[data-close-panel]').forEach(btn=>btn.addEventListener('click', closePanels));
 
     $('ui-speed-range')?.addEventListener('input', e=>{
@@ -1385,22 +1691,34 @@ function pad4(num) {
     $('ui-spacing-minus')?.addEventListener('click', ()=>{ changeSpacing(-0.1); syncUI(); });
     $('ui-chord-plus')?.addEventListener('click', ()=>{ changeChordFont(1); syncUI(); });
     $('ui-chord-minus')?.addEventListener('click', ()=>{ changeChordFont(-1); syncUI(); });
+    $('ui-text-reset')?.addEventListener('click', ()=>{ resetTextSettings(); syncUI(); });
 
     $('ui-lang-simp')?.addEventListener('click', ()=>{ setScriptMode('simplified'); syncUI(); });
     $('ui-lang-trad')?.addEventListener('click', ()=>{ setScriptMode('traditional'); syncUI(); });
 
-    $('ui-book-c')?.addEventListener('click', ()=>{ setBook('c').then(syncUI); });
-    $('ui-book-ts')?.addEventListener('click', ()=>{ setBook('ts').then(syncUI); });
-    $('ui-search-go')?.addEventListener('click', ()=>{
-      performSearch($('ui-search-input')?.value || '');
-      closePanels();
+    $('ui-book-c')?.addEventListener('click', async ()=>{
+      await setSearchBook('c', true);
       syncUI();
     });
-    $('ui-search-input')?.addEventListener('keydown', e=>{
+    $('ui-book-ts')?.addEventListener('click', async ()=>{
+      await setSearchBook('ts', true);
+      syncUI();
+    });
+    $('ui-search-go')?.addEventListener('click', async ()=>{
+      const ok = await performSearch($('ui-search-input')?.value || '');
+      const v = String($('ui-search-input')?.value || '').trim();
+      if (ok && /^\d+$/.test(v)) closePanels();
+      syncUI();
+    });
+    $('ui-search-input')?.addEventListener('input', e=>{
+      state.searchDraft = String(e.target?.value || '').trim();
+    });
+    $('ui-search-input')?.addEventListener('keydown', async e=>{
       if (e.key === 'Enter') {
         e.preventDefault();
-        performSearch($('ui-search-input')?.value || '');
-        closePanels();
+        const v = String($('ui-search-input')?.value || '').trim();
+        const ok = await performSearch(v);
+        if (ok && /^\d+$/.test(v)) closePanels();
         syncUI();
       }
     });
@@ -1417,9 +1735,21 @@ function pad4(num) {
     });
 
     document.addEventListener('click', (e)=>{
-      const insidePanel = e.target.closest('.core-panel-layer');
+      const layer = $('core-panel-layer');
+      if (layer && !layer.hidden && e.target === layer) {
+        closePanels();
+        return;
+      }
+      const insidePanel = e.target.closest('.core-panel');
       const insideToolbar = e.target.closest('.core-ui-toolbar');
       if(!insidePanel && !insideToolbar) closePanels();
+    });
+
+    $('core-panel-layer')?.addEventListener('click', (e)=>{
+      if (e.target === $('core-panel-layer')) closePanels();
+    });
+    qa('.core-panel', $('core-panel-layer')).forEach((panel)=>{
+      panel.addEventListener('click', (e)=>{ e.stopPropagation(); });
     });
   }
 
@@ -1437,7 +1767,7 @@ function pad4(num) {
   <div class="new-track-panel-inner">
     <div class="new-track-panel-head">
       <span>轨道</span>
-      <button type="button" class="new-track-close" id="new-track-close">完成</button>
+      
     </div>
     <div class="new-track-panel-actions">
       <button type="button" class="new-track-ghost" id="new-track-all">全选</button>
