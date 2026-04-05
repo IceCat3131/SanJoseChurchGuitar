@@ -7,483 +7,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="stylesheet" href="style.css" />
   <script src="assets/alphatab/alphaTab.js"></script>
-<script>
-// ===== GTZ 和弦时间轴 + 节拍/节奏跟随 =====
-window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
-window.__chordTimelineRaw = [];
-window.__measureTimelineRaw = [];
-window.__chordTimeline = [];
-window.__rhythmState = { meter: '--', patternId: '--', steps: [], stepsPerBar: 0 };
-window.__autoAccompanimentSong = [];
-window.__autoAccompanimentCurrentBar = null;
-
-function decodeBase64ToText(b64) {
-  const binary = atob(b64);
-  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-}
-
-function mapHarmonyKindToSuffix(kindEl) {
-  if (!kindEl) return '';
-  const textAttr = String(kindEl.getAttribute('text') || '').trim();
-  if (textAttr) return textAttr;
-  const v = String(kindEl.textContent || '').trim();
-  const map = {
-    'major': '',
-    'minor': 'm',
-    'augmented': 'aug',
-    'diminished': 'dim',
-    'dominant': '7',
-    'major-seventh': 'maj7',
-    'minor-seventh': 'm7',
-    'diminished-seventh': 'dim7',
-    'augmented-seventh': 'aug7',
-    'half-diminished': 'm7b5',
-    'major-minor': 'm(maj7)',
-    'major-sixth': '6',
-    'minor-sixth': 'm6',
-    'dominant-ninth': '9',
-    'major-ninth': 'maj9',
-    'minor-ninth': 'm9',
-    'dominant-11th': '11',
-    'major-11th': 'maj11',
-    'minor-11th': 'm11',
-    'dominant-13th': '13',
-    'major-13th': 'maj13',
-    'minor-13th': 'm13',
-    'suspended-second': 'sus2',
-    'suspended-fourth': 'sus4',
-    'power': '5',
-    'none': ''
-  };
-  return Object.prototype.hasOwnProperty.call(map, v) ? map[v] : v;
-}
-
-function buildChordSymbolFromHarmony(harmonyEl) {
-  if (!harmonyEl) return '';
-  const rootStep = String(harmonyEl.querySelector('root > root-step')?.textContent || '').trim();
-  if (!rootStep) return '';
-  const rootAlter = String(harmonyEl.querySelector('root > root-alter')?.textContent || '').trim();
-  const bassStep = String(harmonyEl.querySelector('bass > bass-step')?.textContent || '').trim();
-  const bassAlter = String(harmonyEl.querySelector('bass > bass-alter')?.textContent || '').trim();
-  const kindEl = harmonyEl.querySelector('kind');
-
-  let root = rootStep;
-  if (rootAlter === '1') root += '#';
-  else if (rootAlter === '-1') root += 'b';
-
-  let bass = bassStep;
-  if (bass) {
-    if (bassAlter === '1') bass += '#';
-    else if (bassAlter === '-1') bass += 'b';
-  }
-
-  const suffix = mapHarmonyKindToSuffix(kindEl);
-  return root + suffix + (bass ? ('/' + bass) : '');
-}
-
-function getTimeSignatureText(beats, beatType) {
-  if (!Number.isFinite(beats) || !Number.isFinite(beatType) || !beats || !beatType) return '--';
-  return String(beats) + '/' + String(beatType);
-}
-
-function buildMusicTimelineFromXML(xmlText) {
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(xmlText, 'application/xml');
-  const part = xml.querySelector('score-partwise > part, score-timewise > part');
-  if (!part) throw new Error('未找到 MusicXML part');
-
-  let divisions = 1;
-  let beats = 4;
-  let beatType = 4;
-  let currentStartTicks = 0;
-  let timeSignatures = [];
-  let chords = [];
-  let measures = [];
-
-  part.querySelectorAll(':scope > measure').forEach((measureEl, idx) => {
-    const measureNo = parseInt(measureEl.getAttribute('number') || '', 10) || (idx + 1);
-
-    const divEl = measureEl.querySelector(':scope > attributes > divisions');
-    if (divEl) {
-      const nextDiv = parseInt(divEl.textContent || '1', 10);
-      if (Number.isFinite(nextDiv) && nextDiv > 0) divisions = nextDiv;
-    }
-
-    const beatsEl = measureEl.querySelector(':scope > attributes > time > beats');
-    const beatTypeEl = measureEl.querySelector(':scope > attributes > time > beat-type');
-    if (beatsEl && beatTypeEl) {
-      const nextBeats = parseInt(beatsEl.textContent || '4', 10);
-      const nextBeatType = parseInt(beatTypeEl.textContent || '4', 10);
-      if (Number.isFinite(nextBeats) && nextBeats > 0) beats = nextBeats;
-      if (Number.isFinite(nextBeatType) && nextBeatType > 0) beatType = nextBeatType;
-    }
-
-    const meterText = getTimeSignatureText(beats, beatType);
-    timeSignatures.push({ measure: measureNo, meter: meterText, divisions });
-
-    let pos = 0;
-    let maxPos = 0;
-
-    Array.from(measureEl.children).forEach((node) => {
-      const name = node.nodeName;
-      if (name === 'note') {
-        const dur = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0;
-        pos += dur;
-        if (pos > maxPos) maxPos = pos;
-        return;
-      }
-      if (name === 'backup') {
-        const dur = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0;
-        pos = Math.max(0, pos - dur);
-        return;
-      }
-      if (name === 'forward') {
-        const dur = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0;
-        pos += dur;
-        if (pos > maxPos) maxPos = pos;
-        return;
-      }
-      if (name === 'harmony') {
-        const offset = parseInt(node.querySelector('offset')?.textContent || '0', 10) || 0;
-        const tick = Math.max(0, pos + offset);
-        const chordRaw = buildChordSymbolFromHarmony(node);
-        if (chordRaw) {
-          chords.push({
-            measure: measureNo,
-            beat: tick / divisions,
-            tickFromScoreStart: currentStartTicks + tick,
-            tickInMeasure: tick,
-            divisions,
-            meter: meterText,
-            chordRaw
-          });
-        }
-      }
-    });
-
-    let nominalMeasureTicks = 0;
-    if (Number.isFinite(beats) && Number.isFinite(beatType) && beatType > 0) {
-      nominalMeasureTicks = Math.round((beats * 4 / beatType) * divisions);
-    }
-    const durationTicks = Math.max(maxPos, nominalMeasureTicks, 1);
-    measures.push({
-      measure: measureNo,
-      startTicks: currentStartTicks,
-      durationTicks,
-      endTicks: currentStartTicks + durationTicks,
-      divisions,
-      beats,
-      beatType,
-      meter: meterText
-    });
-    currentStartTicks += durationTicks;
-  });
-
-  return {
-    chords,
-    measures,
-    timeSignatures,
-    totalTicks: currentStartTicks
-  };
-}
-
-function remapTimelineTimesIfNeeded() {
-  const raw = window.__musicTimelineRaw;
-  const totalMs = Math.max(0, __playbackState.total || 0);
-  if (!raw || !raw.totalTicks || !totalMs) return;
-  if (raw.__mappedTotalMs === totalMs) return;
-
-  const tickToMs = (ticks) => Math.round((ticks / raw.totalTicks) * totalMs);
-
-  window.__measureTimelineRaw = (raw.measures || []).map(m => ({
-    ...m,
-    startMs: tickToMs(m.startTicks),
-    endMs: tickToMs(m.endTicks),
-    durationMs: Math.max(1, tickToMs(m.endTicks) - tickToMs(m.startTicks))
-  }));
-  window.__chordTimelineRaw = (raw.chords || []).map(c => ({
-    ...c,
-    timeMs: tickToMs(c.tickFromScoreStart)
-  }));
-  raw.__mappedTotalMs = totalMs;
-  rebuildDisplayChordTimeline();
-  rebuildRhythmState();
-}
-
-function rebuildDisplayChordTimeline() {
-  const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
-  const semitones = getUserTranspose();
-  const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
-  const keepOriginalChordNames = __V12_isOriginalPatternActive();
-  window.__chordTimeline = raw.map((c, i) => ({
-    ...c,
-    index: i,
-    chordDisplay: keepOriginalChordNames ? c.chordRaw : (semitones ? transposeChordSymbol(c.chordRaw, semitones, preferFlats) : c.chordRaw)
-  }));
-  rebuildAutoAccompanimentSong();
-  updateRhythmPlayback(__playbackState.current || 0);
-}
-
-function getDefaultPatternForMeter(meter) {
-  const patterns = {
-    '4/4': { id: 'arpeggio_53231323', name: '分解 53231323', steps: ['5','3','2','3','1','3','2','3'], accent: [1,0,0,0,1,0,0,0] },
-    '3/4': { id: 'arpeggio_532123', name: '分解 532123', steps: ['5','3','2','1','2','3'], accent: [1,0,0,1,0,0] },
-    '6/8': { id: 'arpeggio_632123', name: '分解 632123', steps: ['6','3','2','1','2','3'], accent: [1,0,0,1,0,0] },
-    '6/4': { id: 'arpeggio_12', name: '分解 12格', steps: ['5','3','2','3','1','3','2','3','1','3','2','3'], accent: [1,0,0,0,0,0,1,0,0,0,0,0] },
-    '3/2': { id: 'arpeggio_half_6', name: '分解 6格', steps: ['5','3','2','1','2','3'], accent: [1,0,0,1,0,0] },
-    '2/4': { id: 'strum_4', name: '扫弦 ↓ · ↑ ·', steps: ['↓','·','↑','·'], accent: [1,0,1,0] },
-    '9/8': { id: 'compound_9', name: '分解 9格', steps: ['6','3','2','1','2','3','2','3','1'], accent: [1,0,0,1,0,0,1,0,0] },
-    '4/2': { id: 'half_8', name: '分解 8格', steps: ['5','3','2','3','1','3','2','3'], accent: [1,0,0,0,1,0,0,0] },
-    '9/4': { id: 'simple_9', name: '扫弦 9格', steps: ['↓','·','↑','·','↓','·','↑','·','↓'], accent: [1,0,0,1,0,0,1,0,0] }
-  };
-  return patterns[meter] || patterns['4/4'];
-}
-
-
-// ===== 自动伴奏引擎（A 路线：网页实时生成，不改源文件） =====
-const AUTO_CHORD_SHAPES = {
-  'C':  ['x',3,2,0,1,0],
-  'Cm': ['x',3,5,5,4,3],
-  'C7': ['x',3,2,3,1,0],
-  'Cmaj7': ['x',3,2,0,0,0],
-  'Cm7': ['x',3,5,3,4,3],
-  'Csus4': ['x',3,3,0,1,1],
-  'C#': ['x',4,6,6,6,4],
-  'C#m': ['x',4,6,6,5,4],
-  'D':  ['x','x',0,2,3,2],
-  'Dm': ['x','x',0,2,3,1],
-  'D7': ['x','x',0,2,1,2],
-  'Dmaj7': ['x','x',0,2,2,2],
-  'Dm7': ['x','x',0,2,1,1],
-  'Dsus4': ['x','x',0,2,3,3],
-  'Db': ['x',4,6,6,6,4],
-  'Dbm': ['x',4,6,6,5,4],
-  'E':  [0,2,2,1,0,0],
-  'Em': [0,2,2,0,0,0],
-  'E7': [0,2,0,1,0,0],
-  'Emaj7': [0,2,1,1,0,0],
-  'Em7': [0,2,2,0,3,0],
-  'Esus4': [0,2,2,2,0,0],
-  'Eb': ['x',6,8,8,8,6],
-  'Ebm': ['x',6,8,8,7,6],
-  'F':  [1,3,3,2,1,1],
-  'Fm': [1,3,3,1,1,1],
-  'F7': [1,3,1,2,1,1],
-  'Fmaj7': [1,3,2,2,1,0],
-  'Fm7': [1,3,1,1,1,1],
-  'F#': [2,4,4,3,2,2],
-  'F#m': [2,4,4,2,2,2],
-  'G':  [3,2,0,0,0,3],
-  'Gm': [3,5,5,3,3,3],
-  'G7': [3,2,0,0,0,1],
-  'Gmaj7': [3,2,0,0,0,2],
-  'Gm7': [3,5,3,3,3,3],
-  'Gsus4': [3,3,0,0,1,3],
-  'Gb': [2,4,4,3,2,2],
-  'A':  ['x',0,2,2,2,0],
-  'Am': ['x',0,2,2,1,0],
-  'A7': ['x',0,2,0,2,0],
-  'Amaj7': ['x',0,2,1,2,0],
-  'Am7': ['x',0,2,0,1,0],
-  'Asus4': ['x',0,2,2,3,0],
-  'Ab': [4,6,6,5,4,4],
-  'Abm': [4,6,6,4,4,4],
-  'Bb': ['x',1,3,3,3,1],
-  'Bbm': ['x',1,3,3,2,1],
-  'B':  ['x',2,4,4,4,2],
-  'Bm': ['x',2,4,4,3,2],
-  'B7': ['x',2,1,2,0,2],
-  'Bm7': ['x',2,4,2,3,2]
-};
-
-function normalizeAutoChordLookup(chord) {
-  const raw = String(chord || '').trim();
-  if (!raw) return '';
-  return raw.replace(/\s+/g, '').replace(/△/g, 'maj');
-}
-
-function getAutoShapeForChord(chordDisplay, chordRaw) {
-  const candidates = [chordDisplay, chordRaw].map(normalizeAutoChordLookup).filter(Boolean);
-  for (const c of candidates) {
-    if (AUTO_CHORD_SHAPES[c]) return { key: c, shape: AUTO_CHORD_SHAPES[c].slice() };
-    const slash = c.split('/')[0];
-    if (AUTO_CHORD_SHAPES[slash]) return { key: slash, shape: AUTO_CHORD_SHAPES[slash].slice() };
-  }
-  return null;
-}
-
-function getBassStringFromShape(shape) {
-  if (!Array.isArray(shape)) return 6;
-  for (let i = 0; i < shape.length; i++) {
-    if (shape[i] !== 'x' && shape[i] !== 'X') return 6 - i;
-  }
-  return 6;
-}
-
-function getAutoPatternForMeter(meter, bassString) {
-  const b = Number.isFinite(+bassString) ? +bassString : 6;
-  const patterns = {
-    '4/4': [b,3,2,3,1,3,2,3],
-    '3/4': [b,3,2,1,2,3],
-    '6/8': [b,3,2,1,2,3],
-    '2/4': [b,3,2,3],
-    '6/4': [b,3,2,3,1,3,2,3,1,3,2,3],
-    '3/2': [b,3,2,1,2,3],
-    '9/8': [b,3,2,1,2,3,2,3,1],
-    '4/2': [b,3,2,3,1,3,2,3],
-    '9/4': [b,3,2,1,2,3,2,3,1]
-  };
-  return (patterns[meter] || patterns['4/4']).slice();
-}
-
-function buildAutoAccompanimentBar(measureObj, chordObj) {
-  if (!measureObj || !chordObj) return null;
-  const resolved = getAutoShapeForChord(chordObj.chordDisplay, chordObj.chordRaw);
-  if (!resolved || !resolved.shape) {
-    return {
-      meter: measureObj.meter,
-      measure: measureObj.measure,
-      chordRaw: chordObj.chordRaw,
-      chordDisplay: chordObj.chordDisplay,
-      bassString: null,
-      shape: null,
-      pattern: [],
-      notes: [],
-      text: '未找到按法'
-    };
-  }
-  const shape = resolved.shape;
-  const bassString = getBassStringFromShape(shape);
-  const pattern = getAutoPatternForMeter(measureObj.meter, bassString);
-  const notes = pattern.map((stringNo, idx) => {
-    const fret = shape[6 - stringNo];
-    return { index: idx, string: stringNo, fret, label: `${stringNo}弦${fret}` };
-  });
-  return {
-    meter: measureObj.meter,
-    measure: measureObj.measure,
-    chordRaw: chordObj.chordRaw,
-    chordDisplay: chordObj.chordDisplay,
-    bassString,
-    shape: shape.slice(),
-    pattern: pattern.slice(),
-    notes,
-    text: notes.map(n => `${n.string}弦${n.fret}`).join(' · ')
-  };
-}
-
-function rebuildAutoAccompanimentSong() {
-  const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
-  const chords = Array.isArray(window.__chordTimeline) ? window.__chordTimeline : [];
-  window.__autoAccompanimentSong = measures.map((measureObj) => {
-    let chordObj = null;
-    for (let i = 0; i < chords.length; i++) {
-      const c = chords[i];
-      if ((c.timeMs || 0) <= (measureObj.startMs || 0)) chordObj = c;
-      else break;
-    }
-    if (!chordObj && chords.length) chordObj = chords[0];
-    return buildAutoAccompanimentBar(measureObj, chordObj);
-  }).filter(Boolean);
-  syncAutoAccompanimentToPlayback(__playbackState.current || 0);
-}
-
-function getAutoAccompanimentBarAtMs(ms) {
-  const items = Array.isArray(window.__autoAccompanimentSong) ? window.__autoAccompanimentSong : [];
-  const measure = getCurrentMeasureAtMs(ms);
-  if (!measure) return null;
-  return items.find(item => item.measure === measure.measure) || null;
-}
-
-function ensureAutoAccompanimentUi() { return null; }
-
-function updateAutoAccompanimentUi(bar) { return; }
-
-function ensureIndependentTabTrackUi() { return null; }
-
-function renderIndependentTabTrack(bar, activeStepIndex) { return; }
-
-function syncAutoAccompanimentToPlayback(ms) {
-  const bar = getAutoAccompanimentBarAtMs(ms);
-  window.__autoAccompanimentCurrentBar = bar || null;
-  updateAutoAccompanimentUi(bar || null);
-  const activeStepIndex = Math.max(0, getCurrentRhythmStepAtMs(ms));
-  renderIndependentTabTrack(bar || null, activeStepIndex);
-}
-
-function ensureRhythmHud() { return null; }
-
-function hideRhythmHud() { return; }
-
-function rebuildRhythmState() {
-  const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
-  if (!measures.length) {
-    window.__rhythmState = { meter: '--', patternId: '--', patternName: '--', steps: [], stepsPerBar: 0 };
-    return;
-  }
-  const meter = measures[0].meter || '--';
-  const pattern = getDefaultPatternForMeter(meter);
-  window.__rhythmState = {
-    meter,
-    patternId: pattern.id,
-    patternName: pattern.name,
-    steps: pattern.steps.slice(),
-    accent: (pattern.accent || []).slice(),
-    stepsPerBar: pattern.steps.length
-  };
-}
-
-function renderRhythmSteps(steps, accent) { return; }
-
-function getCurrentDisplayChordAtMs(ms) {
-  const items = Array.isArray(window.__chordTimeline) ? window.__chordTimeline : [];
-  if (!items.length) return null;
-  const t = Math.max(0, Number(ms) || 0);
-  let current = items[0];
-  for (let i = 0; i < items.length; i++) {
-    if ((items[i].timeMs || 0) <= t) current = items[i];
-    else break;
-  }
-  return current || null;
-}
-
-function getCurrentMeasureAtMs(ms) {
-  const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
-  const t = Math.max(0, Number(ms) || 0);
-  for (let i = 0; i < measures.length; i++) {
-    const m = measures[i];
-    if (t >= (m.startMs || 0) && t < (m.endMs || 0)) return m;
-  }
-  return measures[measures.length - 1] || null;
-}
-
-function getCurrentRhythmStepAtMs(ms) {
-  const measure = getCurrentMeasureAtMs(ms);
-  const state = window.__rhythmState || {};
-  if (!measure || !state.stepsPerBar) return -1;
-  const start = measure.startMs || 0;
-  const dur = Math.max(1, measure.durationMs || 1);
-  const ratio = Math.min(0.999999, Math.max(0, ((ms || 0) - start) / dur));
-  return Math.max(0, Math.min(state.stepsPerBar - 1, Math.floor(ratio * state.stepsPerBar)));
-}
-
-function updateRhythmPlayback(ms) {
-  syncAutoAccompanimentToPlayback(ms);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  // HUD removed
-});
-// ===== /GTZ 和弦时间轴 + 节拍/节奏跟随 =====
-
-</script>
   <!-- 简繁转换库：opencc-js（浏览器 UMD 完整版） -->
   <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
-
-  <style>
-    </style>
-
 </head>
 <body>
 <div class="page">
@@ -501,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="core-btn core-btn-icon" id="ui-next" aria-label="下一首">⏭</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-text">字</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-track">轨</button>
-        <button class="core-btn core-btn-pill core-btn-mini" id="ui-rhythm">节</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-staff">谱</button>
         <button class="core-btn core-btn-icon" id="ui-lang" aria-label="语言">🌐</button>
         <button class="core-btn core-btn-icon" id="ui-search" aria-label="搜索">⌕</button>
@@ -516,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="core-panel-layer" id="core-panel-layer" hidden>
         <div class="core-panel" id="panel-speed" hidden>
-          <div class="core-panel-head"><span>速度</span></div>
+          <div class="core-panel-head"><span>速度</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-panel-body">
             <input id="ui-speed-range" type="range" min="50" max="150" step="5" value="100" />
             <div class="core-panel-value" id="ui-speed-value">100%</div>
@@ -524,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-speed-reset">恢复</button></div>
         </div>
         <div class="core-panel" id="panel-key" hidden>
-          <div class="core-panel-head"><span>转调</span></div>
+          <div class="core-panel-head"><span>转调</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-panel-body core-panel-stepper">
             <button type="button" class="core-step-btn" id="ui-key-minus">−</button>
             <div class="core-panel-value" id="ui-key-value">0</div>
@@ -533,14 +57,14 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-key-reset">恢复</button></div>
         </div>
         <div class="core-panel" id="panel-mode" hidden>
-          <div class="core-panel-head"><span>内容</span></div>
+          <div class="core-panel-head"><span>内容</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-panel-actions core-panel-actions-left">
             <button type="button" class="core-option-btn" id="ui-mode-score">吉他</button>
             <button type="button" class="core-option-btn" id="ui-mode-lyrics">歌词</button>
           </div>
         </div>
         <div class="core-panel" id="panel-text" hidden>
-          <div class="core-panel-head"><span>文字</span></div>
+          <div class="core-panel-head"><span>文字</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-text-grid">
             <div class="core-control-card">
               <div class="core-control-label">谱词字号</div>
@@ -555,34 +79,32 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="core-panel-stepper"><button type="button" class="core-step-btn" id="ui-chord-minus">−</button><div class="core-panel-value" id="ui-chord-value">16</div><button type="button" class="core-step-btn" id="ui-chord-plus">+</button></div>
             </div>
           </div>
-          <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-text-reset">恢复</button></div>
         </div>
         <div class="core-panel" id="panel-lang" hidden>
-          <div class="core-panel-head"><span>语言</span></div>
+          <div class="core-panel-head"><span>语言</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-panel-actions core-panel-actions-left">
             <button type="button" class="core-option-btn" id="ui-lang-simp">简体</button>
             <button type="button" class="core-option-btn" id="ui-lang-trad">繁体</button>
           </div>
         </div>
         <div class="core-panel" id="panel-search" hidden>
-          <div class="core-panel-head"><span>搜索</span></div>
+          <div class="core-panel-head"><span>搜索</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-book-row">
             <button type="button" class="core-option-btn" id="ui-book-c">大本</button>
             <button type="button" class="core-option-btn" id="ui-book-ts">小本</button>
           </div>
           <div class="core-search-row">
-            <input id="ui-search-input" class="core-search-input" type="text" inputmode="search" placeholder="输入编号、歌名或歌词关键词" />
+            <input id="ui-search-input" class="core-search-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="输入编号，如31" />
             <button type="button" class="core-option-btn core-primary" id="ui-search-go">搜索</button>
           </div>
-          <div id="ui-search-results" class="core-search-results" hidden></div>
         </div>
         <div class="core-panel" id="panel-staff" hidden>
-          <div class="core-panel-head"><span>谱</span></div>
+          <div class="core-panel-head"><span>谱</span><button type="button" class="core-panel-close" data-close-panel>完成</button></div>
           <div class="core-panel-actions core-panel-actions-left">
             <button type="button" class="core-option-btn" id="ui-staff-five">五线谱</button>
             <button type="button" class="core-option-btn" id="ui-staff-jian">简谱</button>
           </div>
-          <div class="core-panel-note">切换后实时生效，点面板外空白处收起。</div>
+          <div class="core-panel-note">切换后实时生效，点完成收起。</div>
         </div>
       </div>
     </div>
@@ -629,10 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
     script: "simplified",
     lyricsFontSize: 24,
     data: { c: [], ts: [] },
-    loadedRanges: { c: {}, ts: {} },
-    searchBook: "c",
-    searchDraft: "1",
-    searchResults: []
+    loadedRanges: { c: {}, ts: {} }
   };
 
   const DEFAULT_VIEWER_PREFS = {
@@ -660,12 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
       // 繁体（tw） -> 简体（cn）
       converterToSimplified = OpenCC.Converter({ from: "tw", to: "cn" });
     }
-  }
-
-  function escapeHtml(str) {
-    return String(str || "").replace(/[&<>"']/g, function(ch) {
-      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
-    });
   }
 
   function convertTextByScript(text) {
@@ -697,16 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try { localStorage.setItem('sjcg.viewerPrefs.v1', JSON.stringify(viewerPrefs)); } catch (e) {}
   }
 
-  
-function __V12_isOriginalPatternActive() {
-  try {
-    return (typeof window.__isOriginalPatternSelected === 'function') && window.__isOriginalPatternSelected();
-  } catch (e) {
-    return false;
-  }
-}
-
-function getSongCapo() {
+  function getSongCapo() {
     const metaCapo = parseInt(window.__gtzMeta?.capo, 10);
     return Number.isFinite(metaCapo) ? Math.max(0, Math.min(12, metaCapo)) : 0;
   }
@@ -716,9 +220,6 @@ function getSongCapo() {
   }
 
   function getDisplayedCapoLabel() {
-    if (__V12_isOriginalPatternActive()) {
-      return Math.max(0, Math.min(12, getSongCapo() + getUserTranspose()));
-    }
     return getSongCapo();
   }
 
@@ -728,58 +229,9 @@ function getSongCapo() {
   }
 
   function getEffectiveTranspose() {
+    // Capo 只作用于 6线谱（TAB）显示，
+    // 不再作用于五线谱 / 简谱 / 整体播放转调。
     return getUserTranspose();
-  }
-
-  function trackUsesTab(track) {
-    const staves = Array.isArray(track?.staves) ? track.staves : [];
-    return staves.some((staff) => !!staff?.showTablature);
-  }
-
-  /*
-   * ===== CAPO / 转调 逻辑说明（请尽量不要随意改动） =====
-   *
-   * 目标：
-   * 1. 六线谱“显示层”保持原始手型阅读，不把歌曲自带 CAPO 叠到可见数字上。
-   * 2. “播放层”才叠加歌曲自带 CAPO，这样听到的音高才会正确。
-   * 3. 用户手动转调（viewerPrefs.transposeSemitones）同时影响显示层与播放层。
-   *
-   * 正确公式：
-   * - 显示/记谱层  = 用户转调
-   * - TAB 播放层   = 用户转调 + 歌曲自带 CAPO
-   * - 非 TAB 播放层 = 用户转调
-   *
-   * 之前出过的两个坑：
-   * - 把 CAPO 同时塞进 notation.transpositionPitches 和 changeTrackTranspositionPitch
-   *   => 会出现“双重 CAPO”。
-   * - 把 CAPO 全部删掉
-   *   => 会出现“CAPO 完全失效”。
-   *
-   * 所以这里一定要把“显示层 semitones”和“播放层 semitones”拆开。
-   */
-  function getTrackTransposeSemitones(track) {
-    const base = getUserTranspose();
-    if (trackUsesTab(track)) {
-      if (window.__tabRewriteModeActive) return 0;
-      if (__V12_isOriginalPatternActive()) return 0;
-    }
-    return base;
-  }
-
-  function getTrackPlaybackSemitones(track) {
-    const base = getUserTranspose();
-    if (!trackUsesTab(track)) {
-      return base;
-    }
-    // 原谱模式：TAB 轨播放层必须 = 用户转调 + 歌曲自带 CAPO。
-    // 否则就会出现：显示数字跟着转调变化，但实际播放音高始终只吃 CAPO 的问题。
-    //
-    // 自动伴奏/改写模式：新的 TAB XML 已经把用户转调后的按法写进去了，
-    // 这里再叠加 base 会导致重复转调，所以只补歌曲自带 CAPO。
-    if (window.__tabRewriteModeActive) {
-      return getEffectiveCapo();
-    }
-    return base + getEffectiveCapo();
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -853,7 +305,6 @@ function getSongCapo() {
     const semitones = getUserTranspose();
     const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
     const chordFontPx = getChordFontSizePx();
-    const keepOriginalChordNames = __V12_isOriginalPatternActive();
     const nodes = root.querySelectorAll('text, tspan');
     nodes.forEach((el) => {
       if (el.children && el.children.length) return;
@@ -864,7 +315,7 @@ function getSongCapo() {
       if (!el.getAttribute('data-orig-chord')) {
         el.setAttribute('data-orig-chord', original);
       }
-      const next = keepOriginalChordNames ? original : (semitones === 0 ? original : transposeChordSymbol(original, semitones, preferFlats));
+      const next = semitones === 0 ? original : transposeChordSymbol(original, semitones, preferFlats);
       if (next && next !== current) {
         el.textContent = next;
       }
@@ -931,34 +382,18 @@ function getSongCapo() {
   function applyScoreTransposition(api) {
     if (!api || !api.settings) return;
     const tracks = getAllTracks(api);
-    const notationTranspositions = tracks.length
-      ? tracks.map((track) => getTrackTransposeSemitones(track))
-      : [getUserTranspose()];
+    const trackCount = tracks.length;
+    const semitones = getEffectiveTranspose();
     try {
       if (!api.settings.notation) api.settings.notation = {};
-
-      // 第 1 步：先设置“显示层 / 记谱层”的转调。
-      // 这里只允许用户转调进入 notation，禁止把歌曲自带 CAPO 混进来。
-      api.settings.notation.transpositionPitches = notationTranspositions.slice();
+      api.settings.notation.transpositionPitches = trackCount > 0 ? Array(trackCount).fill(semitones) : [semitones];
       api.updateSettings();
-
       if (typeof api.changeTrackTranspositionPitch === 'function' && tracks.length) {
-        // 第 2 步：再单独设置“播放层”的转调。
-        // 这里才允许 TAB 轨叠加歌曲自带 CAPO。
-        //
-        // 这个顺序和拆分非常重要：
-        // - notation.transpositionPitches 负责“看起来怎么显示”
-        // - changeTrackTranspositionPitch 负责“最终怎么发声”
-        //
-        // 千万不要把同一个 (transpose + capo) 同时喂给两边，
-        // 否则很容易回到之前“双重 CAPO”的老问题。
-        tracks.forEach((track) => {
-          const semitones = getTrackPlaybackSemitones(track) || 0;
-          try { api.changeTrackTranspositionPitch([track], semitones); } catch (e) { console.warn('live transpose failed', e); }
-        });
+        try { api.changeTrackTranspositionPitch(tracks, semitones); } catch (e) { console.warn('live transpose failed', e); }
       }
       try { api.render(); } catch (e) {}
       scheduleChordRewrite(120);
+      scheduleTabCapoOverlay(140);
     } catch (e) {
       console.warn('applyScoreTransposition failed', e);
     }
@@ -992,32 +427,12 @@ function getSongCapo() {
     try { if (window.__atApi) window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
   }
 
-  function __shouldRewritePatternAfterTranspose() {
-    try {
-      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-      const idx = window.__currentPatternChoiceIndexByMeter ? window.__currentPatternChoiceIndexByMeter[meter] : null;
-      return idx !== window.__originalPatternChoiceSentinel;
-    } catch (e) {
-      return false;
-    }
-  }
-
   function changeTranspose(delta) {
     viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, getUserTranspose() + delta));
     saveViewerPrefs();
     refreshAdjustUI();
     updateMetaRow();
     applyViewerPrefsToScore();
-    rebuildDisplayChordTimeline();
-    updateRhythmPlayback(__playbackState.current || 0);
-    if (__shouldRewritePatternAfterTranspose()) {
-      try {
-        if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
-        setTimeout(() => {
-          try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('transpose pattern rewrite failed', e); }
-        }, 60);
-      } catch (e) { console.warn('transpose pattern rewrite failed', e); }
-    }
   }
 
   function resetTranspose() {
@@ -1026,16 +441,6 @@ function getSongCapo() {
     refreshAdjustUI();
     updateMetaRow();
     applyViewerPrefsToScore();
-    rebuildDisplayChordTimeline();
-    updateRhythmPlayback(__playbackState.current || 0);
-    if (__shouldRewritePatternAfterTranspose()) {
-      try {
-        if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
-        setTimeout(() => {
-          try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
-        }, 60);
-      } catch (e) { console.warn('reset transpose pattern rewrite failed', e); }
-    }
   }
 
   function changeScoreFont(delta) {
@@ -1060,31 +465,6 @@ function getSongCapo() {
     refreshAdjustUI();
   }
 
-  function resetTextSettings() {
-    viewerPrefs.scoreFontSizePx = DEFAULT_VIEWER_PREFS.scoreFontSizePx;
-    viewerPrefs.scoreSpacingFactor = DEFAULT_VIEWER_PREFS.scoreSpacingFactor;
-    viewerPrefs.chordFontSizePx = DEFAULT_VIEWER_PREFS.chordFontSizePx;
-    saveViewerPrefs();
-    applyViewerPrefsToScore();
-    refreshAdjustUI();
-  }
-
-  async function setSearchBook(book, autoSearch = false) {
-    state.searchBook = (book === 'ts') ? 'ts' : 'c';
-    const inputEl = document.getElementById('ui-search-input');
-    const currentInput = String(inputEl?.value || '').trim();
-    if (currentInput) state.searchDraft = currentInput;
-    syncBookButtons();
-    clearSearchResults();
-    syncUI();
-
-    const value = String(state.searchDraft || currentInput || '').trim();
-    if (autoSearch && value) {
-      return await performSearch(value, state.searchBook);
-    }
-    return true;
-  }
-
   function setScriptMode(mode) {
     state.script = (mode === 'traditional') ? 'traditional' : 'simplified';
     syncScriptButton();
@@ -1103,44 +483,20 @@ function getSongCapo() {
     return true;
   }
 
-  async function performSearch(raw, bookOverride = null) {
+  function performSearch(raw) {
     const value = String(raw || '').trim();
-    state.searchDraft = value;
-    if (!value) {
-      clearSearchResults();
-      return false;
+    if (!value) return;
+    const digitsMatch = value.match(/(\d{1,4})$/);
+    if (!digitsMatch) {
+      alert('请输入正确的编号，如 31');
+      return;
     }
-
-    const targetBook = (bookOverride === 'ts' || bookOverride === 'c')
-      ? bookOverride
-      : ((state.searchBook === 'ts') ? 'ts' : 'c');
-
-    const digitsMatch = value.match(/^(\d{1,4})$/);
-    if (digitsMatch) {
-      const no = parseInt(digitsMatch[1], 10);
-      if (!Number.isFinite(no) || no <= 0) {
-        clearSearchResults();
-        return false;
-      }
-      const song = await getSong(targetBook, no);
-      if (!song) {
-        renderSearchResults([], value, targetBook);
-        return false;
-      }
-
-      state.searchBook = targetBook;
-      state.currentBook = targetBook;
-      state.currentNo = no;
-      state.searchDraft = String(no);
-      clearSearchResults();
-      updateURL();
-      await loadAndRenderCurrentSong();
-      return true;
+    const no = parseInt(digitsMatch[1], 10);
+    if (!Number.isFinite(no)) {
+      alert('请输入正确的编号，如 31');
+      return;
     }
-
-    const results = await searchSongsByKeywordAll(value);
-    renderSearchResults(results, value, 'all');
-    return results.length > 0;
+    goToNumber(no);
   }
 
 
@@ -1165,9 +521,120 @@ function getSongCapo() {
     applyScoreTransposition(window.__atApi);
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
     scheduleChordRewrite(30);
+    scheduleTabCapoOverlay(120);
   }
 
 
+  let __tabCapoOverlayTimer = null;
+
+  function ensureTabCapoOverlayRoot() {
+    const host = document.getElementById('alphaTab');
+    if (!host) return null;
+    host.style.position = host.style.position || 'relative';
+    let root = host.querySelector('.tab-capo-overlay-root');
+    if (!root) {
+      root = document.createElement('div');
+      root.className = 'tab-capo-overlay-root';
+      root.style.position = 'absolute';
+      root.style.left = '0';
+      root.style.top = '0';
+      root.style.right = '0';
+      root.style.bottom = '0';
+      root.style.pointerEvents = 'none';
+      root.style.zIndex = '20';
+      host.appendChild(root);
+    }
+    return root;
+  }
+
+  function clearTabCapoOverlay() {
+    const root = document.querySelector('#alphaTab .tab-capo-overlay-root');
+    if (root) root.innerHTML = '';
+  }
+
+  function isTabBarBounds(barBounds) {
+    const staff = barBounds?.bar?.staff;
+    if (!staff) return false;
+    // 只要这一条 staff 显示了 TAB，就允许 overlay；
+    // 不再要求它必须是“纯TAB无五线谱”的 staff。
+    return !!staff.showTablature;
+  }
+
+  function getDisplayedFretForCapo(note) {
+    if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
+
+    const capo = getEffectiveCapo();
+    const transpose = getUserTranspose();
+
+    // 正确显示逻辑：
+    // TAB显示 = 原始品位 + Capo + 用户转调
+    const displayed = note.fret + capo + transpose;
+
+    if (!Number.isFinite(displayed) || displayed < 0) return null;
+    return displayed;
+  }
+
+  function renderTabCapoOverlay() {
+    const api = window.__atApi;
+    const root = ensureTabCapoOverlayRoot();
+    if (!api || !root) return;
+    root.innerHTML = '';
+
+    const capo = getEffectiveCapo();
+    const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
+    if (!capo || !lookup || !Array.isArray(lookup.staffSystems)) return;
+
+    for (const system of lookup.staffSystems) {
+      const masterBars = Array.isArray(system?.bars) ? system.bars : [];
+      for (const masterBar of masterBars) {
+        const barBoundsList = Array.isArray(masterBar?.bars) ? masterBar.bars : [];
+        for (const barBounds of barBoundsList) {
+          if (!isTabBarBounds(barBounds)) continue;
+          const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
+          for (const beatBounds of beats) {
+            const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
+            for (const noteBounds of notes) {
+              const note = noteBounds?.note;
+              const displayFret = getDisplayedFretForCapo(note);
+              const box = noteBounds?.noteHeadBounds || noteBounds;
+              if (displayFret === null || !box) continue;
+              const bw = box.w ?? box.width ?? 16;
+              const bh = box.h ?? box.height ?? 16;
+              const bx = box.x ?? 0;
+              const by = box.y ?? 0;
+
+              const el = document.createElement('div');
+              el.className = 'tab-capo-overlay-note';
+              el.textContent = String(displayFret);
+              el.style.position = 'absolute';
+              el.style.left = `${bx}px`;
+              el.style.top = `${by}px`;
+              el.style.width = `${bw}px`;
+              el.style.height = `${bh}px`;
+              el.style.display = 'flex';
+              el.style.alignItems = 'center';
+              el.style.justifyContent = 'center';
+              el.style.background = '#fff';
+              el.style.color = '#111';
+              el.style.fontWeight = '700';
+              el.style.fontSize = `${Math.max(12, Math.round(bh * 0.95))}px`;
+              el.style.lineHeight = '1';
+              el.style.borderRadius = '2px';
+              el.style.boxSizing = 'border-box';
+              root.appendChild(el);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function scheduleTabCapoOverlay(delay = 60) {
+    try { if (__tabCapoOverlayTimer) clearTimeout(__tabCapoOverlayTimer); } catch (e) {}
+    __tabCapoOverlayTimer = setTimeout(() => {
+      try { renderTabCapoOverlay(); } catch (e) { console.warn('renderTabCapoOverlay failed', e); }
+    }, delay);
+  }
 
 
   function applyViewerPrefsToLyricsPage() {
@@ -1218,29 +685,8 @@ function getSongCapo() {
       zoom: st?.zoom ?? (vs?.zoom != null ? Math.round(vs.zoom * 100) : 100),
       visibleTrackIndices: st?.visibleTrackIndices ?? vs?.visibleTrackIndices ?? null
     };
-    __trackSelectionInitializedForThisSong = false;
     window.__gtzMeta = gtz?.meta || null;
     updateMetaRow(window.__gtzMeta || null);
-
-    try {
-      const xmlText = decodeBase64ToText(scoreB64);
-      window.__currentGtzUrl = gtzUrl;
-      window.__originalXmlText = xmlText;
-      window.__originalScoreB64 = scoreB64;
-      const parsed = buildMusicTimelineFromXML(xmlText);
-      window.__musicTimelineRaw = parsed;
-      window.__chordTimelineRaw = parsed.chords.slice();
-      window.__measureTimelineRaw = parsed.measures.slice();
-      rebuildDisplayChordTimeline();
-      rebuildRhythmState();
-    } catch (e) {
-      console.warn('GTZ时间轴解析失败:', e);
-      window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
-      window.__chordTimelineRaw = [];
-      window.__measureTimelineRaw = [];
-      window.__chordTimeline = [];
-      hideRhythmHud();
-    }
 
     const bytes = base64ToUint8Array(scoreB64);
     api.load(bytes);
@@ -1389,7 +835,6 @@ function getSongCapo() {
 // ===== 多轨道同页显示 + 轨道开关 =====
   let __currentScore = null;
   let __visibleTrackIndices = null;
-  let __trackSelectionInitializedForThisSong = false;
 
   function renderVisibleTracks(api) {
     if (!api || !__currentScore) return;
@@ -1445,27 +890,21 @@ function getSongCapo() {
       if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
     });
 
-    let previousUiSec = -1;
+    let previousSec = -1;
     api.playerPositionChanged.on((args) => {
-      const currentMs = args.currentTime || 0;
-      const currentSec = Math.floor(currentMs / 1000);
+      const currentSec = Math.floor(args.currentTime / 1000);
+      if (currentSec === previousSec) return;
+      previousSec = currentSec;
 
       const max = Math.max(1, args.endTime);
-      const v = Math.floor((currentMs / max) * 1000);
-      __playbackState.current = currentMs;
+      const v = Math.floor((args.currentTime / max) * 1000);
+      __playbackState.current = args.currentTime || 0;
       __playbackState.total = args.endTime || 0;
       __playbackState.progress = isFinite(v) ? v : 0;
-
       if (!__playerUi.isSeeking && progressEl) {
         progressEl.value = String(__playbackState.progress);
       }
-      if (timeEl && currentSec !== previousUiSec) {
-        previousUiSec = currentSec;
-        timeEl.textContent = `${msToMMSS(currentMs)} / ${msToMMSS(args.endTime)}`;
-      }
-
-      remapTimelineTimesIfNeeded();
-      updateRhythmPlayback(currentMs);
+      if (timeEl) timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
     });
 
     if (progressEl) {
@@ -1508,8 +947,6 @@ function getSongCapo() {
     if (progressEl) progressEl.value = "0";
     const btnPlay = document.getElementById("ui-play");
     if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
-    remapTimelineTimesIfNeeded();
-    updateRhythmPlayback(current || 0);
   }
   // ===== /alphaTab + .gtz 加载 =====
 
@@ -1524,8 +961,6 @@ function pad4(num) {
     if (!Number.isFinite(no) || no < 1) no = 1;
     state.currentBook = (book === "ts") ? "ts" : "c";
     state.currentNo = no;
-    state.searchBook = state.currentBook;
-    state.searchDraft = String(state.currentNo || 1);
   }
 
   function getRangeIndex(no) {
@@ -1578,169 +1013,10 @@ function pad4(num) {
     return findLocalSong(bookKey, no);
   }
 
-  function normalizeSearchText(text) {
-    return String(text || '')
-      .toLowerCase()
-      .replace(/[\s　]+/g, '')
-      .replace(/[，。、“”‘’？！：；（）()《》〈〉【】\[\]\-—_.,!?:;"'`~·]/g, '');
-  }
-
-  function flattenSongText(value, bucket) {
-    if (value == null) return;
-    if (typeof value === 'string' || typeof value === 'number') {
-      const s = String(value).trim();
-      if (s) bucket.push(s);
-      return;
-    }
-    if (Array.isArray(value)) {
-      value.forEach(item => flattenSongText(item, bucket));
-      return;
-    }
-    if (typeof value === 'object') {
-      Object.values(value).forEach(item => flattenSongText(item, bucket));
-    }
-  }
-
-  function getSongSearchBundle(song) {
-    const titleParts = [];
-    const bodyParts = [];
-    flattenSongText(song?.title, titleParts);
-    flattenSongText(song?.full_title, titleParts);
-    flattenSongText(song?.big_title, titleParts);
-    flattenSongText(song?.subtitle, titleParts);
-    flattenSongText(song?.lyrics, bodyParts);
-    flattenSongText(song?.verses, bodyParts);
-    flattenSongText(song?.chorus, bodyParts);
-    flattenSongText(song?.content, bodyParts);
-    const titleText = titleParts.join(' ');
-    const bodyText = bodyParts.join(' ');
-    return {
-      titleText,
-      bodyText,
-      titleNorm: normalizeSearchText(titleText),
-      bodyNorm: normalizeSearchText(bodyText)
-    };
-  }
-
-  async function ensureSearchCorpus(bookKey) {
-    for (let i = 0; i < MAX_RANGES; i++) {
-      const ok = await loadRange(bookKey, i);
-      if (!ok) break;
-    }
-    return state.data[bookKey] || [];
-  }
-
-  function clearSearchResults() {
-    state.searchResults = [];
-    const box = document.getElementById('ui-search-results');
-    if (box) {
-      box.hidden = true;
-      box.innerHTML = '';
-    }
-  }
-
-  function renderSearchResults(items, query, bookKey) {
-    state.searchResults = Array.isArray(items) ? items.slice() : [];
-    const box = document.getElementById('ui-search-results');
-    if (!box) return;
-    box.innerHTML = '';
-    const list = state.searchResults;
-    const searchScopeLabel = (bookKey === 'all') ? '大本 / 小本' : (BOOKS[bookKey]?.label || '当前歌本');
-    if (!list.length) {
-      const empty = document.createElement('div');
-      empty.className = 'core-search-empty';
-      empty.textContent = `在${searchScopeLabel}中找不到“${query}”`;
-      box.appendChild(empty);
-      box.hidden = false;
-      return;
-    }
-    const frag = document.createDocumentFragment();
-    list.forEach(item => {
-      const row = document.createElement('button');
-      row.type = 'button';
-      row.className = 'core-search-result-item';
-      row.innerHTML = `<span class="core-search-result-title">${BOOKS[item.book].label} 第 ${item.no} 首｜${escapeHtml(item.title || '未命名')}</span>${item.snippet ? `<span class="core-search-result-snippet">${escapeHtml(item.snippet)}</span>` : ''}`;
-      row.addEventListener('click', async () => {
-        state.searchBook = item.book;
-        state.currentBook = item.book;
-        state.currentNo = item.no;
-        state.searchDraft = String(item.no);
-        clearSearchResults();
-        updateURL();
-        await loadAndRenderCurrentSong();
-        closePanels();
-        syncUI();
-      });
-      frag.appendChild(row);
-    });
-    box.appendChild(frag);
-    box.hidden = false;
-  }
-
-  async function searchSongsByKeyword(bookKey, rawQuery) {
-    const query = String(rawQuery || '').trim();
-    const norm = normalizeSearchText(query);
-    if (!norm) return [];
-    const songs = await ensureSearchCorpus(bookKey);
-    const hits = [];
-    songs.forEach(song => {
-      if (!song || !song.no) return;
-      const bundle = getSongSearchBundle(song);
-      const titleHit = bundle.titleNorm.includes(norm);
-      const bodyHit = !titleHit && bundle.bodyNorm.includes(norm);
-      if (!titleHit && !bodyHit) return;
-      const sourceText = titleHit ? (bundle.titleText || '') : (bundle.bodyText || '');
-      const idx = sourceText.indexOf(query);
-      let snippet = '';
-      if (idx >= 0) {
-        const start = Math.max(0, idx - 12);
-        const end = Math.min(sourceText.length, idx + query.length + 18);
-        snippet = sourceText.slice(start, end).replace(/\s+/g, ' ').trim();
-      } else if (sourceText) {
-        snippet = sourceText.slice(0, 36).replace(/\s+/g, ' ').trim();
-      }
-      hits.push({
-        book: bookKey,
-        no: song.no,
-        title: song.title || song.full_title || `${BOOKS[bookKey].label} 第 ${song.no} 首`,
-        snippet,
-        rank: titleHit ? 0 : 1
-      });
-    });
-    hits.sort((a, b) => (a.rank - b.rank) || (a.no - b.no));
-    return hits.slice(0, 50);
-  }
-
-  async function searchSongsByKeywordAll(rawQuery) {
-    const allBooks = ['c', 'ts'];
-    const groups = await Promise.all(allBooks.map(bookKey => searchSongsByKeyword(bookKey, rawQuery)));
-    const merged = groups.flat();
-    merged.sort((a, b) => (a.rank - b.rank) || (a.no - b.no) || a.book.localeCompare(b.book));
-    return merged.slice(0, 80);
-  }
-
-  function ensureAlphaTabHost() {
-    const container = document.getElementById("score-view");
-    if (!container) return null;
-
-    let atEl = document.getElementById("alphaTab");
-    if (!atEl) {
-      atEl = document.createElement('div');
-      atEl.id = 'alphaTab';
-      atEl.className = 'at-viewport';
-      container.innerHTML = '';
-      container.appendChild(atEl);
-      window.__atApi = null;
-    }
-    return atEl;
-  }
-
   function renderScore(bookKey, no) {
     const container = document.getElementById("score-view");
     // alphaTab 渲染容器（在 HTML 里我们放了 #alphaTab）
-    const atEl = ensureAlphaTabHost();
-    if (!container || !atEl) return;
-    atEl.style.display = '';
+    const atEl = document.getElementById("alphaTab");
 
     // 首次初始化 alphaTab API
     if (!window.__atApi) {
@@ -1775,10 +1051,7 @@ function pad4(num) {
       window.__atApi.scoreLoaded.on((e) => {
         __currentScore = e.score || window.__atApi.score;
         const st = window.__gtzState || {};
-        if (!__trackSelectionInitializedForThisSong) {
-          __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
-          __trackSelectionInitializedForThisSong = true;
-        }
+        __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
 
         if (!viewerPrefs.__initializedFromSong) {
           viewerPrefs.scoreFontSizePx = st.fontSizePx || viewerPrefs.scoreFontSizePx;
@@ -1793,21 +1066,14 @@ function pad4(num) {
 
         enableCursor(window.__atApi);
 
-        const liveHost = document.getElementById('alphaTab');
-        if (liveHost) liveHost.style.display = '';
-        const oldFallback = document.getElementById('score-fallback-image');
-        if (oldFallback) oldFallback.remove();
-
         renderVisibleTracks(window.__atApi);
         applyScoreTransposition(window.__atApi);
         applyPlaybackTrackVisibility(window.__atApi);
-        remapTimelineTimesIfNeeded();
-        rebuildDisplayChordTimeline();
-        rebuildRhythmState();
-        updateRhythmPlayback(__playbackState.current || 0);
+        scheduleTabCapoOverlay(180);
       });
 
       window.__atApi.renderFinished.on(() => {
+        scheduleTabCapoOverlay(40);
         try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode({ domOnly: true }); } catch (e) {}
       });
 
@@ -1816,9 +1082,6 @@ function pad4(num) {
     }
 
     // 加载 .gtz (JSON) -> 解 base64 -> load 到 alphaTab
-    const oldFallback = document.getElementById('score-fallback-image');
-    if (oldFallback) oldFallback.remove();
-
     const gtzPrefix = BOOKS[bookKey].gtzPrefix || BOOKS[bookKey].svgPrefix;
     const gtzUrl = `${gtzPrefix}${pad4(no)}_cn_g.gtz`; // 如 assets/c/c0001_cn_g.gtz
 
@@ -1827,14 +1090,10 @@ function pad4(num) {
       setPlayerStatus('加载失败: ' + (err && err.message ? err.message : err));
       // fallback: 如果没有 gtz，就尝试旧的 svg（便于过渡）
       try {
-        const liveHost = ensureAlphaTabHost();
-        if (liveHost) liveHost.style.display = 'none';
-        const oldFallback = document.getElementById('score-fallback-image');
-        if (oldFallback) oldFallback.remove();
+        container.innerHTML = "";
         const folderPrefix = BOOKS[bookKey].svgPrefix;
         const src = `${folderPrefix}${pad4(no)}_cn_g.svg`;
         const img = document.createElement("img");
-        img.id = 'score-fallback-image';
         img.alt = `${BOOKS[bookKey].label} 第 ${no} 首 吉他谱`;
         img.src = src;
         container.appendChild(img);
@@ -1915,27 +1174,7 @@ function pad4(num) {
     window.history.replaceState({}, "", url.toString());
   }
 
-  function resetPerSongPlaybackControls() {
-    // 仅在切歌/跳歌时重置“当前歌曲专属”的两个参数：
-    // 1. 播放速度 -> 100%
-    // 2. 转调     -> 0
-    // 其它显示偏好（字号/间距/和弦字号）保持全局不动。
-    viewerPrefs.playbackSpeedPercent = DEFAULT_VIEWER_PREFS.playbackSpeedPercent;
-    viewerPrefs.transposeSemitones = DEFAULT_VIEWER_PREFS.transposeSemitones;
-    saveViewerPrefs();
-    refreshAdjustUI();
-    updateMetaRow();
-    if (window.__atApi) {
-      try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
-      applyScoreTransposition(window.__atApi);
-    }
-  }
-
-  async function loadAndRenderCurrentSong(options = {}) {
-    const { preservePlaybackControls = false } = options;
-    if (!preservePlaybackControls) {
-      resetPerSongPlaybackControls();
-    }
+  async function loadAndRenderCurrentSong() {
     const song = await getSong(state.currentBook, state.currentNo);
     if (!song) {
       alert("找不到这首诗歌的歌词数据。");
@@ -1977,7 +1216,7 @@ function pad4(num) {
   document.addEventListener("DOMContentLoaded", async () => {
     parseQuery();
     applyViewerPrefsToLyricsPage();
-    await loadAndRenderCurrentSong({ preservePlaybackControls: true });
+    await loadAndRenderCurrentSong();
   });
 </script>
 
@@ -2066,15 +1305,9 @@ function pad4(num) {
     const layer = $('core-panel-layer');
     if(!layer) return;
     qa('.core-panel', layer).forEach(p=>p.hidden=true);
-    if(!id){
-      layer.hidden = true;
-      layer.setAttribute('aria-hidden','true');
-      return;
-    }
+    if(!id){ layer.hidden = true; return; }
     layer.hidden = false;
-    layer.setAttribute('aria-hidden','false');
-    const p = $(id);
-    if(p) p.hidden = false;
+    const p = $(id); if(p) p.hidden = false;
   }
   function closePanels(){ openPanel(null); }
 
@@ -2105,11 +1338,10 @@ function pad4(num) {
     if($('ui-font-value')) $('ui-font-value').textContent = fontText;
     if($('ui-spacing-value')) $('ui-spacing-value').textContent = spacingText;
     if($('ui-chord-value')) $('ui-chord-value').textContent = chordText;
-    const searchPanelOpen = $('panel-search') && !$('panel-search').hidden;
-    if($('ui-search-input') && document.activeElement !== $('ui-search-input') && !searchPanelOpen) $('ui-search-input').value = String(state.searchDraft || state.currentNo || '');
-    if($('search-input') && document.activeElement !== $('search-input')) $('search-input').value = String(state.searchDraft || state.currentNo || '');
-    $('ui-book-c')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'c');
-    $('ui-book-ts')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'ts');
+    if($('ui-search-input') && document.activeElement !== $('ui-search-input')) $('ui-search-input').value = String(state.currentNo || '');
+    if($('search-input') && document.activeElement !== $('search-input')) $('search-input').value = String(state.currentNo || '');
+    $('ui-book-c')?.classList.toggle('active', state.currentBook === 'c');
+    $('ui-book-ts')?.classList.toggle('active', state.currentBook === 'ts');
     $('ui-mode-score')?.classList.toggle('active', state.mode === 'score');
     $('ui-mode-lyrics')?.classList.toggle('active', state.mode === 'lyrics');
     $('ui-lang-simp')?.classList.toggle('active', state.script === 'simplified');
@@ -2121,14 +1353,14 @@ function pad4(num) {
     $('ui-prev')?.addEventListener('click', ()=>{ goPrevSong(); });
     $('ui-play')?.addEventListener('click', togglePlayPause);
     $('ui-next')?.addEventListener('click', ()=>{ goNextSong(); });
-    $('ui-speed')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-speed'); });
-    $('ui-key')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-key'); });
-    $('ui-mode')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-mode'); });
-    $('ui-text')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-text'); });
-    $('ui-track')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openNewTrackPanel(); });
-    $('ui-staff')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-staff'); });
-    $('ui-lang')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-lang'); });
-    $('ui-search')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-search'); });
+    $('ui-speed')?.addEventListener('click', ()=>openPanel('panel-speed'));
+    $('ui-key')?.addEventListener('click', ()=>openPanel('panel-key'));
+    $('ui-mode')?.addEventListener('click', ()=>openPanel('panel-mode'));
+    $('ui-text')?.addEventListener('click', ()=>openPanel('panel-text'));
+    $('ui-track')?.addEventListener('click', ()=>{ openNewTrackPanel(); });
+    $('ui-staff')?.addEventListener('click', ()=>openPanel('panel-staff'));
+    $('ui-lang')?.addEventListener('click', ()=>openPanel('panel-lang'));
+    $('ui-search')?.addEventListener('click', ()=>openPanel('panel-search'));
     qa('[data-close-panel]').forEach(btn=>btn.addEventListener('click', closePanels));
 
     $('ui-speed-range')?.addEventListener('input', e=>{
@@ -2153,34 +1385,22 @@ function pad4(num) {
     $('ui-spacing-minus')?.addEventListener('click', ()=>{ changeSpacing(-0.1); syncUI(); });
     $('ui-chord-plus')?.addEventListener('click', ()=>{ changeChordFont(1); syncUI(); });
     $('ui-chord-minus')?.addEventListener('click', ()=>{ changeChordFont(-1); syncUI(); });
-    $('ui-text-reset')?.addEventListener('click', ()=>{ resetTextSettings(); syncUI(); });
 
     $('ui-lang-simp')?.addEventListener('click', ()=>{ setScriptMode('simplified'); syncUI(); });
     $('ui-lang-trad')?.addEventListener('click', ()=>{ setScriptMode('traditional'); syncUI(); });
 
-    $('ui-book-c')?.addEventListener('click', async ()=>{
-      await setSearchBook('c', true);
+    $('ui-book-c')?.addEventListener('click', ()=>{ setBook('c').then(syncUI); });
+    $('ui-book-ts')?.addEventListener('click', ()=>{ setBook('ts').then(syncUI); });
+    $('ui-search-go')?.addEventListener('click', ()=>{
+      performSearch($('ui-search-input')?.value || '');
+      closePanels();
       syncUI();
     });
-    $('ui-book-ts')?.addEventListener('click', async ()=>{
-      await setSearchBook('ts', true);
-      syncUI();
-    });
-    $('ui-search-go')?.addEventListener('click', async ()=>{
-      const ok = await performSearch($('ui-search-input')?.value || '');
-      const v = String($('ui-search-input')?.value || '').trim();
-      if (ok && /^\d+$/.test(v)) closePanels();
-      syncUI();
-    });
-    $('ui-search-input')?.addEventListener('input', e=>{
-      state.searchDraft = String(e.target?.value || '').trim();
-    });
-    $('ui-search-input')?.addEventListener('keydown', async e=>{
+    $('ui-search-input')?.addEventListener('keydown', e=>{
       if (e.key === 'Enter') {
         e.preventDefault();
-        const v = String($('ui-search-input')?.value || '').trim();
-        const ok = await performSearch(v);
-        if (ok && /^\d+$/.test(v)) closePanels();
+        performSearch($('ui-search-input')?.value || '');
+        closePanels();
         syncUI();
       }
     });
@@ -2197,21 +1417,9 @@ function pad4(num) {
     });
 
     document.addEventListener('click', (e)=>{
-      const layer = $('core-panel-layer');
-      if (layer && !layer.hidden && e.target === layer) {
-        closePanels();
-        return;
-      }
-      const insidePanel = e.target.closest('.core-panel');
+      const insidePanel = e.target.closest('.core-panel-layer');
       const insideToolbar = e.target.closest('.core-ui-toolbar');
       if(!insidePanel && !insideToolbar) closePanels();
-    });
-
-    $('core-panel-layer')?.addEventListener('click', (e)=>{
-      if (e.target === $('core-panel-layer')) closePanels();
-    });
-    qa('.core-panel', $('core-panel-layer')).forEach((panel)=>{
-      panel.addEventListener('click', (e)=>{ e.stopPropagation(); });
     });
   }
 
@@ -2229,7 +1437,7 @@ function pad4(num) {
   <div class="new-track-panel-inner">
     <div class="new-track-panel-head">
       <span>轨道</span>
-      
+      <button type="button" class="new-track-close" id="new-track-close">完成</button>
     </div>
     <div class="new-track-panel-actions">
       <button type="button" class="new-track-ghost" id="new-track-all">全选</button>
@@ -2358,1117 +1566,6 @@ function pad4(num) {
   });
 
   window.openNewTrackPanel = openNewTrackPanel;
-})();
-</script>
-
-
-<script>
-// === SAFE PATCH: restore rhythm switch button + keep all existing functionality ===
-window.__autoAccompanimentTabTrack = window.__autoAccompanimentTabTrack || [];
-window.__currentPatternChoiceIndexByMeter = window.__currentPatternChoiceIndexByMeter || {};
-
-window.__RHYTHM_PATTERN_LIBRARY = {
-  '4/4': [
-    { id:'arpeggio_r3231323', name:'分解 R3231323', type:'arpeggio', steps:['R','3','2','3','1','3','2','3'], accent:[1,0,0,0,1,0,0,0] }
-  ],
-  '3/4': [
-    { id:'arpeggio_r32123',   name:'分解 R32123',    type:'arpeggio', steps:['R','3','2','1','2','3'], accent:[1,0,0,1,0,0] }
-  ],
-  '6/8': [
-    { id:'arpeggio_r32123',   name:'分解 R32123',    type:'arpeggio', steps:['R','3','2','1','2','3'], accent:[1,0,0,1,0,0] }
-  ]
-};
-
-function __getPatternChoicesForMeter(meter){
-  const list = window.__RHYTHM_PATTERN_LIBRARY[meter];
-  if (Array.isArray(list) && list.length) return list;
-  const fallback = (typeof window.__getDefaultPatternForMeterOriginal === 'function')
-    ? window.__getDefaultPatternForMeterOriginal(meter)
-    : (typeof getDefaultPatternForMeter === 'function' ? getDefaultPatternForMeter(meter) : null);
-  return fallback ? [fallback] : [];
-}
-
-// Preserve original function
-if (!window.__getDefaultPatternForMeterOriginal && typeof getDefaultPatternForMeter === 'function') {
-  window.__getDefaultPatternForMeterOriginal = getDefaultPatternForMeter;
-  getDefaultPatternForMeter = function(meter){
-    const choices = __getPatternChoicesForMeter(meter);
-    if (!choices.length) return window.__getDefaultPatternForMeterOriginal(meter);
-    const idx = window.__currentPatternChoiceIndexByMeter[meter] || 0;
-    return choices[idx % choices.length];
-  };
-}
-
-function __expandAutoPatternSteps(meter, bassString){
-  const pattern = (typeof getDefaultPatternForMeter === 'function') ? getDefaultPatternForMeter(meter) : null;
-  if (!pattern) return [];
-  const b = Number.isFinite(+bassString) ? +bassString : 6;
-  return (pattern.steps || []).map(step => step === 'R' ? b : step);
-}
-
-// Patch auto accompaniment generation to use selected pattern and expose pattern fields
-if (typeof buildAutoAccompanimentBar === 'function' && !window.__buildAutoAccompanimentBarOriginal) {
-  window.__buildAutoAccompanimentBarOriginal = buildAutoAccompanimentBar;
-  buildAutoAccompanimentBar = function(measureObj, chordObj) {
-    const base = window.__buildAutoAccompanimentBarOriginal(measureObj, chordObj);
-    if (!base) return base;
-    const patternObj = (typeof getDefaultPatternForMeter === 'function') ? getDefaultPatternForMeter(base.meter) : null;
-    if (!patternObj) return base;
-    if (base.bassString) {
-      const expanded = __expandAutoPatternSteps(base.meter, base.bassString);
-      if (expanded.length) {
-        base.pattern = expanded.slice();
-        base.patternId = patternObj.id;
-        base.patternName = patternObj.name;
-        base.patternType = patternObj.type;
-        if (Array.isArray(base.shape) && patternObj.type === 'arpeggio') {
-          base.notes = expanded.map((stringNo, idx) => {
-            const stringNum = parseInt(stringNo, 10);
-            const fret = base.shape[6 - stringNum];
-            return { index: idx, string: stringNum, fret, label: `${stringNum}弦${fret}` };
-          });
-          base.text = base.notes.map(n => `${n.string}弦${n.fret}`).join(' · ');
-        } else if (patternObj.type === 'strum') {
-          base.notes = expanded.map((token, idx) => ({ index: idx, string: null, fret: null, label: String(token) }));
-          base.text = expanded.join(' ');
-        }
-      }
-    }
-    return base;
-  };
-}
-
-function rebuildAutoTabTrack(){
-  const song = window.__autoAccompanimentSong || [];
-  const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
-
-  function parseMeterText(meterText){
-    const m = String(meterText || '').match(/^(\d+)\/(\d+)$/);
-    return {
-      beats: m ? parseInt(m[1], 10) : 4,
-      beatType: m ? parseInt(m[2], 10) : 4
-    };
-  }
-
-  window.__autoAccompanimentTabTrack = song.map(bar => {
-    const measureObj = measures.find(m => m.measure === bar.measure) || null;
-    const meterInfo = parseMeterText(bar.meter || (measureObj && measureObj.meter) || '4/4');
-    const stepCount = Math.max(1, (bar.notes || []).length);
-    const measureStartMs = measureObj ? measureObj.startMs : null;
-    const measureDurationMs = measureObj ? measureObj.durationMs : null;
-    const beatsPerBar = meterInfo.beats;
-    const durationBeat = beatsPerBar / stepCount;
-
-    return {
-      measure: bar.measure,
-      meter: bar.meter,
-      chordRaw: bar.chordRaw,
-      chordDisplay: bar.chordDisplay,
-      patternId: bar.patternId || null,
-      patternName: bar.patternName || null,
-      patternType: bar.patternType || null,
-      beats: meterInfo.beats,
-      beatType: meterInfo.beatType,
-      stepCount,
-      measureStartMs,
-      measureDurationMs,
-      notes: (bar.notes || []).map((n, i) => {
-        const startRatio = i / stepCount;
-        const durationRatio = 1 / stepCount;
-        const startBeat = +(i * durationBeat).toFixed(4);
-        const noteObj = {
-          string: n.string,
-          fret: n.fret,
-          stepIndex: i,
-          label: n.label,
-          startRatio: +startRatio.toFixed(6),
-          durationRatio: +durationRatio.toFixed(6),
-          startBeat,
-          durationBeat: +durationBeat.toFixed(4)
-        };
-        if (Number.isFinite(measureStartMs) && Number.isFinite(measureDurationMs)) {
-          noteObj.startMs = Math.round(measureStartMs + measureDurationMs * startRatio);
-          noteObj.durationMs = Math.max(1, Math.round(measureDurationMs * durationRatio));
-        }
-        return noteObj;
-      })
-    };
-  });
-}
-
-// Patch rebuildAutoAccompanimentSong so the track is always refreshed
-if (typeof rebuildAutoAccompanimentSong === 'function' && !window.__rebuildAutoAccompanimentSongOriginal) {
-  window.__rebuildAutoAccompanimentSongOriginal = rebuildAutoAccompanimentSong;
-  rebuildAutoAccompanimentSong = function() {
-    const out = window.__rebuildAutoAccompanimentSongOriginal();
-    rebuildAutoTabTrack();
-    return out;
-  };
-}
-
-function switchRhythmPatternSafe(){
-  const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-  const choices = __getPatternChoicesForMeter(meter);
-  if (!choices.length) return;
-  const current = window.__currentPatternChoiceIndexByMeter[meter] || 0;
-  window.__currentPatternChoiceIndexByMeter[meter] = (current + 1) % choices.length;
-
-  if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
-  if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
-  if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('btn-switch-rhythm');
-  if (btn) {
-    btn.addEventListener('click', switchRhythmPatternSafe);
-  }
-  const btnToolbar = document.getElementById('ui-rhythm');
-  if (btnToolbar) {
-    btnToolbar.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      switchRhythmPatternSafe();
-      try {
-        const state = window.__rhythmState || {};
-        if (typeof __isOriginalPatternSelected === 'function' && __isOriginalPatternSelected()) btnToolbar.textContent = '原';
-        else btnToolbar.textContent = (state.patternName || '节').replace(/^分解\s*/, '').replace(/^扫弦\s*/, '扫');
-      } catch (_) {}
-    });
-  }
-  // Build once after initial page settle
-  setTimeout(() => {
-    try {
-      if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
-      if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
-    } catch (e) {
-      console.warn('safe patch init failed', e);
-    }
-  }, 1200);
-});
-</script>
-
-
-<script>
-// === SAFE TRY PATCH: 原始乐谱选项（不改底层轨道，只在网页层恢复原始显示） ===
-window.__originalTabOptionEnabled = false;
-window.__currentPatternChoiceIndexByMeter = window.__currentPatternChoiceIndexByMeter || {};
-window.__originalPatternChoiceSentinel = -1;
-
-function __scoreHasOriginalTabNotes() {
-  try {
-    const score = window.__currentScore || window.__atApi?.score;
-    const tracks = Array.isArray(score?.tracks) ? score.tracks : [];
-    for (const track of tracks) {
-      const staves = Array.isArray(track?.staves) ? track.staves : [];
-      const isTab = staves.some(s => !!s?.showTablature);
-      if (!isTab) continue;
-      const bars = Array.isArray(track?.staves?.[0]?.bars) ? track.staves[0].bars : [];
-      for (const bar of bars) {
-        const voices = Array.isArray(bar?.voices) ? bar.voices : [];
-        for (const voice of voices) {
-          const beats = Array.isArray(voice?.beats) ? voice.beats : [];
-          for (const beat of beats) {
-            const notes = Array.isArray(beat?.notes) ? beat.notes : [];
-            if (notes.length) return true;
-          }
-        }
-      }
-    }
-  } catch (e) {}
-  return false;
-}
-
-function __refreshOriginalOptionEnabled() {
-  window.__originalTabOptionEnabled = __scoreHasOriginalTabNotes();
-}
-
-function __isOriginalPatternSelected() {
-  const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-  return window.__originalTabOptionEnabled && (window.__currentPatternChoiceIndexByMeter[meter] ?? window.__originalPatternChoiceSentinel) === window.__originalPatternChoiceSentinel;
-}
-
-(function(){
-  const _oldRebuildRhythmState = window.rebuildRhythmState;
-  if (typeof _oldRebuildRhythmState === 'function') {
-    window.rebuildRhythmState = function() {
-      const out = _oldRebuildRhythmState.apply(this, arguments);
-      __refreshOriginalOptionEnabled();
-      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-      const idx = window.__currentPatternChoiceIndexByMeter[meter];
-      if (window.__originalTabOptionEnabled && idx === window.__originalPatternChoiceSentinel) {
-        const patternNameEl = document.getElementById('rhythm-pattern-name');
-        if (patternNameEl) patternNameEl.textContent = '原始乐谱';
-      }
-      return out;
-    };
-  }
-
-  const _oldUpdateRhythmPlayback = window.updateRhythmPlayback;
-  if (typeof _oldUpdateRhythmPlayback === 'function') {
-    window.updateRhythmPlayback = function(ms) {
-      const out = _oldUpdateRhythmPlayback.apply(this, arguments);
-      const autoTab = document.getElementById('auto-tab-track');
-      if (__isOriginalPatternSelected()) {
-        if (autoTab) autoTab.hidden = true;
-        const line = document.getElementById('auto-accompaniment-line');
-        if (line) line.textContent = '自动伴奏 原始乐谱';
-      } else {
-        if (autoTab) autoTab.hidden = false;
-      }
-      return out;
-    };
-  }
-
-  const _oldSwitch = window.switchRhythmPatternSafe;
-  if (typeof _oldSwitch === 'function') {
-    window.switchRhythmPatternSafe = function() {
-      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-      const choices = (typeof __getPatternChoicesForMeter === 'function') ? __getPatternChoicesForMeter(meter) : [];
-      if (!choices.length) return;
-      if (!window.__originalTabOptionEnabled) {
-        return _oldSwitch.apply(this, arguments);
-      }
-      const current = (window.__currentPatternChoiceIndexByMeter[meter] ?? window.__originalPatternChoiceSentinel);
-      let next;
-      if (current === window.__originalPatternChoiceSentinel) next = 0;
-      else if (current >= choices.length - 1) next = window.__originalPatternChoiceSentinel;
-      else next = current + 1;
-      window.__currentPatternChoiceIndexByMeter[meter] = next;
-
-      if (next === window.__originalPatternChoiceSentinel) {
-        const patternNameEl = document.getElementById('rhythm-pattern-name');
-        if (patternNameEl) patternNameEl.textContent = '原始乐谱';
-        const autoTab = document.getElementById('auto-tab-track');
-        if (autoTab) autoTab.hidden = true;
-        const line = document.getElementById('auto-accompaniment-line');
-        if (line) line.textContent = '自动伴奏 原始乐谱';
-        return;
-      }
-
-      if (typeof rebuildRhythmState === 'function') rebuildRhythmState();
-      if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
-      if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
-    };
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      __refreshOriginalOptionEnabled();
-      if (window.__originalTabOptionEnabled) {
-        const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-        if (!(meter in window.__currentPatternChoiceIndexByMeter)) {
-          window.__currentPatternChoiceIndexByMeter[meter] = window.__originalPatternChoiceSentinel;
-        }
-        if (typeof updateRhythmPlayback === 'function') {
-          updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
-        }
-      }
-    }, 1200);
-  });
-})();
-</script>
-
-
-<script>
-// === DEEP TAB REWRITE PATCH: rewrite original TAB track from auto accompaniment ===
-(function(){
-  function encodeTextToUint8Array(text) {
-    return new TextEncoder().encode(String(text || ''));
-  }
-
-  function cloneXmlNode(doc, node) {
-    return doc.importNode ? doc.importNode(node, true) : node.cloneNode(true);
-  }
-
-  function midiToPitch(midi) {
-    const pc = ((midi % 12) + 12) % 12;
-    const octave = Math.floor(midi / 12) - 1;
-    const names = [
-      ['C', null], ['C', 1], ['D', null], ['E', -1], ['E', null], ['F', null],
-      ['F', 1], ['G', null], ['A', -1], ['A', null], ['B', -1], ['B', null]
-    ];
-    const [step, alter] = names[pc];
-    return { step, alter, octave };
-  }
-
-  const OPEN_STRING_MIDI = { 6: 40, 5: 45, 4: 50, 3: 55, 2: 59, 1: 64 };
-
-  function findTabPartNode(xmlDoc) {
-    const parts = Array.from(xmlDoc.querySelectorAll('score-partwise > part, score-timewise > part'));
-    for (const part of parts) {
-      const firstMeasure = part.querySelector(':scope > measure');
-      if (!firstMeasure) continue;
-      const sign = firstMeasure.querySelector(':scope > attributes > clef > sign')?.textContent?.trim();
-      const lines = firstMeasure.querySelector(':scope > attributes > staff-details > staff-lines')?.textContent?.trim();
-      if (sign === 'TAB' || lines === '6') return part;
-    }
-    return parts[parts.length - 1] || null;
-  }
-
-  function getMeasureChildrenToKeep(measureEl) {
-    return Array.from(measureEl.children).filter((child) => !['note','backup','forward'].includes(child.nodeName));
-  }
-
-  function noteTypeFromDuration(durationUnits, divisions) {
-    const quarterUnits = Number(divisions) || 1;
-    const ratio = durationUnits / quarterUnits;
-    if (Math.abs(ratio - 4) < 1e-6) return 'whole';
-    if (Math.abs(ratio - 2) < 1e-6) return 'half';
-    if (Math.abs(ratio - 1) < 1e-6) return 'quarter';
-    if (Math.abs(ratio - 0.5) < 1e-6) return 'eighth';
-    if (Math.abs(ratio - 0.25) < 1e-6) return '16th';
-    return ratio >= 1 ? 'quarter' : 'eighth';
-  }
-
-  function createTextEl(doc, name, text) {
-    const el = doc.createElement(name);
-    el.textContent = String(text);
-    return el;
-  }
-
-  function createNoteEl(doc, n, durationUnits, divisions, beamState) {
-    const note = doc.createElement('note');
-    const midi = OPEN_STRING_MIDI[n.string] + Number(n.fret || 0);
-    const pitch = midiToPitch(midi);
-    const pitchEl = doc.createElement('pitch');
-    pitchEl.appendChild(createTextEl(doc, 'step', pitch.step));
-    if (pitch.alter != null) pitchEl.appendChild(createTextEl(doc, 'alter', pitch.alter));
-    pitchEl.appendChild(createTextEl(doc, 'octave', pitch.octave));
-    note.appendChild(pitchEl);
-    note.appendChild(createTextEl(doc, 'duration', durationUnits));
-    note.appendChild(createTextEl(doc, 'voice', 1));
-    note.appendChild(createTextEl(doc, 'type', noteTypeFromDuration(durationUnits, divisions)));
-    note.appendChild(createTextEl(doc, 'stem', 'down'));
-    if (beamState) {
-      const beam = doc.createElement('beam');
-      beam.setAttribute('number', '1');
-      beam.textContent = beamState;
-      note.appendChild(beam);
-    }
-    const notations = doc.createElement('notations');
-    const technical = doc.createElement('technical');
-    technical.appendChild(createTextEl(doc, 'string', n.string));
-    technical.appendChild(createTextEl(doc, 'fret', n.fret));
-    notations.appendChild(technical);
-    note.appendChild(notations);
-    return note;
-  }
-
-  function rewriteXmlTabTrack(xmlText) {
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
-    const part = findTabPartNode(xmlDoc);
-    if (!part) return xmlText;
-
-    const bars = Array.isArray(window.__autoAccompanimentTabTrack) ? window.__autoAccompanimentTabTrack : [];
-    const measures = Array.from(part.querySelectorAll(':scope > measure'));
-    let divisions = 2;
-
-    for (const measureEl of measures) {
-      const divEl = measureEl.querySelector(':scope > attributes > divisions');
-      if (divEl) {
-        const d = parseInt(divEl.textContent || '2', 10);
-        if (Number.isFinite(d) && d > 0) divisions = d;
-      }
-      const barNo = parseInt(measureEl.getAttribute('number') || '0', 10);
-      const autoBar = bars.find(b => Number(b.measure) === barNo);
-      const keep = getMeasureChildrenToKeep(measureEl);
-      while (measureEl.firstChild) measureEl.removeChild(measureEl.firstChild);
-      keep.forEach(node => measureEl.appendChild(cloneXmlNode(xmlDoc, node)));
-      if (!autoBar || !Array.isArray(autoBar.notes) || !autoBar.notes.length) continue;
-
-      const durationUnits = Math.max(1, Math.round((autoBar.notes[0].durationBeat || 0.5) * divisions));
-      const beamable = autoBar.notes.length > 1 && noteTypeFromDuration(durationUnits, divisions) === 'eighth';
-      autoBar.notes.forEach((n, idx) => {
-        let beamState = null;
-        if (beamable) {
-          if (idx === 0) beamState = 'begin';
-          else if (idx === autoBar.notes.length - 1) beamState = 'end';
-          else beamState = 'continue';
-        }
-        measureEl.appendChild(createNoteEl(xmlDoc, n, durationUnits, divisions, beamState));
-      });
-    }
-    return new XMLSerializer().serializeToString(xmlDoc);
-  }
-
-  function loadXmlTextIntoAlphaTab(api, xmlText) {
-    if (!api || !xmlText) return;
-    try {
-      const parsed = buildMusicTimelineFromXML(xmlText);
-      window.__musicTimelineRaw = parsed;
-      window.__chordTimelineRaw = parsed.chords.slice();
-      window.__measureTimelineRaw = parsed.measures.slice();
-      rebuildDisplayChordTimeline();
-      rebuildRhythmState();
-    } catch (e) {
-      console.warn('重载XML时间轴失败', e);
-    }
-    const bytes = encodeTextToUint8Array(xmlText);
-    api.load(bytes);
-  }
-
-  function hideIndependentTrackWhenRewriting() { return; }
-
-  function showIndependentTrackWhenNeeded() { return; }
-
-  function applyCurrentPatternToOriginalTab() {
-    if (!window.__atApi || !window.__originalXmlText) return;
-    if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
-    rebuildAutoTabTrack();
-    const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-    const idx = window.__currentPatternChoiceIndexByMeter[meter];
-    if (idx === window.__originalPatternChoiceSentinel) {
-      window.__tabRewriteModeActive = false;
-      loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText);
-      showIndependentTrackWhenNeeded();
-      return;
-    }
-    const xmlText = rewriteXmlTabTrack(window.__originalXmlText);
-    window.__tabRewriteModeActive = true;
-    hideIndependentTrackWhenRewriting();
-    loadXmlTextIntoAlphaTab(window.__atApi, xmlText);
-  }
-
-  window.applyCurrentPatternToOriginalTab = applyCurrentPatternToOriginalTab;
-
-  // Override rhythm switch to reload modified XML into original TAB track.
-  const oldSwitch = window.switchRhythmPatternSafe;
-  if (typeof oldSwitch === 'function') {
-    window.switchRhythmPatternSafe = function() {
-      oldSwitch.apply(this, arguments);
-      setTimeout(applyCurrentPatternToOriginalTab, 50);
-    };
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      // Start on original if option exists.
-      try { applyCurrentPatternToOriginalTab(); } catch(e) { console.warn('applyCurrentPatternToOriginalTab failed', e); }
-    }, 1600);
-  });
-})();
-</script>
-
-
-<script>
-(function(){
-  function refreshRhythmButtonText(){
-    const btn = document.getElementById('ui-rhythm');
-    if (!btn) return;
-    if (typeof __isOriginalPatternSelected === 'function' && __isOriginalPatternSelected()) {
-      btn.textContent = '原';
-      return;
-    }
-    const state = window.__rhythmState || {};
-    const name = state.patternName || '节';
-    btn.textContent = name.replace(/^分解\s*/, '').replace(/^扫弦\s*/, '扫');
-  }
-  document.addEventListener('DOMContentLoaded', () => {
-    setInterval(refreshRhythmButtonText, 500);
-    setTimeout(refreshRhythmButtonText, 1200);
-  });
-})();
-</script>
-
-<div id="debug-build-badge" style="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">build: V12_7a_full_auto_rewrite</div>
-<div id="debug-mode-badge" style="position:fixed;right:14px;bottom:42px;z-index:99999;font:12px/1.35 Arial,sans-serif;color:#666;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,.05);">mode: unknown · transpose: 0</div>
-<script>
-(function(){
-  function updateDebugBadges(){
-    try {
-      var modeEl = document.getElementById('debug-mode-badge');
-      var mode = 'original';
-      try {
-        if (typeof __isOriginalPatternSelected === 'function' && !__isOriginalPatternSelected()) {
-          var st = window.__rhythmState || {};
-          mode = 'pattern:' + (st.patternName || st.patternKey || st.meter || 'custom');
-        }
-      } catch(e) {}
-      var tr = 0;
-      try { tr = (typeof getUserTranspose === 'function') ? getUserTranspose() : 0; } catch(e) {}
-      if (modeEl) modeEl.textContent = 'mode: ' + mode + ' · transpose: ' + tr;
-    } catch(e) {}
-  }
-  window.__updateDebugBadges = updateDebugBadges;
-  document.addEventListener('DOMContentLoaded', function(){ setInterval(updateDebugBadges, 250); setTimeout(updateDebugBadges, 300); });
-})();
-</script>
-
-<script>
-(function(){
-  function $(id){ return document.getElementById(id); }
-  function qa(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
-
-  function ensureRhythmPanel(){
-    const layer = $('core-panel-layer');
-    if (!layer) return null;
-    let panel = $('panel-rhythm');
-    if (panel) return panel;
-    panel = document.createElement('div');
-    panel.className = 'core-panel';
-    panel.id = 'panel-rhythm';
-    panel.hidden = true;
-    panel.innerHTML =
-      '<div class="core-panel-head"><span>节</span></div>'+
-      '<div class="core-panel-body" style="display:flex;gap:16px;align-items:flex-start;">'+
-        '<div style="flex:1;min-width:180px;">'+
-          '<div class="core-panel-note" style="margin-bottom:8px;">和弦方案</div>'+
-          '<div class="core-panel-actions core-panel-actions-left" style="display:flex;gap:8px;flex-wrap:wrap;">'+
-            '<button type="button" class="core-option-btn core-primary" id="ui-scheme-a">A</button>'+
-            '<button type="button" class="core-option-btn" id="ui-scheme-b">B</button>'+
-            '<button type="button" class="core-option-btn" id="ui-scheme-c">C</button>'+
-          '</div>'+
-          '<div class="core-panel-note" id="ui-scheme-note" style="margin-top:8px;">原谱模式固定方案A；自动伴奏模式下B/C后续启用。</div>'+
-        '</div>'+
-        '<div style="width:1px;align-self:stretch;background:#eee;"></div>'+
-        '<div style="flex:1;min-width:220px;">'+
-          '<div class="core-panel-note" style="margin-bottom:8px;">节奏组</div>'+
-          '<div id="ui-rhythm-list" style="display:flex;flex-direction:column;gap:8px;"></div>'+
-        '</div>'+
-      '</div>';
-    layer.appendChild(panel);
-    return panel;
-  }
-
-  function openRhythmPanel(){
-    const layer = $('core-panel-layer');
-    const panel = ensureRhythmPanel();
-    if (!layer || !panel) return;
-    qa('.core-panel', layer).forEach(p => p.hidden = true);
-    layer.hidden = false;
-    layer.setAttribute('aria-hidden','false');
-    panel.hidden = false;
-    const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c');
-    if (a) a.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('A'); });
-    if (b) b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('B'); });
-    if (c) c.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); __V12_6_setScheme('C'); });
-    syncRhythmPanel();
-  }
-
-  function isOriginal(){
-    try { return typeof window.__isOriginalPatternSelected === 'function' && window.__isOriginalPatternSelected(); }
-    catch(e){ return true; }
-  }
-
-  function getChoices(){
-    try {
-      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-      return (typeof window.__getPatternChoicesForMeter === 'function') ? (window.__getPatternChoicesForMeter(meter) || []) : [];
-    } catch(e){ return []; }
-  }
-
-  function selectOriginal(){
-    try{
-      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-      window.__currentPatternChoiceIndexByMeter = window.__currentPatternChoiceIndexByMeter || {};
-      window.__originalPatternChoiceSentinel = (typeof window.__originalPatternChoiceSentinel === 'number') ? window.__originalPatternChoiceSentinel : -1;
-      window.__currentPatternChoiceIndexByMeter[meter] = window.__originalPatternChoiceSentinel;
-      if (typeof window.rebuildRhythmState === 'function') window.rebuildRhythmState();
-      if (typeof window.updateRhythmPlayback === 'function') window.updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
-      setTimeout(function(){
-        try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch(e){}
-        try { if (typeof window.syncUI === 'function') window.syncUI(); } catch(e){}
-        syncRhythmPanel();
-      }, 60);
-      return;
-    }catch(e){}
-    syncRhythmPanel();
-  }
-
-  function selectPattern(idx){
-    try{
-      const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-      window.__currentPatternChoiceIndexByMeter = window.__currentPatternChoiceIndexByMeter || {};
-      window.__currentPatternChoiceIndexByMeter[meter] = idx;
-      if (typeof window.rebuildRhythmState === 'function') window.rebuildRhythmState();
-      if (typeof window.rebuildAutoAccompanimentSong === 'function') window.rebuildAutoAccompanimentSong();
-      if (typeof window.updateRhythmPlayback === 'function') window.updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0);
-      setTimeout(function(){
-        try { if (typeof window.applyCurrentPatternToOriginalTab === 'function') window.applyCurrentPatternToOriginalTab(); } catch(e){}
-        try { if (typeof window.syncUI === 'function') window.syncUI(); } catch(e){}
-        syncRhythmPanel();
-      }, 60);
-    }catch(e){}
-  }
-
-
-  window.__V12_6_SCHEME = window.__V12_6_SCHEME || 'A';
-
-  function __V12_6_setScheme(id){
-    if (isOriginal()) return;
-    window.__V12_6_SCHEME = id;
-    __V12_6_syncSchemeUI();
-  }
-
-  function __V12_6_syncSchemeUI(){
-    const original = isOriginal();
-    const cur = original ? 'A' : (window.__V12_6_SCHEME || 'A');
-    const a = $('ui-scheme-a'), b = $('ui-scheme-b'), c = $('ui-scheme-c'), note = $('ui-scheme-note');
-    if (a){
-      a.disabled = false;
-      a.classList.toggle('core-primary', cur === 'A');
-    }
-    if (b){
-      b.disabled = original;
-      b.classList.toggle('core-primary', cur === 'B');
-    }
-    if (c){
-      c.disabled = original;
-      c.classList.toggle('core-primary', cur === 'C');
-    }
-    if (note){
-      note.textContent = original
-        ? '原谱模式固定方案A。'
-        : ('自动伴奏模式当前方案：' + cur + '。A/B/C 现在可切换，算法下一步接入。');
-    }
-  }
-
-  function syncRhythmPanel(){
-    const list = $('ui-rhythm-list');
-    const original = isOriginal();
-    __V12_6_syncSchemeUI();
-    if (!list) return;
-    list.innerHTML = '';
-    function addBtn(label, active, cb){
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'core-option-btn' + (active ? ' core-primary' : '');
-      btn.textContent = label;
-      btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); cb(); });
-      list.appendChild(btn);
-    }
-    addBtn('原谱', original, selectOriginal);
-    const meter = (window.__rhythmState && window.__rhythmState.meter) || '--';
-    const curIdx = window.__currentPatternChoiceIndexByMeter ? window.__currentPatternChoiceIndexByMeter[meter] : undefined;
-    getChoices().forEach(function(p, idx){
-      const label = (p && p.name) ? String(p.name).replace(/^分解\s*/, '') : ('节奏' + (idx+1));
-      addBtn(label, (!original && curIdx === idx), function(){ selectPattern(idx); });
-    });
-  }
-
-  function install(){
-    ensureRhythmPanel();
-
-    const legacy = $('btn-switch-rhythm');
-    if (legacy) legacy.remove();
-
-    const oldBtn = $('ui-rhythm');
-    if (oldBtn) {
-      const btn = oldBtn.cloneNode(true); // remove old listeners
-      btn.id = 'ui-rhythm';
-      btn.textContent = '节';
-      oldBtn.parentNode.replaceChild(btn, oldBtn);
-      btn.addEventListener('click', function(e){
-        e.preventDefault();
-        e.stopPropagation();
-        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
-        openRhythmPanel();
-      }, true);
-    }
-
-    // keep button text fixed
-    window.refreshRhythmButtonText = function(){
-      const btn = $('ui-rhythm');
-      if (btn) btn.textContent = '节';
-    };
-    setInterval(window.refreshRhythmButtonText, 500);
-    setTimeout(window.refreshRhythmButtonText, 1200);
-
-    syncRhythmPanel();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', install);
-  } else {
-    install();
-  }
-})();
-</script>
-
-
-<script>
-(function(){
-  const VERSION = 'V12_7a_full_auto_rewrite';
-  const PURE = window.__PURE_AUTO = window.__PURE_AUTO || {
-    version: VERSION,
-    transpose: 0,
-    schemes: [],
-    schemeIndex: 0,
-    currentScheme: null,
-    lastModeOriginal: null,
-    chordNodeMap: []
-  };
-
-  const __orig = {
-    rebuildDisplayChordTimeline: typeof rebuildDisplayChordTimeline === 'function' ? rebuildDisplayChordTimeline : null,
-    getDisplayedCapoLabel: typeof getDisplayedCapoLabel === 'function' ? getDisplayedCapoLabel : null,
-    getEffectiveCapo: typeof getEffectiveCapo === 'function' ? getEffectiveCapo : null,
-    getAutoShapeForChord: typeof getAutoShapeForChord === 'function' ? getAutoShapeForChord : null,
-    rewriteRenderedChordTexts: typeof rewriteRenderedChordTexts === 'function' ? rewriteRenderedChordTexts : null,
-    syncUI: typeof syncUI === 'function' ? syncUI : null,
-    updateMetaRow: typeof updateMetaRow === 'function' ? updateMetaRow : null,
-    applyCurrentPatternToOriginalTab: typeof window.applyCurrentPatternToOriginalTab === 'function' ? window.applyCurrentPatternToOriginalTab : null
-  };
-
-  function isOriginalMode() {
-    try { return typeof __isOriginalPatternSelected === 'function' ? __isOriginalPatternSelected() : true; }
-    catch (e) { return true; }
-  }
-
-  function setViewerTranspose(n) {
-    try {
-      if (typeof viewerPrefs !== 'undefined') {
-        viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, parseInt(n, 10) || 0));
-      }
-      if (typeof saveViewerPrefs === 'function') saveViewerPrefs();
-    } catch (e) {}
-    PURE.transpose = Math.max(-11, Math.min(11, parseInt(n, 10) || 0));
-  }
-
-  function getViewerTranspose() {
-    try {
-      if (typeof getUserTranspose === 'function') return getUserTranspose();
-    } catch (e) {}
-    return PURE.transpose || 0;
-  }
-
-  function normalizeChord(chord) {
-    return String(chord || '').trim().replace(/\s+/g, '').replace(/△/g, 'maj');
-  }
-
-  function getSongCapoSafe() {
-    try { return typeof getSongCapo === 'function' ? getSongCapo() : 0; } catch (e) { return 0; }
-  }
-
-  function getPreferFlats() {
-    try { return typeof prefersFlatsFromKeyName === 'function' ? prefersFlatsFromKeyName((window.__currentMeta && window.__currentMeta.key_name) || ''); }
-    catch (e) { return true; }
-  }
-
-  function resolveShapeByChord(chord) {
-    const lookup = normalizeChord(chord);
-    if (!lookup) return null;
-    if (typeof AUTO_CHORD_SHAPES !== 'undefined' && AUTO_CHORD_SHAPES[lookup]) return AUTO_CHORD_SHAPES[lookup].slice();
-    const slash = lookup.split('/')[0];
-    if (typeof AUTO_CHORD_SHAPES !== 'undefined' && AUTO_CHORD_SHAPES[slash]) return AUTO_CHORD_SHAPES[slash].slice();
-    return null;
-  }
-
-  function shapeDifficulty(shape) {
-    if (!Array.isArray(shape)) return 20;
-    let maxFret = 0, minFret = 99, fingers = 0, openCount = 0;
-    for (const v of shape) {
-      if (v === 'x' || v === 'X') continue;
-      const n = Number(v);
-      if (!Number.isFinite(n)) continue;
-      if (n === 0) openCount++;
-      if (n > 0) fingers++;
-      if (n > maxFret) maxFret = n;
-      if (n > 0 && n < minFret) minFret = n;
-    }
-    const span = maxFret && minFret < 99 ? (maxFret - minFret) : 0;
-    let barre = 0;
-    const counts = {};
-    for (const v of shape) {
-      const n = Number(v);
-      if (Number.isFinite(n) && n > 0) counts[n] = (counts[n] || 0) + 1;
-    }
-    Object.keys(counts).forEach(k => { if (counts[k] >= 3) barre += 2; });
-    return fingers * 0.5 + span * 0.7 + barre - openCount * 0.35;
-  }
-
-  function buildSchemeForCapo(candidateCapo) {
-    const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
-    const songCapo = getSongCapoSafe();
-    const transpose = getViewerTranspose();
-    const preferFlats = getPreferFlats();
-    const delta = songCapo + transpose - candidateCapo;
-    const chordMap = {};
-    const shapeMap = {};
-    const timeline = raw.map((c, i) => {
-      const display = (typeof transposeChordSymbol === 'function')
-        ? transposeChordSymbol(c.chordRaw, delta, preferFlats)
-        : c.chordRaw;
-      const key = normalizeChord(display);
-      const shape = resolveShapeByChord(display);
-      chordMap[c.chordRaw] = display;
-      if (shape) shapeMap[key] = shape.slice();
-      return { ...c, index: i, chordDisplay: display, shape: shape ? shape.slice() : null };
-    });
-    let score = Math.abs(candidateCapo - 2) * 1.3;
-    let supported = 0;
-    timeline.forEach(item => {
-      if (item.shape) {
-        supported++;
-        score += shapeDifficulty(item.shape);
-      } else {
-        score += 18;
-      }
-    });
-    score += (timeline.length - supported) * 3;
-    const supportRatio = timeline.length ? (supported / timeline.length) : 0;
-    score += (1 - supportRatio) * 25;
-    return {
-      id: 'CP' + candidateCapo,
-      capo: candidateCapo,
-      score,
-      delta,
-      supportRatio,
-      chordMap,
-      shapeMap,
-      timeline
-    };
-  }
-
-  function generateSchemes() {
-    const candidates = [];
-    for (let capo = 0; capo <= 6; capo++) {
-      candidates.push(buildSchemeForCapo(capo));
-    }
-    candidates.sort((a, b) => a.score - b.score || a.capo - b.capo);
-    const picked = [];
-    const seen = new Set();
-    for (const scheme of candidates) {
-      const first = normalizeChord((scheme.timeline[0] && scheme.timeline[0].chordDisplay) || '');
-      const sig = scheme.capo + '|' + first;
-      if (seen.has(sig)) continue;
-      seen.add(sig);
-      picked.push(scheme);
-      if (picked.length >= 3) break;
-    }
-    while (picked.length < 3 && candidates[picked.length]) picked.push(candidates[picked.length]);
-    PURE.schemes = picked;
-    if (PURE.schemeIndex >= PURE.schemes.length) PURE.schemeIndex = 0;
-    PURE.currentScheme = PURE.schemes[PURE.schemeIndex] || PURE.schemes[0] || null;
-    return PURE.schemes;
-  }
-
-  function currentScheme() {
-    return PURE.currentScheme || (PURE.schemes[PURE.schemeIndex] || null);
-  }
-
-  function updateSchemeNote() {
-    const note = document.getElementById('ui-scheme-note');
-    const a = document.getElementById('ui-scheme-a');
-    const b = document.getElementById('ui-scheme-b');
-    const c = document.getElementById('ui-scheme-c');
-    const curLabel = ['A','B','C'][PURE.schemeIndex] || 'A';
-    [a,b,c].forEach((el, idx) => {
-      if (!el) return;
-      el.disabled = false;
-      el.classList.toggle('core-primary', idx === PURE.schemeIndex);
-    });
-    if (note) {
-      if (isOriginalMode()) note.textContent = '原谱模式固定方案A。';
-      else {
-        const s = currentScheme();
-        note.textContent = s
-          ? ('自动伴奏方案 ' + curLabel + ' · CP' + s.capo + ' · 支持率 ' + Math.round((s.supportRatio || 0) * 100) + '% · ' + VERSION)
-          : ('自动伴奏方案加载中 · ' + VERSION);
-      }
-    }
-  }
-
-  function applyScheme(index, opts) {
-    if (typeof index === 'number') PURE.schemeIndex = Math.max(0, Math.min(2, index));
-    if (!PURE.schemes.length) generateSchemes();
-    PURE.currentScheme = PURE.schemes[PURE.schemeIndex] || PURE.schemes[0] || null;
-    const scheme = PURE.currentScheme;
-    if (!scheme) return;
-    const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
-    window.__chordTimeline = raw.map((c, i) => {
-      const mapped = scheme.timeline[i];
-      return mapped ? { ...mapped } : { ...c, index: i, chordDisplay: c.chordRaw };
-    });
-    if (typeof rebuildAutoAccompanimentSong === 'function') rebuildAutoAccompanimentSong();
-    try { if (typeof rebuildAutoTabTrack === 'function') rebuildAutoTabTrack(); } catch (e) {}
-    try { if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0); } catch (e) {}
-    try { if (typeof scheduleChordRewrite === 'function') scheduleChordRewrite(20); } catch (e) {}
-    if (!isOriginalMode()) {
-      try {
-        if (typeof window.applyCurrentPatternToOriginalTab === 'function') {
-          setTimeout(function(){ try { window.applyCurrentPatternToOriginalTab(); } catch(e){} }, (opts && opts.delayMs) || 40);
-        }
-      } catch (e) {}
-    }
-    updateSchemeNote();
-    try { if (typeof refreshAdjustUI === 'function') refreshAdjustUI(); } catch (e) {}
-    try { if (typeof updateMetaRow === 'function') updateMetaRow(); } catch (e) {}
-    try { if (typeof syncUI === 'function') syncUI(); } catch (e) {}
-  }
-
-  function enterAutoModeEnsureScheme() {
-    generateSchemes();
-    applyScheme(PURE.schemeIndex || 0, { delayMs: 60 });
-  }
-
-  function pureChangeTranspose(delta) {
-    setViewerTranspose(getViewerTranspose() + delta);
-    generateSchemes();
-    applyScheme(PURE.schemeIndex || 0, { delayMs: 60 });
-  }
-
-  function pureResetTranspose() {
-    setViewerTranspose(0);
-    generateSchemes();
-    applyScheme(PURE.schemeIndex || 0, { delayMs: 60 });
-  }
-
-  // ===== hard overrides =====
-  function overriddenRebuildDisplayChordTimeline() {
-    if (isOriginalMode()) {
-      if (__orig.rebuildDisplayChordTimeline) return __orig.rebuildDisplayChordTimeline.apply(this, arguments);
-      return;
-    }
-    if (!PURE.schemes.length) generateSchemes();
-    applyScheme(PURE.schemeIndex || 0, { delayMs: 10 });
-  }
-
-  function overriddenGetDisplayedCapoLabel() {
-    if (isOriginalMode()) {
-      return __orig.getDisplayedCapoLabel ? __orig.getDisplayedCapoLabel.apply(this, arguments) : getSongCapoSafe();
-    }
-    const s = currentScheme();
-    return s ? s.capo : getSongCapoSafe();
-  }
-
-  function overriddenGetEffectiveCapo() {
-    if (isOriginalMode()) {
-      return __orig.getEffectiveCapo ? __orig.getEffectiveCapo.apply(this, arguments) : getSongCapoSafe();
-    }
-    const s = currentScheme();
-    return s ? s.capo : getSongCapoSafe();
-  }
-
-  function overriddenGetAutoShapeForChord(chordDisplay, chordRaw) {
-    if (!isOriginalMode()) {
-      const s = currentScheme();
-      if (s) {
-        const cands = [normalizeChord(chordDisplay), normalizeChord(chordRaw)];
-        for (const key of cands) {
-          if (s.shapeMap[key]) return { key, shape: s.shapeMap[key].slice() };
-          const slash = key.split('/')[0];
-          if (s.shapeMap[slash]) return { key: slash, shape: s.shapeMap[slash].slice() };
-        }
-      }
-    }
-    return __orig.getAutoShapeForChord ? __orig.getAutoShapeForChord.apply(this, arguments) : null;
-  }
-
-  function overriddenRewriteRenderedChordTexts() {
-    if (isOriginalMode()) {
-      if (__orig.rewriteRenderedChordTexts) return __orig.rewriteRenderedChordTexts.apply(this, arguments);
-      return;
-    }
-    const root = document.getElementById('alphaTab');
-    if (!root) return;
-    const chordFontPx = (typeof getChordFontSizePx === 'function') ? getChordFontSizePx() : 16;
-    const nodes = Array.from(root.querySelectorAll('text, tspan')).filter((el) => {
-      if (el.children && el.children.length) return false;
-      const txt = String(el.textContent || '').trim();
-      return txt && /^[A-G](?:#|b)?/.test(txt);
-    });
-    const timeline = Array.isArray(window.__chordTimeline) ? window.__chordTimeline : [];
-    let idx = 0;
-    nodes.forEach((el) => {
-      const current = String(el.textContent || '').trim();
-      const original = el.getAttribute('data-orig-chord') || current;
-      if (!/^[A-G](?:#|b)?/.test(original)) return;
-      if (!el.getAttribute('data-orig-chord')) el.setAttribute('data-orig-chord', original);
-      const mapped = timeline[idx] ? timeline[idx].chordDisplay : original;
-      if (mapped) {
-        el.textContent = mapped;
-        try { el.style.fontSize = chordFontPx + 'px'; } catch (e) {}
-        idx++;
-      }
-    });
-  }
-
-  // expose overrides to old lexical references as much as browser allows
-  try { rebuildDisplayChordTimeline = overriddenRebuildDisplayChordTimeline; } catch (e) {}
-  window.rebuildDisplayChordTimeline = overriddenRebuildDisplayChordTimeline;
-  try { getDisplayedCapoLabel = overriddenGetDisplayedCapoLabel; } catch (e) {}
-  window.getDisplayedCapoLabel = overriddenGetDisplayedCapoLabel;
-  try { getEffectiveCapo = overriddenGetEffectiveCapo; } catch (e) {}
-  window.getEffectiveCapo = overriddenGetEffectiveCapo;
-  try { getAutoShapeForChord = overriddenGetAutoShapeForChord; } catch (e) {}
-  window.getAutoShapeForChord = overriddenGetAutoShapeForChord;
-  try { rewriteRenderedChordTexts = overriddenRewriteRenderedChordTexts; } catch (e) {}
-  window.rewriteRenderedChordTexts = overriddenRewriteRenderedChordTexts;
-
-  window.__V12_6_setScheme = function(id) {
-    if (isOriginalMode()) return;
-    const index = ({A:0,B:1,C:2})[String(id || 'A').toUpperCase()] || 0;
-    PURE.schemeIndex = index;
-    applyScheme(index, { delayMs: 60 });
-  };
-
-  window.changeTranspose = function(delta) {
-    if (isOriginalMode()) {
-      if (typeof __orig.rebuildDisplayChordTimeline === 'function' && typeof viewerPrefs !== 'undefined') {
-        viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, getViewerTranspose() + delta));
-        try { if (typeof saveViewerPrefs === 'function') saveViewerPrefs(); } catch(e){}
-        try { if (typeof refreshAdjustUI === 'function') refreshAdjustUI(); } catch(e){}
-        try { if (typeof updateMetaRow === 'function') updateMetaRow(); } catch(e){}
-        try { if (typeof applyViewerPrefsToScore === 'function') applyViewerPrefsToScore(); } catch(e){}
-        __orig.rebuildDisplayChordTimeline();
-        try { if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0); } catch(e){}
-      }
-      return;
-    }
-    pureChangeTranspose(delta);
-  };
-
-  window.resetTranspose = function() {
-    if (isOriginalMode()) {
-      if (typeof viewerPrefs !== 'undefined') viewerPrefs.transposeSemitones = 0;
-      try { if (typeof saveViewerPrefs === 'function') saveViewerPrefs(); } catch(e){}
-      try { if (typeof refreshAdjustUI === 'function') refreshAdjustUI(); } catch(e){}
-      try { if (typeof updateMetaRow === 'function') updateMetaRow(); } catch(e){}
-      try { if (typeof applyViewerPrefsToScore === 'function') applyViewerPrefsToScore(); } catch(e){}
-      if (__orig.rebuildDisplayChordTimeline) __orig.rebuildDisplayChordTimeline();
-      try { if (typeof updateRhythmPlayback === 'function') updateRhythmPlayback((window.__playbackState && window.__playbackState.current) || 0); } catch(e){}
-      return;
-    }
-    pureResetTranspose();
-  };
-
-  function interceptClicks(e) {
-    const t = e.target && e.target.closest ? e.target.closest('button, a') : null;
-    if (!t) return;
-    if (!isOriginalMode()) {
-      if (t.id === 'ui-key-plus') { e.preventDefault(); e.stopImmediatePropagation(); pureChangeTranspose(1); return; }
-      if (t.id === 'ui-key-minus') { e.preventDefault(); e.stopImmediatePropagation(); pureChangeTranspose(-1); return; }
-      if (t.id === 'ui-key-reset') { e.preventDefault(); e.stopImmediatePropagation(); pureResetTranspose(); return; }
-      if (t.id === 'ui-scheme-a') { e.preventDefault(); e.stopImmediatePropagation(); window.__V12_6_setScheme('A'); return; }
-      if (t.id === 'ui-scheme-b') { e.preventDefault(); e.stopImmediatePropagation(); window.__V12_6_setScheme('B'); return; }
-      if (t.id === 'ui-scheme-c') { e.preventDefault(); e.stopImmediatePropagation(); window.__V12_6_setScheme('C'); return; }
-    }
-  }
-  document.addEventListener('click', interceptClicks, true);
-
-  function onModeTick() {
-    const orig = isOriginalMode();
-    if (PURE.lastModeOriginal === orig) return;
-    PURE.lastModeOriginal = orig;
-    if (orig) {
-      updateSchemeNote();
-      try { if (__orig.rebuildDisplayChordTimeline) __orig.rebuildDisplayChordTimeline(); } catch (e) {}
-      try { if (typeof syncUI === 'function') syncUI(); } catch (e) {}
-    } else {
-      enterAutoModeEnsureScheme();
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(function(){
-      updateSchemeNote();
-      onModeTick();
-      setInterval(onModeTick, 250);
-    }, 1200);
-  });
 })();
 </script>
 
