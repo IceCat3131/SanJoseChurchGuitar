@@ -231,7 +231,8 @@
   }
 
   function getDisplayedCapoLabel() {
-    return getSongCapo();
+    const displayed = getSongCapo() + getUserTranspose();
+    return Math.max(0, Math.min(12, displayed));
   }
 
   function getUserTranspose() {
@@ -659,15 +660,10 @@
   function getDisplayedFretForCapo(note) {
     if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
 
-    const capo = getEffectiveCapo();
-    const transpose = getUserTranspose();
-
-    // 正确显示逻辑：
-    // TAB显示 = 原始品位 + Capo + 用户转调
-    const displayed = note.fret + capo + transpose;
-
-    if (!Number.isFinite(displayed) || displayed < 0) return null;
-    return displayed;
+    // 原谱模式下：TAB数字始终保持“相对变调夹”的原始按法，
+    // 不跟随顶部CP显示值、也不跟随用户转调一起整体平移。
+    // 例如：原谱 CAPO=1、6弦空弦应始终显示 0，而不是 1。
+    return note.fret;
   }
 
   function renderTabCapoOverlay() {
@@ -678,7 +674,9 @@
 
     const offset = getEffectiveCapo() + getUserTranspose();
     const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
-    if (!offset || !lookup || !Array.isArray(lookup.staffSystems)) return;
+    // 即使顶部CP或转调发生变化，原谱模式下TAB数字也要维持原始按法。
+    // 因此这里不再因为 offset 变化而把 fret 数字整体平移；仅在需要时重绘原始数字。
+    if (!lookup || !Array.isArray(lookup.staffSystems)) return;
 
     for (const system of lookup.staffSystems) {
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];
