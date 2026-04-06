@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_2h_spelling_source_fix';
+  const BUILD = 'V13_2h_spelling_fix';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -25,6 +25,11 @@
     return getOriginalKeyName();
   }
   function preferFlats(){
+    const keyName = getDisplayedSongKeyName();
+    return typeof prefersFlatsFromKeyName === 'function' ? prefersFlatsFromKeyName(keyName) : true;
+  }
+
+  function preferFlatsForOriginalKey(){
     const keyName = getOriginalKeyName();
     return typeof prefersFlatsFromKeyName === 'function' ? prefersFlatsFromKeyName(keyName) : true;
   }
@@ -47,7 +52,7 @@
 
   function applyCapoToChords(chords, capo){
     if(!window.SchemeEngine) return chords;
-    const useFlats = preferFlats();
+    const useFlats = preferFlatsForOriginalKey();
     return (chords || []).map((ch)=>{
       try{
         return SchemeEngine.shiftChord(ch, capo || 0, useFlats);
@@ -129,7 +134,7 @@
       songCapo: 0,
       transpose: getTransposeSafe(),
       originalChords: realChords,
-      preferFlats: preferFlats()
+      preferFlats: preferFlatsForOriginalKey()
     };
   }
 
@@ -193,7 +198,7 @@
     const root = $('alphaTab');
     if(!root) return;
     const chordFontPx = (typeof getChordFontSizePx === 'function') ? getChordFontSizePx() : 16;
-    const useFlats = preferFlats();
+    const useFlats = preferFlatsForOriginalKey();
     qa('text, tspan', root).forEach((el)=>{
       if(el.children && el.children.length) return;
       const current = (el.textContent || '').trim();
