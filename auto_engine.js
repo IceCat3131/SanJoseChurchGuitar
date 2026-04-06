@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_2j_full_respelling';
+  const BUILD = 'V13_3a_full_unified_respelling';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -26,19 +26,18 @@
   }
   function preferFlats(){
     const keyName = getDisplayedSongKeyName();
-    if(window.SchemeEngine && typeof SchemeEngine.prefersFlatsForKeyName === 'function'){
-      return SchemeEngine.prefersFlatsForKeyName(keyName);
-    }
+    if(window.SchemeEngine && typeof SchemeEngine.keyUsesFlats === 'function') return SchemeEngine.keyUsesFlats(keyName);
     return typeof prefersFlatsFromKeyName === 'function' ? prefersFlatsFromKeyName(keyName) : true;
   }
   function respellForDisplayedKey(chord){
-    const raw = String(chord || '').trim();
-    if(!raw) return raw;
     const keyName = getDisplayedSongKeyName();
-    if(window.SchemeEngine && typeof SchemeEngine.respellChordForKey === 'function'){
-      return SchemeEngine.respellChordForKey(raw, keyName);
-    }
-    return raw;
+    if(window.SchemeEngine && typeof SchemeEngine.respellChordForKey === 'function') return SchemeEngine.respellChordForKey(chord, keyName);
+    return chord;
+  }
+  function respellListForDisplayedKey(chords){
+    const keyName = getDisplayedSongKeyName();
+    if(window.SchemeEngine && typeof SchemeEngine.respellChordListForKey === 'function') return SchemeEngine.respellChordListForKey(chords, keyName);
+    return chords || [];
   }
   function getTransposeSafe(){ return (typeof getUserTranspose === 'function') ? getUserTranspose() : (window.viewerPrefs ? (parseInt(viewerPrefs.transposeSemitones, 10) || 0) : 0); }
 
@@ -59,11 +58,11 @@
 
   function applyCapoToChords(chords, capo){
     if(!window.SchemeEngine) return chords;
-    const useFlats = preferFlats();
+    const keyName = getDisplayedSongKeyName();
     return (chords || []).map((ch)=>{
       try{
-        const shifted = SchemeEngine.shiftChord(ch, capo || 0, useFlats);
-        return respellForDisplayedKey(shifted);
+        const shifted = SchemeEngine.shiftChord(ch, capo || 0, null, keyName);
+        return SchemeEngine.respellChordForKey(shifted, keyName);
       }catch(e){
         return ch;
       }
@@ -136,7 +135,7 @@
     const sourceCapo = getSongCapoSafe();
     const realChords = applyCapoToChords(rawChords, sourceCapo);
     return {
-      originalKey: getOriginalKeyName(),
+      originalKey: getDisplayedSongKeyName(),
       // sourceCapo 在这里用于把原谱和弦提升成“真实和弦”；
       // 进入 scheme_engine 后不再重复参与目标调和显示和弦计算。
       songCapo: 0,
@@ -164,7 +163,7 @@
   }
 
   function schemeInfoData(){
-    const original = extractOriginalChords().slice(0, 5);
+    const original = respellListForDisplayedKey(extractOriginalChords().slice(0, 5));
     if(AUTO.mode !== 'auto' || !AUTO.currentScheme){
       return {
         capo: `CAPO ${getSongCapoSafe()}`,
@@ -172,8 +171,8 @@
         chords: original.length ? original.join(', ') : '--'
       };
     }
-    const realPreview = applyCapoToChords(original, getSongCapoSafe()).slice(0, 5).map((c)=>respellForDisplayedKey(c));
-    const mapped = realPreview.map((c)=> respellForDisplayedKey(AUTO.currentScheme.chordMap?.[c] || c));
+    const realPreview = applyCapoToChords(original, getSongCapoSafe()).slice(0, 5);
+    const mapped = respellListForDisplayedKey(realPreview.map((c)=> AUTO.currentScheme.chordMap?.[c] || c));
     return {
       capo: `CAPO ${AUTO.currentScheme.capo}`,
       family: `family:${AUTO.currentScheme.family || '--'}`,
@@ -214,14 +213,14 @@
       const original = el.getAttribute('data-orig-chord') || current;
       if(typeof looksLikeChordSymbol === 'function' && !looksLikeChordSymbol(original)) return;
       if(!el.getAttribute('data-orig-chord')) el.setAttribute('data-orig-chord', original);
-      let next = original;
+      let next = respellForDisplayedKey(original);
       if(AUTO.mode === 'auto' && AUTO.currentScheme && AUTO.currentScheme.chordMap){
-        const realChord = window.SchemeEngine ? respellForDisplayedKey(SchemeEngine.shiftChord(original, getSongCapoSafe(), useFlats)) : original;
-        next = respellForDisplayedKey(AUTO.currentScheme.chordMap[realChord] || original);
+        const realChord = window.SchemeEngine ? SchemeEngine.respellChordForKey(SchemeEngine.shiftChord(original, getSongCapoSafe(), null, getDisplayedSongKeyName()), getDisplayedSongKeyName()) : original;
+        next = AUTO.currentScheme.chordMap[realChord] || realChord;
       } else {
-        // 原谱模式保持原谱和弦，不跟自动伴奏/转调链路混用
         next = respellForDisplayedKey(original);
       }
+      next = respellForDisplayedKey(next);
       if(next !== current) el.textContent = next;
       try { el.style.fontSize = chordFontPx + 'px'; } catch(e) {}
     });
