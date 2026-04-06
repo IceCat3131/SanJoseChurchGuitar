@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V14_FULL_REBUILD_SCHEME_ENGINE';
+  const BUILD = 'V14_1_TARGET_KEY_FIX';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -124,10 +124,11 @@
     const realChords = applyCapoToChords(rawChords, sourceCapo);
     return {
       originalKey: getOriginalKeyName(),
+      targetConcertKey: getDisplayedSongKeyName(),
       // sourceCapo 在这里用于把原谱和弦提升成“真实和弦”；
       // 进入 scheme_engine 后不再重复参与目标调和显示和弦计算。
       songCapo: 0,
-      transpose: getTransposeSafe(),
+      transpose: 0,
       originalChords: realChords,
       preferFlats: preferFlats()
     };

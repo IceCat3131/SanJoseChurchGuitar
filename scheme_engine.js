@@ -1,5 +1,5 @@
 (function(){
-  const BUILD = 'V14_FULL_REBUILD_SCHEME_ENGINE';
+  const BUILD = 'V14_1_TARGET_KEY_FIX';
   const SHARP = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const FLAT  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
   const INDEX = {C:0,'B#':0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,Fb:4,F:5,'E#':5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11,Cb:11};
@@ -127,8 +127,7 @@
     };
   }
   function generateSchemes(ctx){
-    const originalKey = ctx.originalKey || 'C';
-    const targetConcertKey = add(originalKey, ctx.transpose || 0, prefersFlatsFromKeyName(originalKey));
+    const targetConcertKey = ctx.targetConcertKey || add(ctx.originalKey || 'C', ctx.transpose || 0, prefersFlatsFromKeyName(ctx.originalKey || 'C'));
     const originalChords = uniqueChordSymbols(ctx.originalChords || []);
     const out = FAMILY_ROOTS.map((familyRoot)=>buildScheme({ familyRoot, targetConcertKey, originalChords }))
       .filter((s)=>s.capo >=0 && s.capo <= 6)
