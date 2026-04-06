@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = '14.4.2.5';
+  const BUILD = '14.4.2.6';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -75,6 +75,33 @@
   }
 
   function currentMeter(){ return '4/4'; }
+
+
+  let __lastStateDispatchSignature = null;
+  function buildStateDispatchSignature(){
+    let info = { capo:'--', family:'--', chords:'--' };
+    try { info = schemeInfoData() || info; } catch(e) {}
+    const keyName = normalizeEnharmonicKeyName(getDisplayedSongKeyName());
+    return JSON.stringify({
+      mode: AUTO.mode,
+      manualCapoMode: !!AUTO.manualCapoMode,
+      manualCapo: parseInt(AUTO.manualCapo, 10) || 0,
+      schemeIndex: AUTO.schemeIndex,
+      currentPatternId: AUTO.currentPatternId || '',
+      keyName,
+      capo: info.capo || '--',
+      family: info.family || '--',
+      chords: info.chords || '--'
+    });
+  }
+  function dispatchStateChangeIfNeeded(force){
+    const sig = buildStateDispatchSignature();
+    if(!force && sig === __lastStateDispatchSignature) return;
+    __lastStateDispatchSignature = sig;
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('auto13:statechange', { detail: { ...AUTO, currentSchemeResult: getCurrentSchemeResult(), currentPatternResult: getCurrentPatternResult() } }));
+    }, 0);
+  }
 
   function ensureUi(){
     const toolbar = q('.core-ui-toolbar');
@@ -311,7 +338,7 @@
     buildRhythmPanel();
     setTimeout(rewriteChordsForAuto, 40);
     setTimeout(rewriteChordsForAuto, 180);
-    setTimeout(() => { window.dispatchEvent(new CustomEvent('auto13:statechange', { detail: { ...AUTO, currentSchemeResult: getCurrentSchemeResult() } })); }, 0);
+    dispatchStateChangeIfNeeded(false);
   }
 
   function rewriteChordsForAuto(){

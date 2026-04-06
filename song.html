@@ -863,9 +863,17 @@ function remapTimelineTimesIfNeeded() {
     }, delay);
   }
 
+  let __autoTabRewriteTimer = null;
+  function scheduleAutoTabRewrite(delay = 40) {
+    try { if (__autoTabRewriteTimer) clearTimeout(__autoTabRewriteTimer); } catch (e) {}
+    __autoTabRewriteTimer = setTimeout(() => {
+      try { if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('applyCurrentPatternToOriginalTab failed', e); }
+    }, delay);
+  }
+
   window.addEventListener('auto13:statechange', () => {
     scheduleTabCapoOverlay(20);
-    try { if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('applyCurrentPatternToOriginalTab failed', e); }
+    scheduleAutoTabRewrite(50);
   });
 
 
@@ -1421,11 +1429,18 @@ function rebuildAutoTabTrack(){
     const bytes = encodeTextToUint8Array(xmlText);
     api.load(bytes);
   }
+  let __autoTabRewriteInProgress = false;
+  let __autoTabRewritePending = false;
   function applyCurrentPatternToOriginalTab() {
     if (!window.__atApi || !window.__originalXmlText) return;
+    if (__autoTabRewriteInProgress) { __autoTabRewritePending = true; return; }
     const scheme = (typeof window.getCurrentSchemeResult === 'function') ? window.getCurrentSchemeResult() : null;
     if (!scheme || scheme.mode !== 'auto') {
-      if (window.__lastRenderedAutoXml) { window.__lastRenderedAutoXml = null; loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText); }
+      if (window.__lastRenderedAutoXml) {
+        window.__lastRenderedAutoXml = null;
+        __autoTabRewriteInProgress = true;
+        try { loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText); } finally { setTimeout(() => { __autoTabRewriteInProgress = false; if (__autoTabRewritePending) { __autoTabRewritePending = false; applyCurrentPatternToOriginalTab(); } }, 80); }
+      }
       return;
     }
     rebuildAutoAccompanimentSong();
@@ -1433,7 +1448,8 @@ function rebuildAutoTabTrack(){
     const xmlText = rewriteXmlTabTrack(window.__originalXmlText);
     if (window.__lastRenderedAutoXml === xmlText) return;
     window.__lastRenderedAutoXml = xmlText;
-    loadXmlTextIntoAlphaTab(window.__atApi, xmlText);
+    __autoTabRewriteInProgress = true;
+    try { loadXmlTextIntoAlphaTab(window.__atApi, xmlText); } finally { setTimeout(() => { __autoTabRewriteInProgress = false; if (__autoTabRewritePending) { __autoTabRewritePending = false; applyCurrentPatternToOriginalTab(); } }, 80); }
   }
   window.applyCurrentPatternToOriginalTab = applyCurrentPatternToOriginalTab;
 })();
@@ -1726,9 +1742,15 @@ function pad4(num) {
         if (oldFallback) oldFallback.remove();
 
         applyScoreTransposition(window.__atApi);
-        applyPlaybackTrackVisibility(window.__atApi);
+        if (typeof window.renderVisibleTracks === 'function') {
+          window.renderVisibleTracks(window.__atApi);
+        } else {
+          applyPlaybackTrackVisibility(window.__atApi);
+        }
         scheduleTabCapoOverlay(180);
-        setTimeout(() => { try { if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } catch(e) { console.warn('applyCurrentPatternToOriginalTab failed', e); } }, 120);
+        if (!window.__lastRenderedAutoXml) {
+          scheduleAutoTabRewrite(120);
+        }
       });
 
       window.__atApi.renderFinished.on(() => {
