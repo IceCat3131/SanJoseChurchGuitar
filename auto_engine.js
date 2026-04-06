@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_0h_auto_menu_layout2';
+  const BUILD = 'V13_0k_menu_size_tune';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
