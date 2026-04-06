@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_0d_auto_ui_layout';
+  const BUILD = 'V13_0f_auto_menu_layout';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -60,19 +60,24 @@
       if(!$('panel-rhythm-hub')){
         layer.insertAdjacentHTML('beforeend', `
           <div class="core-panel auto-panel-hub" id="panel-rhythm-hub" hidden>
-            <div class="core-panel-head"><span>节</span><span id="auto-chip-build" class="auto-chip">${BUILD}</span></div>
-            <div class="auto-hub-toprow">
-              <button type="button" class="core-option-btn auto-mini-btn" id="ui-auto-original">原谱</button>
-              <button type="button" class="core-option-btn auto-mini-btn" id="ui-scheme-a">自动A</button>
-              <button type="button" class="core-option-btn auto-mini-btn" id="ui-scheme-b">自动B</button>
-              <button type="button" class="core-option-btn auto-mini-btn" id="ui-scheme-c">自动C</button>
-            </div>
-            <div class="auto-hub-inline" id="ui-auto-hub-inline">CP${getSongCapoSafe()} ｜ --</div>
-            <div class="auto-hub-layout">
-              <div class="auto-hub-left-note">点击原谱返回原谱模式；点击右侧任意节奏进入自动伴奏并默认启用自动A。</div>
-              <div class="auto-hub-right-wrap">
-                <div class="auto-hub-right-title">节奏</div>
-                <div class="auto-hub-right" id="ui-rhythm-list"></div>
+            <div class="core-panel-head auto-hub-hidden-head"><span>节</span><span id="auto-chip-build" class="auto-chip">${BUILD}</span></div>
+            <div class="auto-hub-layout auto-hub-layout-v2">
+              <div class="auto-hub-left auto-hub-left-v2">
+                <div class="auto-hub-col-title">和弦组</div>
+                <div class="auto-hub-chord-row">
+                  <button type="button" class="core-option-btn auto-mini-btn auto-chord-btn" id="ui-scheme-a">和弦A</button>
+                  <button type="button" class="core-option-btn auto-mini-btn auto-chord-btn" id="ui-scheme-b">和弦B</button>
+                  <button type="button" class="core-option-btn auto-mini-btn auto-chord-btn" id="ui-scheme-c">和弦C</button>
+                </div>
+                <div class="auto-hub-scheme-info" id="ui-auto-scheme-info">
+                  <div>CAPO ${getSongCapoSafe()}</div>
+                  <div>family:C</div>
+                  <div>--</div>
+                </div>
+              </div>
+              <div class="auto-hub-right-wrap auto-hub-right-wrap-v2">
+                <div class="auto-hub-col-title">节奏组</div>
+                <div class="auto-hub-right auto-hub-right-v2" id="ui-rhythm-list"></div>
               </div>
             </div>
           </div>`);
@@ -117,21 +122,27 @@
     return patterns.find((p)=>p.id === AUTO.currentPatternId) || patterns[0] || null;
   }
 
-  function chordPreviewText(){
+  function schemeInfoLines(){
     const original = extractOriginalChords().slice(0, 5);
-    if(!original.length) return `CP${getSongCapoSafe()} ｜ --`;
     if(AUTO.mode !== 'auto' || !AUTO.currentScheme){
-      return `CP${getSongCapoSafe()} ｜ ${original.join('')}`;
+      return {
+        capo: `CAPO ${getSongCapoSafe()}`,
+        family: 'family:原谱',
+        chords: original.length ? original.join(', ') : '--'
+      };
     }
     const mapped = original.map((c)=> AUTO.currentScheme.chordMap?.[c] || c);
-    return `CP${AUTO.currentScheme.capo} ｜ ${mapped.join('')}`;
+    return {
+      capo: `CAPO ${AUTO.currentScheme.capo}`,
+      family: `family:${AUTO.currentScheme.family || '--'}`,
+      chords: mapped.length ? mapped.join(', ') : '--'
+    };
   }
 
   function updateUi(){
     const currentPattern = getCurrentPattern();
     const inAuto = AUTO.mode === 'auto';
     $('ui-rhythm') && ($('ui-rhythm').textContent = inAuto ? '节·伴' : '节·原');
-    $('ui-auto-original')?.classList.toggle('active', !inAuto);
     ['a','b','c'].forEach((k, idx)=>{
       const btn = $('ui-scheme-' + k);
       if(!btn) return;
@@ -139,7 +150,11 @@
       btn.disabled = !inAuto;
       btn.classList.toggle('disabled', !inAuto);
     });
-    $('ui-auto-hub-inline') && ($('ui-auto-hub-inline').textContent = chordPreviewText());
+    const infoBox = $('ui-auto-scheme-info');
+    if(infoBox){
+      const info = schemeInfoLines();
+      infoBox.innerHTML = `<div>${info.capo}</div><div>${info.family}</div><div>${info.chords}</div>`;
+    }
     buildRhythmPanel();
     setTimeout(rewriteChordsForAuto, 40);
     setTimeout(rewriteChordsForAuto, 180);
@@ -202,21 +217,31 @@
     applyScheme();
   }
 
-  function buildRhythmPanel(){
-    const list = $('ui-rhythm-list');
-    if(!list || !window.RhythmEngine) return;
-    const patterns = RhythmEngine.getPatternsForMeter(currentMeter());
-    if(patterns.length && !AUTO.currentPatternId) AUTO.currentPatternId = AUTO.lastAutoPatternId || patterns[0].id;
-    list.innerHTML = '';
-    patterns.forEach((pattern)=>{
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'core-option-btn auto-rhythm-item';
-      btn.textContent = pattern.name;
-      btn.classList.toggle('active', pattern.id === AUTO.currentPatternId && AUTO.mode === 'auto');
-      btn.addEventListener('click', ()=> choosePattern(pattern.id));
-      list.appendChild(btn);
-    });
+function buildRhythmPanel(){
+  const list = $('ui-rhythm-list');
+  if(!list || !window.RhythmEngine) return;
+  const patterns = RhythmEngine.getPatternsForMeter(currentMeter());
+  if(patterns.length && !AUTO.currentPatternId) AUTO.currentPatternId = AUTO.lastAutoPatternId || patterns[0].id;
+  list.innerHTML = '';
+
+  const originalBtn = document.createElement('button');
+  originalBtn.type = 'button';
+  originalBtn.className = 'core-option-btn auto-rhythm-item';
+  originalBtn.textContent = '原谱';
+  originalBtn.classList.toggle('active', AUTO.mode !== 'auto');
+  originalBtn.addEventListener('click', ()=> setMode('original'));
+  list.appendChild(originalBtn);
+
+  patterns.forEach((pattern)=>{
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'core-option-btn auto-rhythm-item';
+    btn.textContent = pattern.name;
+    btn.classList.toggle('active', pattern.id === AUTO.currentPatternId && AUTO.mode === 'auto');
+    btn.addEventListener('click', ()=> choosePattern(pattern.id));
+    list.appendChild(btn);
+  });
+});
   }
 
   function wrapGlobals(){
@@ -273,7 +298,6 @@
         layer.hidden = true;
       }
     });
-    $('ui-auto-original')?.addEventListener('click', ()=> setMode('original'));
     $('ui-scheme-a')?.addEventListener('click', ()=> setSchemeIndex(0));
     $('ui-scheme-b')?.addEventListener('click', ()=> setSchemeIndex(1));
     $('ui-scheme-c')?.addEventListener('click', ()=> setSchemeIndex(2));
