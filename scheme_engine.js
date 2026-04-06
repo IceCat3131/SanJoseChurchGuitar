@@ -1,4 +1,3 @@
-
 (function(){
   const SHARP = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const FLAT  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
@@ -20,6 +19,9 @@
     'Am7':['x',0,2,0,1,0], 'Bm7':['x',2,4,2,3,2], 'Cm7':['x',3,5,3,4,3], 'Dm7':['x','x',0,2,1,1], 'Em7':[0,2,2,0,3,0], 'Fm7':[1,3,1,1,1,1], 'Gm7':[3,5,3,3,3,3], 'C#m7':['x',4,6,4,5,4], 'F#m7':[2,4,2,2,2,2], 'G#m7':[4,6,4,4,4,4],
     'Asus4':['x',0,2,2,3,0], 'Dsus4':['x','x',0,2,3,3], 'Esus4':[0,2,2,2,0,0], 'Gsus4':[3,3,0,0,1,3], 'Csus4':['x',3,3,0,1,1], 'Fsus4':[1,3,3,3,1,1]
   };
+  const FLAT_KEYS = new Set(['F','Bb','Eb','Ab','Db','Gb','Cb']);
+  const SHARP_KEYS = new Set(['G','D','A','E','B','F#','C#']);
+
   function idx(name){ return INDEX[name] ?? null; }
   function normalizeNote(note, preferFlats){
     const i = idx(note);
@@ -41,9 +43,26 @@
     if(!parts) return '';
     return parts.root + (parts.quality || '') + (parts.bass ? '/' + parts.bass : '');
   }
-  function shiftChord(symbol, semitones, preferFlats){
+  function resolvePreferFlats(options){
+    if(options && typeof options.preferFlats === 'boolean') return options.preferFlats;
+    const key = (options && options.targetKey) ? String(options.targetKey).trim() : '';
+    if(FLAT_KEYS.has(key)) return true;
+    if(SHARP_KEYS.has(key)) return false;
+    return !!(options && options.preferFlats);
+  }
+  function respellChord(symbol, options){
     const p = parseChord(symbol); if(!p) return String(symbol || '');
-    return formatChord({ root:add(p.root,semitones,preferFlats), quality:p.quality, bass:p.bass ? add(p.bass,semitones,preferFlats) : '' });
+    const preferFlats = resolvePreferFlats(options || {});
+    return formatChord({
+      root: normalizeNote(p.root, preferFlats),
+      quality: p.quality,
+      bass: p.bass ? normalizeNote(p.bass, preferFlats) : ''
+    });
+  }
+  function shiftChord(symbol, semitones, preferFlats, targetKey){
+    const p = parseChord(symbol); if(!p) return String(symbol || '');
+    const shifted = formatChord({ root:add(p.root,semitones,preferFlats), quality:p.quality, bass:p.bass ? add(p.bass,semitones,preferFlats) : '' });
+    return respellChord(shifted, { preferFlats, targetKey });
   }
   function penaltyForChord(ch){
     if(!ch) return 2;
@@ -52,14 +71,32 @@
     if(/sus4|maj7|m7|7/i.test(q)) return 1.1;
     return 0.2;
   }
-  function buildShapeMap(chords, displayDelta, preferFlats){
+  function buildShapeAliases(){
+    const aliases = Object.assign({}, DEFAULT_SHAPES);
+    Object.keys(DEFAULT_SHAPES).forEach((name)=>{
+      const parsed = parseChord(name);
+      if(!parsed) return;
+      const sharpName = formatChord({ root: normalizeNote(parsed.root, false), quality: parsed.quality, bass: '' });
+      const flatName = formatChord({ root: normalizeNote(parsed.root, true), quality: parsed.quality, bass: '' });
+      if(!(sharpName in aliases)) aliases[sharpName] = DEFAULT_SHAPES[name];
+      if(!(flatName in aliases)) aliases[flatName] = DEFAULT_SHAPES[name];
+    });
+    return aliases;
+  }
+  const SHAPE_ALIASES = buildShapeAliases();
+  function findShape(symbol, preferFlats, targetKey){
+    const parsed = parseChord(symbol);
+    if(!parsed) return null;
+    const canonical = respellChord(symbol, { preferFlats, targetKey });
+    const parsedCanonical = parseChord(canonical) || parsed;
+    const fullKey = formatChord({ root: parsedCanonical.root, quality: parsedCanonical.quality, bass: '' });
+    return SHAPE_ALIASES[fullKey] || SHAPE_ALIASES[parsedCanonical.root] || null;
+  }
+  function buildShapeMap(chords, displayDelta, preferFlats, targetKey){
     const map = {};
     chords.forEach((symbol) => {
-      const shifted = shiftChord(symbol, displayDelta, preferFlats);
-      const p = parseChord(shifted);
-      if(!p) return;
-      const key = formatChord({ root:normalizeNote(p.root, preferFlats), quality:p.quality, bass:'' });
-      const shape = DEFAULT_SHAPES[key] || DEFAULT_SHAPES[normalizeNote(p.root, preferFlats)] || null;
+      const shifted = shiftChord(symbol, displayDelta, preferFlats, targetKey);
+      const shape = findShape(shifted, preferFlats, targetKey);
       if(shape) map[symbol] = { displayChord: shifted, shape };
     });
     return map;
@@ -71,13 +108,11 @@
   }
   function buildScheme(opts){
     const { family, capo, originalChords, songCapo, autoTranspose, preferFlats, targetConcertKey } = opts;
-    // originalChords 进入这里前已经是“真实和弦”（原谱和弦 + sourceCapo）。
-    // 吉他手实际看到/按的是：真实和弦 - 当前方案 CAPO。
     const displayDelta = -capo;
-    const shapeMap = buildShapeMap(originalChords, displayDelta, preferFlats);
+    const shapeMap = buildShapeMap(originalChords, displayDelta, preferFlats, targetConcertKey);
     const chordMap = {};
     originalChords.forEach((symbol)=>{
-      chordMap[symbol] = shapeMap[symbol]?.displayChord || shiftChord(symbol, displayDelta, preferFlats);
+      chordMap[symbol] = shapeMap[symbol]?.displayChord || shiftChord(symbol, displayDelta, preferFlats, targetConcertKey);
     });
     let score = Math.abs(capo - 2);
     if(capo > 4) score += 1.2;
@@ -98,11 +133,10 @@
   function generateSchemes(ctx){
     const preferFlats = !!ctx.preferFlats;
     const originalKey = ctx.originalKey || 'C';
-    // 目标调只看“当前歌曲调号 + 用户转调”，sourceCapo 不再重复参与。
     const targetConcertKey = add(originalKey, ctx.transpose || 0, preferFlats);
     const targetIdx = idx(targetConcertKey);
     if(targetIdx == null) return [];
-    const originalChords = uniqueChordSymbols(ctx.originalChords); // 已经是真实和弦
+    const originalChords = uniqueChordSymbols(ctx.originalChords).map((symbol)=> respellChord(symbol, { preferFlats, targetKey: targetConcertKey }));
     const out=[];
     FAMILY_ROOTS.forEach((family)=>{
       const familyIdx = idx(family);
@@ -122,5 +156,5 @@
     out.sort((a,b)=>a.score-b.score);
     return out.slice(0,3);
   }
-  window.SchemeEngine = { parseChord, shiftChord, generateSchemes, buildScheme, uniqueChordSymbols, FAMILY_ROOTS };
+  window.SchemeEngine = { parseChord, shiftChord, generateSchemes, buildScheme, uniqueChordSymbols, FAMILY_ROOTS, respellChord };
 })();
