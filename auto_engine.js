@@ -34,7 +34,20 @@
     return out;
   }
 
-  function currentMeter(){ return '4/4'; }
+  
+function applyCapoToChords(chords, capo){
+  if(!window.SchemeEngine) return chords;
+  return (chords||[]).map(ch=>{
+    try{
+      return SchemeEngine.shiftChord(ch, capo, true);
+    }catch(e){
+      return ch;
+    }
+  });
+}
+
+function currentMeter(){ return '4/4'; }
+
 
   function ensureUi(){
     const toolbar = q('.core-ui-toolbar');
@@ -100,7 +113,11 @@
       originalKey: getOriginalKeyName(),
       songCapo: getSongCapoSafe(),
       transpose: getTransposeSafe(),
-      originalChords: extractOriginalChords(),
+      originalChords: (function(){
+      const raw = extractOriginalChords();
+      const capo = getSongCapoSafe ? getSongCapoSafe() : 0;
+      return applyCapoToChords(raw, capo);
+    })(),
       preferFlats: preferFlats()
     };
   }
