@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_2c_auto_tab_takeover';
+  const BUILD = 'V13_2d_auto_key_spelling_fix';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -16,7 +16,18 @@
   function qa(sel, root){ return Array.from((root || document).querySelectorAll(sel)); }
   function getSongCapoSafe(){ return typeof getSongCapo === 'function' ? getSongCapo() : 0; }
   function getOriginalKeyName(){ return (window.__currentMeta && window.__currentMeta.key_name) || 'C'; }
-  function preferFlats(){ return typeof prefersFlatsFromKeyName === 'function' ? prefersFlatsFromKeyName(getOriginalKeyName()) : true; }
+  function getDisplayedSongKeyName(){
+    try{
+      if(typeof computeDisplayedKeyName === 'function'){
+        return computeDisplayedKeyName(window.__currentMeta || { key_name: getOriginalKeyName() });
+      }
+    }catch(e){}
+    return getOriginalKeyName();
+  }
+  function preferFlats(){
+    const keyName = getDisplayedSongKeyName();
+    return typeof prefersFlatsFromKeyName === 'function' ? prefersFlatsFromKeyName(keyName) : true;
+  }
   function getTransposeSafe(){ return (typeof getUserTranspose === 'function') ? getUserTranspose() : (window.viewerPrefs ? (parseInt(viewerPrefs.transposeSemitones, 10) || 0) : 0); }
 
   function extractOriginalChords(){
@@ -32,167 +43,6 @@
       if(!seen.has(raw)){ seen.add(raw); out.push(raw); }
     });
     return out;
-  }
-
-
-  function applyCapoToChords(chords, capo){
-    if(!window.SchemeEngine) return chords || [];
-    return (chords || []).map((ch)=>{
-      try { return SchemeEngine.shiftChord(ch, capo, preferFlats()); } catch(e) { return ch; }
-    });
-  }
-
-  function getConcertChordFromRaw(raw){
-    if(!raw) return '';
-    if(!window.SchemeEngine) return raw;
-    try { return SchemeEngine.shiftChord(raw, getSongCapoSafe(), preferFlats()); } catch(e) { return raw; }
-  }
-
-  function getDisplayChordFromRaw(raw){
-    const concert = getConcertChordFromRaw(raw);
-    if(AUTO.mode === 'auto' && AUTO.currentScheme && AUTO.currentScheme.chordMap){
-      return AUTO.currentScheme.chordMap[concert] || raw;
-    }
-    return raw;
-  }
-
-  function getShapeFromRaw(raw){
-    const concert = getConcertChordFromRaw(raw);
-    return AUTO.currentScheme?.shapeMap?.[concert]?.shape || null;
-  }
-
-  function getBassStringForChord(chord){
-    if(!window.SchemeEngine) return 6;
-    const parsed = SchemeEngine.parseChord(chord);
-    if(!parsed) return 6;
-    const root = parsed.root;
-    if(['C','C#','Db','A','A#','Bb','B'].includes(root)) return 5;
-    if(['D','D#','Eb'].includes(root)) return 4;
-    return 6;
-  }
-
-  function getFretFromShape(shape, stringNo){
-    if(!Array.isArray(shape)) return null;
-    const idx = 6 - stringNo;
-    if(idx < 0 || idx >= shape.length) return null;
-    const v = shape[idx];
-    if(v === 'x' || v == null) return null;
-    const n = parseInt(v, 10);
-    return Number.isFinite(n) ? n : null;
-  }
-
-  function mapArpeggioStepToString(step, stepIndex, bassString){
-    if(stepIndex === 0) return bassString;
-    const s = parseInt(step, 10);
-    return Number.isFinite(s) ? s : bassString;
-  }
-
-  function ensureAutoTabOverlayRoot(){
-    const host = $('alphaTab');
-    if(!host) return null;
-    let root = host.querySelector('.auto-tab-overlay-root');
-    if(!root){
-      root = document.createElement('div');
-      root.className = 'auto-tab-overlay-root';
-      root.style.position = 'absolute';
-      root.style.left = '0';
-      root.style.top = '0';
-      root.style.right = '0';
-      root.style.bottom = '0';
-      root.style.pointerEvents = 'none';
-      root.style.zIndex = '25';
-      host.appendChild(root);
-    }
-    return root;
-  }
-
-  function clearAutoTabOverlay(){
-    const root = $('alphaTab')?.querySelector('.auto-tab-overlay-root');
-    if(root) root.innerHTML = '';
-  }
-
-  function hideOriginalTabOverlay(hide){
-    const root = $('alphaTab')?.querySelector('.tab-capo-overlay-root');
-    if(root) root.style.display = hide ? 'none' : '';
-  }
-
-  function renderAutoTabOverlay(){
-    if(AUTO.mode !== 'auto' || !AUTO.currentScheme || !window.__atApi) {
-      clearAutoTabOverlay();
-      hideOriginalTabOverlay(false);
-      return;
-    }
-    const root = ensureAutoTabOverlayRoot();
-    if(!root) return;
-    root.innerHTML = '';
-    hideOriginalTabOverlay(true);
-
-    const lookup = window.__atApi.boundsLookup || window.__atApi.renderer?.boundsLookup || null;
-    if(!lookup || !Array.isArray(lookup.staffSystems)) return;
-    const rawChords = extractOriginalChords();
-    const pattern = getCurrentPattern();
-    const steps = Array.isArray(pattern?.steps) ? pattern.steps : ['5','3','2','3','1','3','2','3'];
-
-    let barCounter = 0;
-    for(const system of lookup.staffSystems){
-      const masterBars = Array.isArray(system?.bars) ? system.bars : [];
-      for(const masterBar of masterBars){
-        const barBoundsList = Array.isArray(masterBar?.bars) ? masterBar.bars : [];
-        for(const barBounds of barBoundsList){
-          const staff = barBounds?.bar?.staff;
-          if(!staff || !staff.showTablature) continue;
-
-          const rawChord = rawChords[Math.min(barCounter, Math.max(0, rawChords.length - 1))] || rawChords[0] || '';
-          const displayChord = getDisplayChordFromRaw(rawChord);
-          const shape = getShapeFromRaw(rawChord);
-          const bassString = getBassStringForChord(displayChord);
-
-          let noteIndex = 0;
-          const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
-          for(const beatBounds of beats){
-            const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
-            for(const noteBounds of notes){
-              const box = noteBounds?.noteHeadBounds || noteBounds;
-              if(!box) continue;
-              const step = steps[noteIndex % steps.length];
-              const targetString = mapArpeggioStepToString(step, noteIndex % steps.length, bassString);
-              let fret = getFretFromShape(shape, targetString);
-              if(fret == null){
-                // fallback to bass fret or 0
-                fret = getFretFromShape(shape, bassString);
-                if(fret == null) fret = 0;
-              }
-
-              const bw = box.w ?? box.width ?? 16;
-              const bh = box.h ?? box.height ?? 16;
-              const bx = box.x ?? 0;
-              const by = box.y ?? 0;
-              const el = document.createElement('div');
-              el.className = 'auto-tab-overlay-note';
-              el.textContent = String(fret);
-              el.style.position = 'absolute';
-              el.style.left = `${bx}px`;
-              el.style.top = `${by}px`;
-              el.style.width = `${bw}px`;
-              el.style.height = `${bh}px`;
-              el.style.display = 'flex';
-              el.style.alignItems = 'center';
-              el.style.justifyContent = 'center';
-              el.style.background = '#fff';
-              el.style.color = '#111';
-              el.style.fontWeight = '700';
-              el.style.fontSize = `${Math.max(12, Math.round(bh * 0.95))}px`;
-              el.style.lineHeight = '1';
-              el.style.borderRadius = '2px';
-              el.style.boxSizing = 'border-box';
-              root.appendChild(el);
-              noteIndex++;
-            }
-          }
-          barCounter++;
-        }
-      }
-    }
   }
 
   function currentMeter(){ return '4/4'; }
@@ -261,7 +111,7 @@
       originalKey: getOriginalKeyName(),
       songCapo: getSongCapoSafe(),
       transpose: getTransposeSafe(),
-      originalChords: applyCapoToChords(extractOriginalChords(), getSongCapoSafe()),
+      originalChords: extractOriginalChords(),
       preferFlats: preferFlats()
     };
   }
@@ -292,7 +142,7 @@
         chords: original.length ? original.join(', ') : '--'
       };
     }
-    const mapped = original.map((c)=> getDisplayChordFromRaw(c) || c);
+    const mapped = original.map((c)=> AUTO.currentScheme.chordMap?.[c] || c);
     return {
       capo: `CAPO ${AUTO.currentScheme.capo}`,
       family: `family:${AUTO.currentScheme.family || '--'}`,
@@ -319,7 +169,6 @@
     setTimeout(rewriteChordsForAuto, 40);
     setTimeout(rewriteChordsForAuto, 180);
     setTimeout(() => { window.dispatchEvent(new CustomEvent('auto13:statechange', { detail: { ...AUTO } })); }, 0);
-    setTimeout(renderAutoTabOverlay, 60);
   }
 
   function rewriteChordsForAuto(){
@@ -334,8 +183,8 @@
       if(typeof looksLikeChordSymbol === 'function' && !looksLikeChordSymbol(original)) return;
       if(!el.getAttribute('data-orig-chord')) el.setAttribute('data-orig-chord', original);
       let next = original;
-      if(AUTO.mode === 'auto' && AUTO.currentScheme){
-        next = getDisplayChordFromRaw(original) || original;
+      if(AUTO.mode === 'auto' && AUTO.currentScheme && AUTO.currentScheme.chordMap){
+        next = AUTO.currentScheme.chordMap[original] || original;
       } else if(typeof transposeChordSymbol === 'function') {
         const semitones = getTransposeSafe();
         next = semitones === 0 ? original : transposeChordSymbol(original, semitones, preferFlats());
@@ -353,8 +202,6 @@
     if(!AUTO.schemes.length) refreshSchemes();
     AUTO.currentScheme = AUTO.schemes[AUTO.schemeIndex] || AUTO.schemes[0] || null;
     updateUi();
-    setTimeout(renderAutoTabOverlay, 40);
-    setTimeout(renderAutoTabOverlay, 180);
     if(typeof scheduleChordRewrite === 'function') scheduleChordRewrite(20);
   }
 
@@ -414,8 +261,9 @@
     };
     const oldComputeDisplayedKeyName = window.computeDisplayedKeyName;
     window.computeDisplayedKeyName = function(meta){
-      if(AUTO.mode === 'auto' && AUTO.currentScheme) return AUTO.currentScheme.targetConcertKey || '--';
-      return oldComputeDisplayedKeyName ? oldComputeDisplayedKeyName(meta) : '--';
+      // 自动伴奏模式不改变“歌曲当前调号”的显示规则；
+      // 顶部调号仍按原调 + 用户转调来显示，不跟随 family / scheme.targetConcertKey 漂移。
+      return oldComputeDisplayedKeyName ? oldComputeDisplayedKeyName(meta) : getOriginalKeyName();
     };
     const oldChangeTranspose = window.changeTranspose;
     window.changeTranspose = function(delta){
@@ -477,7 +325,6 @@
         refreshSchemes();
         setTimeout(rewriteChordsForAuto, 30);
         setTimeout(updateUi, 60);
-        setTimeout(renderAutoTabOverlay, 120);
       });
       mo.observe(root, { childList:true, subtree:true });
     }

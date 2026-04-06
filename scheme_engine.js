@@ -71,6 +71,8 @@
   }
   function buildScheme(opts){
     const { family, capo, originalChords, songCapo, autoTranspose, preferFlats, targetConcertKey } = opts;
+    // originalChords 进入 buildScheme 前已经按 sourceCapo 提升到真实和弦；
+    // 因此这里只需要“用户转调 - 方案CAPO”，不能再加 songCapo。
     const displayDelta = autoTranspose - capo;
     const shapeMap = buildShapeMap(originalChords, displayDelta, preferFlats);
     const chordMap = {};
@@ -96,6 +98,8 @@
   function generateSchemes(ctx){
     const preferFlats = !!ctx.preferFlats;
     const originalKey = ctx.originalKey || 'C';
+    // originalKey 已经是歌曲原调；GTZ 的 sourceCapo 只用于把原谱和弦提升到真实和弦，
+    // 不应再叠加到“歌曲调号”上，否则顶部调号会漂移。
     const originalConcertKey = originalKey;
     const targetConcertKey = add(originalConcertKey, ctx.transpose || 0, preferFlats);
     const targetIdx = idx(targetConcertKey);
