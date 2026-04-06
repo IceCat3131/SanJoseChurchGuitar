@@ -249,11 +249,8 @@
   }
 
   function getTrackTransposeSemitones(track) {
-    const userTranspose = getUserTranspose();
-    const sourceCapo = getSongCapo();
-    // 原谱GTZ里的TAB/fret按CAPO=0语义保存；
-    // 实际播放音高需要前端补上 sourceCapo，并叠加用户转调一次。
-    return trackUsesTab(track) ? (sourceCapo + userTranspose) : userTranspose;
+    const base = getUserTranspose();
+    return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -411,12 +408,7 @@
       if (!api.settings.notation) api.settings.notation = {};
       api.settings.notation.transpositionPitches = trackTranspositions.slice();
       api.updateSettings();
-      if (typeof api.changeTrackTranspositionPitch === 'function' && tracks.length) {
-        tracks.forEach((track, i) => {
-          const semitones = trackTranspositions[i] || 0;
-          try { api.changeTrackTranspositionPitch([track], semitones); } catch (e) { console.warn('live transpose failed', e); }
-        });
-      }
+      // 这里不要再叠加 changeTrackTranspositionPitch，避免 sourceCapo/transpose 被双重应用。
       try { api.render(); } catch (e) {}
       scheduleChordRewrite(120);
       scheduleTabCapoOverlay(140);
@@ -661,9 +653,7 @@
 
   function getDisplayedFretForCapo(note) {
     if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
-
-    // 原谱TAB显示数字保持“原始按法数字”，不跟CAPO或转调一起平移。
-    // 例如：GTZ里是0，就始终显示0；顶部CP与实际音高另外计算。
+    // 原谱TAB数字始终显示原始按法数字，不跟CAPO或转调一起平移。
     return note.fret;
   }
 
@@ -675,10 +665,7 @@
 
     const offset = getEffectiveCapo() + getUserTranspose();
     const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
-    if (!lookup || !Array.isArray(lookup.staffSystems)) return;
-    // 只要GTZ有CAPO或用户转调，就重新覆盖原始TAB显示数字；
-    // 但覆盖内容保持原始按法数字，不随CAPO/转调变化。
-    if (!offset) return;
+    if (!offset || !lookup || !Array.isArray(lookup.staffSystems)) return;
 
     for (const system of lookup.staffSystems) {
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];

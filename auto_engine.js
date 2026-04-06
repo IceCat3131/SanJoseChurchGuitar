@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_0l_rhythm_list_compact';
+  const BUILD = 'V13_1c_fix_original_capo_truth';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
