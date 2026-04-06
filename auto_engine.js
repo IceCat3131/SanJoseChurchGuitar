@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = '14.4.2.3';
+  const BUILD = '14.4.2.4';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -223,6 +223,32 @@
     return patterns.find((p)=>p.id === AUTO.currentPatternId) || patterns[0] || null;
   }
 
+
+  function getCurrentPatternResult(){
+    const p = getCurrentPattern();
+    return p ? { id: p.id, name: p.name, type: p.type, steps: Array.isArray(p.steps) ? p.steps.slice() : [] } : null;
+  }
+
+  function getAutoDisplayedChordForOriginal(originalChord){
+    const original = String(originalChord || '').trim();
+    if(!original) return original;
+    const useFlats = preferFlats();
+    if(AUTO.mode === 'auto' && AUTO.manualCapoMode){
+      let realChord = window.SchemeEngine ? SchemeEngine.shiftChord(original, getSongCapoSafe(), useFlats) : original;
+      let targetChord = window.SchemeEngine ? SchemeEngine.shiftChord(realChord, getTransposeSafe(), useFlats) : realChord;
+      let next = window.SchemeEngine ? SchemeEngine.shiftChord(targetChord, -(parseInt(AUTO.manualCapo, 10) || 0), useFlats) : targetChord;
+      if(window.SchemeEngine && typeof SchemeEngine.normalizeChordForKey === 'function') next = SchemeEngine.normalizeChordForKey(next, getDisplayedSongKeyName());
+      return next;
+    }
+    if(AUTO.mode === 'auto' && AUTO.currentScheme && AUTO.currentScheme.chordMap){
+      const realChord = window.SchemeEngine ? SchemeEngine.shiftChord(original, getSongCapoSafe(), useFlats) : original;
+      let next = AUTO.currentScheme.chordMap[realChord] || original;
+      if(window.SchemeEngine && typeof SchemeEngine.normalizeChordForKey === 'function') next = SchemeEngine.normalizeChordForKey(next, getDisplayedSongKeyName());
+      return next;
+    }
+    return original;
+  }
+
   function schemeInfoData(){
     const original = extractOriginalChords().slice(0, 5);
     if(AUTO.mode !== 'auto'){
@@ -404,8 +430,7 @@
         ? (AUTO.manualCapoMode ? String(info.family || '').replace(/^family:/,'') : (AUTO.currentScheme?.family || '--'))
         : '原谱',
       chords: String(info.chords || '--').split(/\s*,\s*/).filter(Boolean),
-      displayText: info.chords || '--',
-      currentPatternId: AUTO.currentPatternId || null
+      displayText: info.chords || '--'
     };
   }
 
@@ -423,6 +448,8 @@
     };
     window.refreshChordSchemePanel = refreshChordSchemePanel;
     window.getCurrentSchemeResult = getCurrentSchemeResult;
+    window.getCurrentPatternResult = getCurrentPatternResult;
+    window.getAutoDisplayedChordForOriginal = getAutoDisplayedChordForOriginal;
     const oldChangeTranspose = window.changeTranspose;
     window.changeTranspose = function(delta){
       const result = oldChangeTranspose ? oldChangeTranspose(delta) : undefined;

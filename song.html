@@ -125,6 +125,120 @@
 </div>
 
 <script>
+window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
+window.__chordTimelineRaw = [];
+window.__measureTimelineRaw = [];
+window.__chordTimeline = [];
+window.__autoAccompanimentSong = [];
+window.__autoAccompanimentTabTrack = [];
+window.__originalXmlText = null;
+window.__lastRenderedAutoXml = null;
+
+function decodeBase64ToText(b64) {
+  const binary = atob(b64);
+  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function mapHarmonyKindToSuffix(kindEl) {
+  if (!kindEl) return '';
+  const textAttr = String(kindEl.getAttribute('text') || '').trim();
+  if (textAttr) return textAttr;
+  const v = String(kindEl.textContent || '').trim();
+  const map = {
+    'major': '', 'minor': 'm', 'augmented': 'aug', 'diminished': 'dim',
+    'dominant': '7', 'major-seventh': 'maj7', 'minor-seventh': 'm7',
+    'diminished-seventh': 'dim7', 'augmented-seventh': 'aug7', 'half-diminished': 'm7b5',
+    'major-sixth': '6', 'minor-sixth': 'm6', 'dominant-ninth': '9', 'major-ninth': 'maj9',
+    'minor-ninth': 'm9', 'dominant-11th': '11', 'major-11th': 'maj11', 'minor-11th': 'm11',
+    'dominant-13th': '13', 'major-13th': 'maj13', 'minor-13th': 'm13',
+    'suspended-second': 'sus2', 'suspended-fourth': 'sus4', 'power': '5', 'none': ''
+  };
+  return Object.prototype.hasOwnProperty.call(map, v) ? map[v] : v;
+}
+
+function buildChordSymbolFromHarmony(harmonyEl) {
+  if (!harmonyEl) return '';
+  const rootStep = String(harmonyEl.querySelector('root > root-step')?.textContent || '').trim();
+  if (!rootStep) return '';
+  const rootAlter = String(harmonyEl.querySelector('root > root-alter')?.textContent || '').trim();
+  const bassStep = String(harmonyEl.querySelector('bass > bass-step')?.textContent || '').trim();
+  const bassAlter = String(harmonyEl.querySelector('bass > bass-alter')?.textContent || '').trim();
+  const kindEl = harmonyEl.querySelector('kind');
+  let root = rootStep;
+  if (rootAlter === '1') root += '#';
+  else if (rootAlter === '-1') root += 'b';
+  let bass = bassStep;
+  if (bass) {
+    if (bassAlter === '1') bass += '#';
+    else if (bassAlter === '-1') bass += 'b';
+  }
+  const suffix = mapHarmonyKindToSuffix(kindEl);
+  return root + suffix + (bass ? ('/' + bass) : '');
+}
+
+function getTimeSignatureText(beats, beatType) {
+  if (!Number.isFinite(beats) || !Number.isFinite(beatType) || !beats || !beatType) return '--';
+  return String(beats) + '/' + String(beatType);
+}
+
+function buildMusicTimelineFromXML(xmlText) {
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(xmlText, 'application/xml');
+  const part = xml.querySelector('score-partwise > part, score-timewise > part');
+  if (!part) throw new Error('未找到 MusicXML part');
+  let divisions = 1, beats = 4, beatType = 4, currentStartTicks = 0;
+  const timeSignatures = [], chords = [], measures = [];
+  part.querySelectorAll(':scope > measure').forEach((measureEl, idx) => {
+    const measureNo = parseInt(measureEl.getAttribute('number') || '', 10) || (idx + 1);
+    const divEl = measureEl.querySelector(':scope > attributes > divisions');
+    if (divEl) { const d = parseInt(divEl.textContent || '1', 10); if (Number.isFinite(d) && d > 0) divisions = d; }
+    const beatsEl = measureEl.querySelector(':scope > attributes > time > beats');
+    const beatTypeEl = measureEl.querySelector(':scope > attributes > time > beat-type');
+    if (beatsEl && beatTypeEl) {
+      const nb = parseInt(beatsEl.textContent || '4', 10);
+      const nt = parseInt(beatTypeEl.textContent || '4', 10);
+      if (Number.isFinite(nb) && nb > 0) beats = nb;
+      if (Number.isFinite(nt) && nt > 0) beatType = nt;
+    }
+    const meterText = getTimeSignatureText(beats, beatType);
+    timeSignatures.push({ measure: measureNo, meter: meterText, divisions });
+    let pos = 0, maxPos = 0;
+    Array.from(measureEl.children).forEach((node) => {
+      const name = node.nodeName;
+      if (name === 'note') {
+        const dur = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0;
+        pos += dur; if (pos > maxPos) maxPos = pos; return;
+      }
+      if (name === 'backup') { const dur = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0; pos = Math.max(0, pos - dur); return; }
+      if (name === 'forward') { const dur = parseInt(node.querySelector('duration')?.textContent || '0', 10) || 0; pos += dur; if (pos > maxPos) maxPos = pos; return; }
+      if (name === 'harmony') {
+        const offset = parseInt(node.querySelector('offset')?.textContent || '0', 10) || 0;
+        const tick = Math.max(0, pos + offset);
+        const chordRaw = buildChordSymbolFromHarmony(node);
+        if (chordRaw) chords.push({ measure: measureNo, beat: tick / divisions, tickFromScoreStart: currentStartTicks + tick, tickInMeasure: tick, divisions, meter: meterText, chordRaw });
+      }
+    });
+    let nominal = 0;
+    if (Number.isFinite(beats) && Number.isFinite(beatType) && beatType > 0) nominal = Math.round((beats * 4 / beatType) * divisions);
+    const durationTicks = Math.max(maxPos, nominal, 1);
+    measures.push({ measure: measureNo, startTicks: currentStartTicks, durationTicks, endTicks: currentStartTicks + durationTicks, divisions, beats, beatType, meter: meterText });
+    currentStartTicks += durationTicks;
+  });
+  return { chords, measures, timeSignatures, totalTicks: currentStartTicks };
+}
+
+function remapTimelineTimesIfNeeded() {
+  const raw = window.__musicTimelineRaw;
+  const totalMs = Math.max(0, window.__playbackState?.total || 0);
+  if (!raw || !raw.totalTicks || !totalMs) return;
+  if (raw.__mappedTotalMs === totalMs) return;
+  const tickToMs = (ticks) => Math.round((ticks / raw.totalTicks) * totalMs);
+  window.__measureTimelineRaw = (raw.measures || []).map(m => ({ ...m, startMs: tickToMs(m.startTicks), endMs: tickToMs(m.endTicks), durationMs: Math.max(1, tickToMs(m.endTicks) - tickToMs(m.startTicks)) }));
+  window.__chordTimelineRaw = (raw.chords || []).map(c => ({ ...c, timeMs: tickToMs(c.tickFromScoreStart) }));
+  raw.__mappedTotalMs = totalMs;
+}
+
   const BOOKS = {
     c: {
       label: "大本诗歌",
@@ -250,7 +364,14 @@
 
   function getTrackTransposeSemitones(track) {
     const base = getUserTranspose();
-    return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
+    try {
+      const scheme = (typeof window.getCurrentSchemeResult === 'function') ? window.getCurrentSchemeResult() : null;
+      if (trackUsesTab(track)) {
+        if (scheme && scheme.mode === 'auto') return base;
+        return base;
+      }
+    } catch (e) {}
+    return base;
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -668,9 +789,9 @@
   function getTabDisplayShift() {
     const auto = window.__AUTO13;
     if (auto && auto.mode === 'auto') {
-      return 0;
+      return getEffectiveCapo() + getUserTranspose() - getActiveSchemeCapoForTab();
     }
-    return getUserTranspose();
+    return getEffectiveCapo() + getUserTranspose();
   }
 
   function getDisplayedFretForCapo(note) {
@@ -679,173 +800,16 @@
     return Math.max(0, shifted);
   }
 
-
-  function getCurrentAutoPattern() {
-    const auto = window.__AUTO13;
-    if (!auto || auto.mode !== 'auto' || !window.RhythmEngine) return null;
-    const patterns = RhythmEngine.getPatternsForMeter('4/4') || [];
-    return patterns.find((p) => p.id === auto.currentPatternId) || patterns[0] || null;
-  }
-
-  function getCurrentDisplayedChordSequence() {
-    const root = document.getElementById('alphaTab');
-    if (!root) return [];
-    const out = [];
-    const seen = new Set();
-    root.querySelectorAll('text, tspan').forEach((el) => {
-      if (el.children && el.children.length) return;
-      const raw = String(el.textContent || '').trim();
-      if (!raw) return;
-      if (typeof looksLikeChordSymbol === 'function' && !looksLikeChordSymbol(raw)) return;
-      const key = raw + '@' + Math.round(parseFloat(el.getAttribute('x') || '0'));
-      if (seen.has(key)) return;
-      seen.add(key);
-      out.push(raw);
-    });
-    return out;
-  }
-
-  function getChordShapeForDisplayChord(chordText) {
-    if (!window.SchemeEngine || !SchemeEngine.parseChord) return null;
-    const parsed = SchemeEngine.parseChord(chordText);
-    if (!parsed) return null;
-    const key = parsed.root + (parsed.quality || '');
-    const shapes = SchemeEngine.DEFAULT_SHAPES || {};
-    return shapes[key] || shapes[parsed.root] || null;
-  }
-
-  function resolveShapeStep(shape, step) {
-    const s = parseInt(String(step || '').replace(/[^1-6]/g, ''), 10);
-    if (!shape || !Number.isFinite(s) || s < 1 || s > 6) return null;
-    const preferredIndex = 6 - s;
-    const candidates = [];
-    for (let i = 0; i < shape.length; i++) {
-      const fret = shape[i];
-      if (fret === 'x' || fret == null) continue;
-      candidates.push({ string: 6 - i, fret: fret, dist: Math.abs(i - preferredIndex) });
-    }
-    if (!candidates.length) return null;
-    candidates.sort((a, b) => a.dist - b.dist || a.string - b.string);
-    return candidates[0];
-  }
-
-  function buildTabStringYMap(lookup) {
-    const sums = { 1:[0,0], 2:[0,0], 3:[0,0], 4:[0,0], 5:[0,0], 6:[0,0] };
-    if (!lookup || !Array.isArray(lookup.staffSystems)) return null;
-    for (const system of lookup.staffSystems) {
-      for (const masterBar of (system?.bars || [])) {
-        for (const barBounds of (masterBar?.bars || [])) {
-          if (!isTabBarBounds(barBounds)) continue;
-          for (const beatBounds of (barBounds?.beats || [])) {
-            for (const noteBounds of (beatBounds?.notes || [])) {
-              const note = noteBounds?.note;
-              const box = noteBounds?.noteHeadBounds || noteBounds;
-              const stringNo = note?.string;
-              if (!Number.isFinite(stringNo) || !box) continue;
-              const y = (box.y ?? 0) + ((box.h ?? box.height ?? 16) / 2);
-              sums[stringNo][0] += y;
-              sums[stringNo][1] += 1;
-            }
-          }
-        }
-      }
-    }
-    const map = {};
-    const present = [];
-    for (let s = 1; s <= 6; s++) {
-      if (sums[s][1] > 0) {
-        map[s] = sums[s][0] / sums[s][1];
-        present.push(s);
-      }
-    }
-    if (!present.length) return null;
-    if (present.length >= 2) {
-      const top = present[0];
-      const bottom = present[present.length - 1];
-      const step = (map[bottom] - map[top]) / (bottom - top || 1);
-      for (let s = 1; s <= 6; s++) {
-        if (!Number.isFinite(map[s])) map[s] = map[top] + step * (s - top);
-      }
-    } else {
-      for (let s = 1; s <= 6; s++) map[s] = map[present[0]] + (s - present[0]) * 12;
-    }
-    return map;
-  }
-
-  function renderAutoPatternTabOverlay(api, root, lookup) {
-    const pattern = getCurrentAutoPattern();
-    const steps = Array.isArray(pattern?.steps) ? pattern.steps.filter((s) => /^[1-6]$/.test(String(s))) : [];
-    if (!steps.length) return false;
-    const chordSequence = getCurrentDisplayedChordSequence();
-    if (!chordSequence.length) return false;
-    const yMap = buildTabStringYMap(lookup);
-    if (!yMap) return false;
-    let barIndex = 0;
-    for (const system of lookup.staffSystems) {
-      for (const masterBar of (system?.bars || [])) {
-        for (const barBounds of (masterBar?.bars || [])) {
-          if (!isTabBarBounds(barBounds)) continue;
-          const chordText = chordSequence[Math.min(barIndex, chordSequence.length - 1)] || chordSequence[chordSequence.length - 1];
-          const shape = getChordShapeForDisplayChord(chordText);
-          const notes = [];
-          for (const beatBounds of (barBounds?.beats || [])) {
-            for (const noteBounds of (beatBounds?.notes || [])) {
-              notes.push(noteBounds);
-            }
-          }
-          notes.forEach((noteBounds, idx) => {
-            const box = noteBounds?.noteHeadBounds || noteBounds;
-            if (!box) return;
-            const resolved = resolveShapeStep(shape, steps[idx % steps.length]);
-            if (!resolved) return;
-            const bw = box.w ?? box.width ?? 16;
-            const bh = box.h ?? box.height ?? 16;
-            const bx = box.x ?? 0;
-            const cy = yMap[resolved.string] ?? ((box.y ?? 0) + bh / 2);
-            const top = cy - bh / 2;
-            const el = document.createElement('div');
-            el.className = 'tab-capo-overlay-note';
-            el.textContent = String(resolved.fret);
-            el.style.position = 'absolute';
-            el.style.left = `${bx}px`;
-            el.style.top = `${top}px`;
-            el.style.width = `${bw}px`;
-            el.style.height = `${bh}px`;
-            el.style.display = 'flex';
-            el.style.alignItems = 'center';
-            el.style.justifyContent = 'center';
-            el.style.background = '#fff';
-            el.style.color = '#111';
-            el.style.fontWeight = '700';
-            el.style.fontSize = `${Math.max(12, Math.round(bh * 0.95))}px`;
-            el.style.lineHeight = '1';
-            el.style.borderRadius = '2px';
-            el.style.boxSizing = 'border-box';
-            root.appendChild(el);
-          });
-          barIndex += 1;
-        }
-      }
-    }
-    return true;
-  }
-
   function renderTabCapoOverlay() {
     const api = window.__atApi;
     const root = ensureTabCapoOverlayRoot();
     if (!api || !root) return;
     root.innerHTML = '';
 
+    const scheme = (typeof window.getCurrentSchemeResult === 'function') ? window.getCurrentSchemeResult() : null;
+    const offset = (scheme && scheme.mode === 'auto') ? 0 : getUserTranspose();
     const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
-    if (!lookup || !Array.isArray(lookup.staffSystems)) return;
-
-    const auto = window.__AUTO13;
-    if (auto && auto.mode === 'auto') {
-      if (renderAutoPatternTabOverlay(api, root, lookup)) return;
-    }
-
-    const offset = getTabDisplayShift();
-    if (!offset) return;
+    if (!offset || !lookup || !Array.isArray(lookup.staffSystems)) return;
 
     for (const system of lookup.staffSystems) {
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];
@@ -901,6 +865,7 @@
 
   window.addEventListener('auto13:statechange', () => {
     scheduleTabCapoOverlay(20);
+    try { if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } catch (e) { console.warn('applyCurrentPatternToOriginalTab failed', e); }
   });
 
 
@@ -954,6 +919,24 @@
     };
     window.__gtzMeta = gtz?.meta || null;
     updateMetaRow(window.__gtzMeta || null);
+
+    try {
+      const xmlText = decodeBase64ToText(scoreB64);
+      if (/^\s*</.test(xmlText)) {
+        window.__originalXmlText = xmlText;
+        window.__originalScoreB64 = scoreB64;
+        const parsed = buildMusicTimelineFromXML(xmlText);
+        window.__musicTimelineRaw = parsed;
+        window.__chordTimelineRaw = parsed.chords.slice();
+        window.__measureTimelineRaw = parsed.measures.slice();
+      }
+    } catch (e) {
+      console.warn('GTZ时间轴解析失败:', e);
+      window.__originalXmlText = null;
+      window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
+      window.__chordTimelineRaw = [];
+      window.__measureTimelineRaw = [];
+    }
 
     const bytes = base64ToUint8Array(scoreB64);
     api.load(bytes);
@@ -1200,6 +1183,7 @@
         progressEl.value = String(__playbackState.progress);
       }
       if (timeEl) timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
+      try { remapTimelineTimesIfNeeded(); } catch (e) {}
     });
 
     if (progressEl) {
@@ -1244,6 +1228,213 @@
     if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
   }
   // ===== /alphaTab + .gtz 加载 =====
+
+const AUTO_CHORD_SHAPES = {
+  'C':['x',3,2,0,1,0],'Cm':['x',3,5,5,4,3],'C7':['x',3,2,3,1,0],'Cmaj7':['x',3,2,0,0,0],'Cm7':['x',3,5,3,4,3],'Csus4':['x',3,3,0,1,1],
+  'C#':['x',4,6,6,6,4],'C#m':['x',4,6,6,5,4],'Db':['x',4,6,6,6,4],'Dbm':['x',4,6,6,5,4],
+  'D':['x','x',0,2,3,2],'Dm':['x','x',0,2,3,1],'D7':['x','x',0,2,1,2],'Dmaj7':['x','x',0,2,2,2],'Dm7':['x','x',0,2,1,1],'Dsus4':['x','x',0,2,3,3],
+  'E':[0,2,2,1,0,0],'Em':[0,2,2,0,0,0],'E7':[0,2,0,1,0,0],'Emaj7':[0,2,1,1,0,0],'Em7':[0,2,2,0,3,0],'Esus4':[0,2,2,2,0,0],
+  'Eb':['x',6,8,8,8,6],'Ebm':['x',6,8,8,7,6],
+  'F':[1,3,3,2,1,1],'Fm':[1,3,3,1,1,1],'F7':[1,3,1,2,1,1],'Fmaj7':[1,3,2,2,1,0],'Fm7':[1,3,1,1,1,1],
+  'F#':[2,4,4,3,2,2],'F#m':[2,4,4,2,2,2],'Gb':[2,4,4,3,2,2],'Gbm':[2,4,4,2,2,2],
+  'G':[3,2,0,0,0,3],'Gm':[3,5,5,3,3,3],'G7':[3,2,0,0,0,1],'Gmaj7':[3,2,0,0,0,2],'Gm7':[3,5,3,3,3,3],'Gsus4':[3,3,0,0,1,3],
+  'G#':[4,6,6,5,4,4],'G#m':[4,6,6,4,4,4],'Ab':[4,6,6,5,4,4],'Abm':[4,6,6,4,4,4],
+  'A':['x',0,2,2,2,0],'Am':['x',0,2,2,1,0],'A7':['x',0,2,0,2,0],'Amaj7':['x',0,2,1,2,0],'Am7':['x',0,2,0,1,0],'Asus4':['x',0,2,2,3,0],
+  'A#':['x',1,3,3,3,1],'A#m':['x',1,3,3,2,1],'Bb':['x',1,3,3,3,1],'Bbm':['x',1,3,3,2,1],
+  'B':['x',2,4,4,4,2],'Bm':['x',2,4,4,3,2],'B7':['x',2,1,2,0,2],'Bm7':['x',2,4,2,3,2]
+};
+
+function normalizeAutoChordLookup(chord) {
+  const raw = String(chord || '').trim();
+  if (!raw) return '';
+  return raw.replace(/\s+/g, '').replace(/△/g, 'maj');
+}
+
+function getAutoShapeForChord(chordDisplay, chordRaw) {
+  const candidates = [chordDisplay, chordRaw].map(normalizeAutoChordLookup).filter(Boolean);
+  for (const c of candidates) {
+    if (AUTO_CHORD_SHAPES[c]) return { key: c, shape: AUTO_CHORD_SHAPES[c].slice() };
+    const slash = c.split('/')[0];
+    if (AUTO_CHORD_SHAPES[slash]) return { key: slash, shape: AUTO_CHORD_SHAPES[slash].slice() };
+  }
+  return null;
+}
+
+function getBassStringFromShape(shape) {
+  if (!Array.isArray(shape)) return 6;
+  for (let i = 0; i < shape.length; i++) { if (shape[i] !== 'x' && shape[i] !== 'X') return 6 - i; }
+  return 6;
+}
+
+function getAutoPatternForMeter(meter, bassString) {
+  const b = Number.isFinite(+bassString) ? +bassString : 6;
+  const patterns = window.RhythmEngine && typeof window.RhythmEngine.getPatternsForMeter === 'function' ? window.RhythmEngine.getPatternsForMeter(meter) : [];
+  const current = (typeof window.getCurrentPatternResult === 'function') ? window.getCurrentPatternResult() : null;
+  const p = (current && current.steps && current.steps.length) ? current : (patterns[0] || null);
+  if (!p || !Array.isArray(p.steps)) return [b,3,2,3,1,3,2,3];
+  return p.steps.map(step => /^\d+$/.test(String(step)) ? Number(step) : step === 'R' ? b : step);
+}
+
+function getMappedChordTimeline() {
+  remapTimelineTimesIfNeeded();
+  const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
+  return raw.map((c, i) => {
+    let chordDisplay = c.chordRaw;
+    try {
+      if (typeof window.getAutoDisplayedChordForOriginal === 'function') chordDisplay = window.getAutoDisplayedChordForOriginal(c.chordRaw);
+      else if (typeof transposeChordSymbol === 'function') chordDisplay = transposeChordSymbol(c.chordRaw, getUserTranspose(), prefersFlatsFromKeyName((window.__currentMeta && window.__currentMeta.key_name) || ''));
+    } catch (e) {}
+    return { ...c, index: i, chordDisplay };
+  });
+}
+
+function rebuildAutoAccompanimentSong() {
+  remapTimelineTimesIfNeeded();
+  const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
+  const chords = getMappedChordTimeline();
+  window.__autoAccompanimentSong = measures.map((measureObj) => {
+    let chordObj = null;
+    for (let i = 0; i < chords.length; i++) {
+      const c = chords[i];
+      if ((c.timeMs || 0) <= (measureObj.startMs || 0)) chordObj = c; else break;
+    }
+    if (!chordObj && chords.length) chordObj = chords[0];
+    if (!measureObj || !chordObj) return null;
+    const resolved = getAutoShapeForChord(chordObj.chordDisplay, chordObj.chordRaw);
+    if (!resolved || !resolved.shape) return { meter: measureObj.meter, measure: measureObj.measure, chordRaw: chordObj.chordRaw, chordDisplay: chordObj.chordDisplay, notes: [] };
+    const shape = resolved.shape;
+    const bassString = getBassStringFromShape(shape);
+    const pattern = getAutoPatternForMeter(measureObj.meter, bassString);
+    const notes = pattern.map((token, idx) => {
+      const stringNum = parseInt(token, 10);
+      if (!Number.isFinite(stringNum) || stringNum < 1 || stringNum > 6) return null;
+      const fret = shape[6 - stringNum];
+      if (fret === 'x' || fret === 'X' || fret == null) return null;
+      return { index: idx, string: stringNum, fret: Number(fret), label: `${stringNum}弦${fret}` };
+    }).filter(Boolean);
+    return { meter: measureObj.meter, measure: measureObj.measure, chordRaw: chordObj.chordRaw, chordDisplay: chordObj.chordDisplay, pattern: pattern.slice(), notes, bassString, shape: shape.slice() };
+  }).filter(Boolean);
+}
+
+function rebuildAutoTabTrack(){
+  const song = window.__autoAccompanimentSong || [];
+  const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
+  function parseMeterText(meterText){
+    const m = String(meterText || '').match(/^(\d+)\/(\d+)$/);
+    return { beats: m ? parseInt(m[1], 10) : 4, beatType: m ? parseInt(m[2], 10) : 4 };
+  }
+  window.__autoAccompanimentTabTrack = song.map(bar => {
+    const measureObj = measures.find(m => m.measure === bar.measure) || null;
+    const meterInfo = parseMeterText(bar.meter || (measureObj && measureObj.meter) || '4/4');
+    const stepCount = Math.max(1, (bar.notes || []).length || 1);
+    const beatsPerBar = meterInfo.beats;
+    const durationBeat = beatsPerBar / stepCount;
+    return { measure: bar.measure, meter: bar.meter, chordRaw: bar.chordRaw, chordDisplay: bar.chordDisplay, beats: meterInfo.beats, beatType: meterInfo.beatType, stepCount, notes: (bar.notes || []).map((n,i)=>({ string: n.string, fret: n.fret, stepIndex: i, startBeat: +(i*durationBeat).toFixed(4), durationBeat: +durationBeat.toFixed(4) })) };
+  });
+}
+
+(function(){
+  function encodeTextToUint8Array(text) { return new TextEncoder().encode(String(text || '')); }
+  function cloneXmlNode(doc, node) { return doc.importNode ? doc.importNode(node, true) : node.cloneNode(true); }
+  function midiToPitch(midi) {
+    const pc = ((midi % 12) + 12) % 12;
+    const octave = Math.floor(midi / 12) - 1;
+    const names = [['C', null], ['C', 1], ['D', null], ['E', -1], ['E', null], ['F', null], ['F', 1], ['G', null], ['A', -1], ['A', null], ['B', -1], ['B', null]];
+    const [step, alter] = names[pc];
+    return { step, alter, octave };
+  }
+  const OPEN_STRING_MIDI = { 6: 40, 5: 45, 4: 50, 3: 55, 2: 59, 1: 64 };
+  function findTabPartNode(xmlDoc) {
+    const parts = Array.from(xmlDoc.querySelectorAll('score-partwise > part, score-timewise > part'));
+    for (const part of parts) {
+      const firstMeasure = part.querySelector(':scope > measure');
+      if (!firstMeasure) continue;
+      const sign = firstMeasure.querySelector(':scope > attributes > clef > sign')?.textContent?.trim();
+      const lines = firstMeasure.querySelector(':scope > attributes > staff-details > staff-lines')?.textContent?.trim();
+      if (sign === 'TAB' || lines === '6') return part;
+    }
+    return parts[parts.length - 1] || null;
+  }
+  function getMeasureChildrenToKeep(measureEl) {
+    return Array.from(measureEl.children).filter((child) => !['note','backup','forward'].includes(child.nodeName));
+  }
+  function noteTypeFromDuration(durationUnits, divisions) {
+    const quarterUnits = Number(divisions) || 1; const ratio = durationUnits / quarterUnits;
+    if (Math.abs(ratio - 4) < 1e-6) return 'whole'; if (Math.abs(ratio - 2) < 1e-6) return 'half'; if (Math.abs(ratio - 1) < 1e-6) return 'quarter'; if (Math.abs(ratio - 0.5) < 1e-6) return 'eighth'; if (Math.abs(ratio - 0.25) < 1e-6) return '16th'; return ratio >= 1 ? 'quarter' : 'eighth';
+  }
+  function createTextEl(doc, name, text) { const el = doc.createElement(name); el.textContent = String(text); return el; }
+  function createNoteEl(doc, n, durationUnits, divisions, beamState) {
+    const note = doc.createElement('note');
+    const midi = OPEN_STRING_MIDI[n.string] + Number(n.fret || 0);
+    const pitch = midiToPitch(midi);
+    const pitchEl = doc.createElement('pitch');
+    pitchEl.appendChild(createTextEl(doc, 'step', pitch.step));
+    if (pitch.alter != null) pitchEl.appendChild(createTextEl(doc, 'alter', pitch.alter));
+    pitchEl.appendChild(createTextEl(doc, 'octave', pitch.octave));
+    note.appendChild(pitchEl);
+    note.appendChild(createTextEl(doc, 'duration', durationUnits));
+    note.appendChild(createTextEl(doc, 'voice', 1));
+    note.appendChild(createTextEl(doc, 'type', noteTypeFromDuration(durationUnits, divisions)));
+    note.appendChild(createTextEl(doc, 'stem', 'down'));
+    if (beamState) { const beam = doc.createElement('beam'); beam.setAttribute('number', '1'); beam.textContent = beamState; note.appendChild(beam); }
+    const notations = doc.createElement('notations'); const technical = doc.createElement('technical');
+    technical.appendChild(createTextEl(doc, 'string', n.string)); technical.appendChild(createTextEl(doc, 'fret', n.fret));
+    notations.appendChild(technical); note.appendChild(notations);
+    return note;
+  }
+  function rewriteXmlTabTrack(xmlText) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+    const part = findTabPartNode(xmlDoc);
+    if (!part) return xmlText;
+    const bars = Array.isArray(window.__autoAccompanimentTabTrack) ? window.__autoAccompanimentTabTrack : [];
+    const measures = Array.from(part.querySelectorAll(':scope > measure'));
+    let divisions = 2;
+    for (const measureEl of measures) {
+      const divEl = measureEl.querySelector(':scope > attributes > divisions');
+      if (divEl) { const d = parseInt(divEl.textContent || '2', 10); if (Number.isFinite(d) && d > 0) divisions = d; }
+      const barNo = parseInt(measureEl.getAttribute('number') || '0', 10);
+      const autoBar = bars.find(b => Number(b.measure) === barNo);
+      const keep = getMeasureChildrenToKeep(measureEl);
+      while (measureEl.firstChild) measureEl.removeChild(measureEl.firstChild);
+      keep.forEach(node => measureEl.appendChild(cloneXmlNode(xmlDoc, node)));
+      if (!autoBar || !Array.isArray(autoBar.notes) || !autoBar.notes.length) continue;
+      const durationUnits = Math.max(1, Math.round((autoBar.notes[0].durationBeat || 0.5) * divisions));
+      const beamable = autoBar.notes.length > 1 && noteTypeFromDuration(durationUnits, divisions) === 'eighth';
+      autoBar.notes.forEach((n, idx) => {
+        let beamState = null; if (beamable) { if (idx === 0) beamState = 'begin'; else if (idx === autoBar.notes.length - 1) beamState = 'end'; else beamState = 'continue'; }
+        measureEl.appendChild(createNoteEl(xmlDoc, n, durationUnits, divisions, beamState));
+      });
+    }
+    return new XMLSerializer().serializeToString(xmlDoc);
+  }
+  function loadXmlTextIntoAlphaTab(api, xmlText) {
+    if (!api || !xmlText) return;
+    try {
+      const parsed = buildMusicTimelineFromXML(xmlText);
+      window.__musicTimelineRaw = parsed;
+      window.__chordTimelineRaw = parsed.chords.slice();
+      window.__measureTimelineRaw = parsed.measures.slice();
+    } catch (e) { console.warn('重载XML时间轴失败', e); }
+    const bytes = encodeTextToUint8Array(xmlText);
+    api.load(bytes);
+  }
+  function applyCurrentPatternToOriginalTab() {
+    if (!window.__atApi || !window.__originalXmlText) return;
+    const scheme = (typeof window.getCurrentSchemeResult === 'function') ? window.getCurrentSchemeResult() : null;
+    if (!scheme || scheme.mode !== 'auto') {
+      if (window.__lastRenderedAutoXml) { window.__lastRenderedAutoXml = null; loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText); }
+      return;
+    }
+    rebuildAutoAccompanimentSong();
+    rebuildAutoTabTrack();
+    const xmlText = rewriteXmlTabTrack(window.__originalXmlText);
+    if (window.__lastRenderedAutoXml === xmlText) return;
+    window.__lastRenderedAutoXml = xmlText;
+    loadXmlTextIntoAlphaTab(window.__atApi, xmlText);
+  }
+  window.applyCurrentPatternToOriginalTab = applyCurrentPatternToOriginalTab;
+})();
 
 function pad4(num) {
     return String(num).padStart(4, "0");
@@ -1531,6 +1722,7 @@ function pad4(num) {
         applyScoreTransposition(window.__atApi);
         applyPlaybackTrackVisibility(window.__atApi);
         scheduleTabCapoOverlay(180);
+        setTimeout(() => { try { if (typeof applyCurrentPatternToOriginalTab === 'function') applyCurrentPatternToOriginalTab(); } catch(e) { console.warn('applyCurrentPatternToOriginalTab failed', e); } }, 120);
       });
 
       window.__atApi.renderFinished.on(() => {
