@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_2d_auto_key_spelling_fix';
+  const BUILD = 'V13_2e_scheme_truth_and_transpose';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -43,6 +43,15 @@
       if(!seen.has(raw)){ seen.add(raw); out.push(raw); }
     });
     return out;
+  }
+
+  function applyCapoToChords(chords, capo){
+    if(!window.SchemeEngine) return (chords || []).slice();
+    const useFlats = preferFlats();
+    return (chords || []).map((ch)=>{
+      try { return SchemeEngine.shiftChord(ch, capo || 0, useFlats); }
+      catch(e){ return ch; }
+    });
   }
 
   function currentMeter(){ return '4/4'; }
@@ -107,11 +116,15 @@
   }
 
   function buildContext(){
+    const rawOriginalChords = extractOriginalChords();
+    const songCapo = getSongCapoSafe();
+    const realChords = applyCapoToChords(rawOriginalChords, songCapo);
     return {
       originalKey: getOriginalKeyName(),
-      songCapo: getSongCapoSafe(),
+      songCapo,
       transpose: getTransposeSafe(),
-      originalChords: extractOriginalChords(),
+      rawOriginalChords,
+      originalChords: realChords,
       preferFlats: preferFlats()
     };
   }
@@ -134,19 +147,19 @@
   }
 
   function schemeInfoData(){
-    const original = extractOriginalChords().slice(0, 5);
+    const rawOriginal = extractOriginalChords().slice(0, 5);
     if(AUTO.mode !== 'auto' || !AUTO.currentScheme){
       return {
         capo: `CAPO ${getSongCapoSafe()}`,
         family: 'family:原谱',
-        chords: original.length ? original.join(', ') : '--'
+        chords: rawOriginal.length ? rawOriginal.join(', ') : '--'
       };
     }
-    const mapped = original.map((c)=> AUTO.currentScheme.chordMap?.[c] || c);
+    const preview = Array.isArray(AUTO.currentScheme.previewChords) ? AUTO.currentScheme.previewChords.slice(0, 5) : [];
     return {
       capo: `CAPO ${AUTO.currentScheme.capo}`,
       family: `family:${AUTO.currentScheme.family || '--'}`,
-      chords: mapped.length ? mapped.join(', ') : '--'
+      chords: preview.length ? preview.join(', ') : '--'
     };
   }
 
@@ -261,8 +274,7 @@
     };
     const oldComputeDisplayedKeyName = window.computeDisplayedKeyName;
     window.computeDisplayedKeyName = function(meta){
-      // 自动伴奏模式不改变“歌曲当前调号”的显示规则；
-      // 顶部调号仍按原调 + 用户转调来显示，不跟随 family / scheme.targetConcertKey 漂移。
+      // 自动伴奏不改变歌曲“当前调号”的显示；只显示 原调 + 用户转调。
       return oldComputeDisplayedKeyName ? oldComputeDisplayedKeyName(meta) : getOriginalKeyName();
     };
     const oldChangeTranspose = window.changeTranspose;

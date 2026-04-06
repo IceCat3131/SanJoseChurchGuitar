@@ -70,20 +70,47 @@
     return out;
   }
   function buildScheme(opts){
-    const { family, capo, originalChords, songCapo, autoTranspose, preferFlats, targetConcertKey } = opts;
-    // originalChords 进入 buildScheme 前已经按 sourceCapo 提升到真实和弦；
-    // 因此这里只需要“用户转调 - 方案CAPO”，不能再加 songCapo。
-    const displayDelta = autoTranspose - capo;
-    const shapeMap = buildShapeMap(originalChords, displayDelta, preferFlats);
+    const {
+      family,
+      capo,
+      rawOriginalChords,
+      realChords,
+      autoTranspose,
+      preferFlats,
+      targetConcertKey,
+      songCapo
+    } = opts;
+
+    // realChords 已经 = 原谱和弦 + sourceCapo
+    // 想得到“吉他按法显示和弦”，只需要再减去当前方案的 capo，
+    // 并叠加用户转调（如果有）。
+    const displayDelta = (autoTranspose || 0) - capo;
+    const shapeMap = {};
     const chordMap = {};
-    originalChords.forEach((symbol)=>{
-      chordMap[symbol] = shapeMap[symbol]?.displayChord || shiftChord(symbol, displayDelta, preferFlats);
+
+    rawOriginalChords.forEach((rawSymbol, i)=>{
+      const realSymbol = realChords[i] || rawSymbol;
+      const displayChord = shiftChord(realSymbol, displayDelta, preferFlats);
+      const p = parseChord(displayChord);
+      const shapeKey = p ? formatChord({ root:normalizeNote(p.root, preferFlats), quality:p.quality, bass:'' }) : displayChord;
+      const shape = DEFAULT_SHAPES[shapeKey] || (p ? DEFAULT_SHAPES[normalizeNote(p.root, preferFlats)] : null) || null;
+      chordMap[rawSymbol] = displayChord;
+      if(shape){
+        shapeMap[rawSymbol] = { displayChord, shape };
+      }
     });
-    let score = Math.abs(capo - 2);
-    if(capo > 4) score += 1.2;
-    if(capo === 0) score += 0.5;
-    score += (FAMILY_ROOTS.indexOf(family) * 0.05);
-    originalChords.forEach((sym)=>{ score += penaltyForChord(parseChord(chordMap[sym] || sym)); });
+
+    const previewChords = rawOriginalChords.map((sym)=> chordMap[sym] || sym);
+
+    // 评分：1) 更接近原谱GTZ的 capo 习惯；2) 尽量少横按/高把位；3) family 稳定
+    let score = 0;
+    score += Math.abs(capo - (songCapo || 0)) * 1.2;
+    score += Math.abs(capo - 2) * 0.4;
+    if(capo > 5) score += 2.0;
+    if(capo === 0) score += 0.8;
+    score += (FAMILY_ROOTS.indexOf(family) * 0.03);
+    previewChords.forEach((sym)=>{ score += penaltyForChord(parseChord(sym)); });
+
     return {
       family,
       capo,
@@ -92,27 +119,40 @@
       displayDelta,
       chordMap,
       shapeMap,
+      previewChords,
       summary: `${family}组 / CP${capo}`
     };
   }
+
   function generateSchemes(ctx){
     const preferFlats = !!ctx.preferFlats;
     const originalKey = ctx.originalKey || 'C';
-    // originalKey 已经是歌曲原调；GTZ 的 sourceCapo 只用于把原谱和弦提升到真实和弦，
-    // 不应再叠加到“歌曲调号”上，否则顶部调号会漂移。
-    const originalConcertKey = originalKey;
-    const targetConcertKey = add(originalConcertKey, ctx.transpose || 0, preferFlats);
+    // 顶部歌曲调号 = 原调 + 用户转调；不再把 songCapo 叠加到“歌曲调号”里。
+    const targetConcertKey = add(originalKey, ctx.transpose || 0, preferFlats);
     const targetIdx = idx(targetConcertKey);
     if(targetIdx == null) return [];
-    const originalChords = uniqueChordSymbols(ctx.originalChords);
-    const out=[];
+
+    const rawOriginalChords = uniqueChordSymbols(ctx.rawOriginalChords || []);
+    const realChords = uniqueChordSymbols(ctx.originalChords || []);
+    const out = [];
+
     FAMILY_ROOTS.forEach((family)=>{
       const familyIdx = idx(family);
       if(familyIdx == null) return;
       const capo = (targetIdx - familyIdx + 12) % 12;
       if(capo < 0 || capo > 6) return;
-      out.push(buildScheme({ family, capo, originalChords, songCapo:ctx.songCapo||0, autoTranspose:ctx.transpose||0, preferFlats, targetConcertKey }));
+      out.push(buildScheme({
+        family,
+        capo,
+        rawOriginalChords,
+        realChords,
+        songCapo: ctx.songCapo || 0,
+        autoTranspose: ctx.transpose || 0,
+        preferFlats,
+        targetConcertKey
+      }));
     });
+
     out.sort((a,b)=>a.score-b.score);
     return out.slice(0,3);
   }
