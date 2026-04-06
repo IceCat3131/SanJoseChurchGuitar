@@ -289,26 +289,40 @@
     };
   }
 
+  function familyForCapo(targetConcertKey, capo){
+    const targetIdx = idx(targetConcertKey);
+    if(targetIdx == null) return null;
+    const wantIdx = (targetIdx - capo + 12) % 12;
+    const preferred = noteNameForIndex(wantIdx, targetConcertKey);
+    if(FAMILY_CHORDS[preferred]) return preferred;
+    const aliases = ENHARMONIC_ROOTS[preferred] || [];
+    for(const alias of aliases){
+      if(FAMILY_CHORDS[alias]) return alias;
+    }
+    return null;
+  }
+
   function generateSchemes(ctx){
-    const originalKey = normalizeKeyName(ctx.originalKey || 'C').replace(/m$/, '');
-    const targetConcertKey = add(originalKey, ctx.transpose || 0, null, originalKey);
+    const displayedKey = normalizeKeyName(ctx.originalKey || 'C').replace(/m$/, '');
+    const transpose = parseInt(ctx.transpose || 0, 10) || 0;
+    const targetConcertKey = transpose ? add(displayedKey, transpose, null, displayedKey) : displayedKey;
     const targetIdx = idx(targetConcertKey);
     if(targetIdx == null) return [];
     const originalChords = uniqueChordSymbols(respellChordListForKey(ctx.originalChords, targetConcertKey));
     const out = [];
-    FAMILY_ROOTS.forEach((family) => {
-      const familyIdx = idx(family);
-      if(familyIdx == null) return;
-      const capo = (targetIdx - familyIdx + 12) % 12;
-      if(capo < 0 || capo > 6) return;
+    const seen = new Set();
+    for(let capo = 0; capo <= 6; capo++) {
+      const family = familyForCapo(targetConcertKey, capo);
+      if(!family || seen.has(family + '@' + capo)) continue;
+      seen.add(family + '@' + capo);
       out.push(buildScheme({
         family,
         capo,
         originalChords,
         targetConcertKey
       }));
-    });
-    out.sort((a, b) => a.score - b.score);
+    }
+    out.sort((a, b) => a.score - b.score || a.capo - b.capo);
     return out.slice(0, 3);
   }
 

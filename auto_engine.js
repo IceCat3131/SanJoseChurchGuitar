@@ -136,10 +136,11 @@
     const realChords = applyCapoToChords(rawChords, sourceCapo);
     return {
       originalKey: getDisplayedSongKeyName(),
-      // sourceCapo 在这里用于把原谱和弦提升成“真实和弦”；
-      // 进入 scheme_engine 后不再重复参与目标调和显示和弦计算。
+      // 这里直接以当前界面已显示的调号作为目标调。
+      // getDisplayedSongKeyName() 已经包含用户转调后的结果，因此不要再叠加 transpose，
+      // 否则会发生目标调被重复偏移，导致 family / capo / chord group 全部错位。
       songCapo: 0,
-      transpose: getTransposeSafe(),
+      transpose: 0,
       originalChords: realChords,
       preferFlats: preferFlats()
     };
