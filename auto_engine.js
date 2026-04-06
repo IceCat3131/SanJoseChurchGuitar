@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V14_1_TARGET_KEY_FIX';
+  const BUILD = 'V15_FULL_SCHEME_REWORK';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -124,11 +124,9 @@
     const realChords = applyCapoToChords(rawChords, sourceCapo);
     return {
       originalKey: getOriginalKeyName(),
-      targetConcertKey: getDisplayedSongKeyName(),
-      // sourceCapo 在这里用于把原谱和弦提升成“真实和弦”；
-      // 进入 scheme_engine 后不再重复参与目标调和显示和弦计算。
-      songCapo: 0,
-      transpose: 0,
+      displayedKey: getDisplayedSongKeyName(),
+      songCapo: sourceCapo,
+      transpose: getTransposeSafe(),
       originalChords: realChords,
       preferFlats: preferFlats()
     };
@@ -160,11 +158,10 @@
         chords: original.length ? original.join(', ') : '--'
       };
     }
-    const preview = Array.isArray(AUTO.currentScheme.previewChords) ? AUTO.currentScheme.previewChords : [];
     return {
       capo: `CAPO ${AUTO.currentScheme.capo}`,
       family: `family:${AUTO.currentScheme.familyDisplay || AUTO.currentScheme.family || '--'}`,
-      chords: preview.length ? preview.join(', ') : '--'
+      chords: (AUTO.currentScheme.displayChords && AUTO.currentScheme.displayChords.length) ? AUTO.currentScheme.displayChords.join(', ') : '--'
     };
   }
 
@@ -193,7 +190,7 @@
     const root = $('alphaTab');
     if(!root) return;
     const chordFontPx = (typeof getChordFontSizePx === 'function') ? getChordFontSizePx() : 16;
-    const displayKey = getDisplayedSongKeyName();
+    const useFlats = preferFlats();
     qa('text, tspan', root).forEach((el)=>{
       if(el.children && el.children.length) return;
       const current = (el.textContent || '').trim();
@@ -203,7 +200,7 @@
       if(!el.getAttribute('data-orig-chord')) el.setAttribute('data-orig-chord', original);
       let next = original;
       if(AUTO.mode === 'auto' && AUTO.currentScheme && AUTO.currentScheme.chordMap){
-        const realChord = window.SchemeEngine ? SchemeEngine.respellChordForKey(SchemeEngine.shiftChord(original, getSongCapoSafe(), true), displayKey) : original;
+        const realChord = window.SchemeEngine ? SchemeEngine.shiftChord(original, getSongCapoSafe(), useFlats) : original;
         next = AUTO.currentScheme.chordMap[realChord] || original;
       } else {
         // 原谱模式保持原谱和弦，不跟自动伴奏/转调链路混用
