@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'v14.3';
+  const BUILD = '14.4';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -15,40 +15,35 @@
   function q(sel, root){ return (root || document).querySelector(sel); }
   function qa(sel, root){ return Array.from((root || document).querySelectorAll(sel)); }
   function getSongCapoSafe(){ return typeof getSongCapo === 'function' ? getSongCapo() : 0; }
-  function getOriginalKeyName(){ return (window.__currentMeta && window.__currentMeta.key_name) || 'C'; }
+
+  function normalizeEnharmonicKeyName(name){
+    const raw = String(name || '').trim();
+    const map = { 'G#':'Ab', 'D#':'Eb', 'A#':'Bb', 'C#':'Db', 'F#':'Gb', 'Cb':'B', 'E#':'F', 'B#':'C' };
+    return map[raw] || raw;
+  }
+  function getUiDisplayedKeyName(){
+    const el = $('ui-key');
+    return normalizeEnharmonicKeyName((el && el.textContent) || '');
+  }
+
+  function getOriginalKeyName(){ return normalizeEnharmonicKeyName((window.__currentMeta && window.__currentMeta.key_name) || 'C'); }
   function getDisplayedSongKeyName(){
+    const uiKey = getUiDisplayedKeyName();
+    if(uiKey) return uiKey;
     try{
       if(typeof computeDisplayedKeyName === 'function'){
-        return computeDisplayedKeyName(window.__currentMeta || { key_name: getOriginalKeyName() });
+        return normalizeEnharmonicKeyName(computeDisplayedKeyName(window.__currentMeta || { key_name: getOriginalKeyName() }));
       }
     }catch(e){}
     return getOriginalKeyName();
   }
   function preferFlats(){
-    const keyName = getDisplayedSongKeyName();
-    return typeof prefersFlatsFromKeyName === 'function' ? prefersFlatsFromKeyName(keyName) : true;
+    const keyName = normalizeEnharmonicKeyName(getDisplayedSongKeyName());
+    if(window.SchemeEngine && typeof SchemeEngine.isFlatKeyName === 'function') return SchemeEngine.isFlatKeyName(keyName);
+    if(typeof prefersFlatsFromKeyName === 'function') return !!prefersFlatsFromKeyName(keyName);
+    return ['F','Bb','Eb','Ab','Db','Gb','Cb'].includes(keyName);
   }
   function getTransposeSafe(){ return (typeof getUserTranspose === 'function') ? getUserTranspose() : (window.viewerPrefs ? (parseInt(viewerPrefs.transposeSemitones, 10) || 0) : 0); }
-
-  const FLAT_KEYS = new Set(['F','Bb','Eb','Ab','Db','Gb','Cb']);
-  function baseKeyName(name){
-    const m = String(name || '').trim().match(/^([A-G](?:#|b)?)/);
-    return m ? m[1] : String(name || '').trim();
-  }
-  function keyPrefersFlatsHard(name){
-    return FLAT_KEYS.has(baseKeyName(name));
-  }
-  function respellChordForCurrentKey(symbol){
-    const keyName = getDisplayedSongKeyName();
-    if(window.SchemeEngine && typeof SchemeEngine.respellChordForKey === 'function'){
-      return SchemeEngine.respellChordForKey(symbol, keyName);
-    }
-    return symbol;
-  }
-  function normalizeChordListForCurrentKey(chords){
-    return (chords || []).map((ch)=>respellChordForCurrentKey(ch));
-  }
-
 
   function extractOriginalChords(){
     const root = $('alphaTab');
@@ -103,7 +98,7 @@
       if(!$('panel-rhythm-hub')){
         layer.insertAdjacentHTML('beforeend', `
           <div class="core-panel auto-panel-hub" id="panel-rhythm-hub" hidden>
-            <div class="core-panel-head"><span>节</span><span id="auto-chip-build" class="auto-chip">${BUILD}</span></div>
+            <div class="core-panel-head"><span>节</span><span id="auto-chip-build" class="auto-chip">v${BUILD}</span></div>
             <div class="auto-hub-layout auto-hub-layout-v2">
               <div class="auto-hub-left auto-hub-left-v2">
                 <div class="auto-hub-col-title">和弦组</div>
@@ -133,7 +128,7 @@
       const badge = document.createElement('div');
       badge.id = 'auto-version-badge';
       badge.className = 'auto-version-badge';
-      badge.textContent = BUILD;
+      badge.textContent = 'v' + BUILD;
       document.body.appendChild(badge);
     }
   }
@@ -176,11 +171,15 @@
       return {
         capo: `CAPO ${getSongCapoSafe()}`,
         family: 'family:原谱',
-        chords: original.length ? normalizeChordListForCurrentKey(original).join(', ') : '--'
+        chords: original.length ? original.join(', ') : '--'
       };
     }
     const realPreview = applyCapoToChords(original, getSongCapoSafe()).slice(0, 5);
-    const mapped = normalizeChordListForCurrentKey(realPreview.map((c)=> AUTO.currentScheme.chordMap?.[c] || c));
+    const targetKey = getDisplayedSongKeyName();
+    const mapped = realPreview.map((c)=> {
+      const raw = AUTO.currentScheme.chordMap?.[c] || c;
+      return (window.SchemeEngine && typeof SchemeEngine.normalizeChordForKey === 'function') ? SchemeEngine.normalizeChordForKey(raw, targetKey) : raw;
+    });
     return {
       capo: `CAPO ${AUTO.currentScheme.capo}`,
       family: `family:${AUTO.currentScheme.family || '--'}`,
@@ -224,10 +223,13 @@
       let next = original;
       if(AUTO.mode === 'auto' && AUTO.currentScheme && AUTO.currentScheme.chordMap){
         const realChord = window.SchemeEngine ? SchemeEngine.shiftChord(original, getSongCapoSafe(), useFlats) : original;
-        next = respellChordForCurrentKey(AUTO.currentScheme.chordMap[realChord] || original);
+        next = AUTO.currentScheme.chordMap[realChord] || original;
+        if(window.SchemeEngine && typeof SchemeEngine.normalizeChordForKey === 'function'){
+          next = SchemeEngine.normalizeChordForKey(next, getDisplayedSongKeyName());
+        }
       } else {
         // 原谱模式保持原谱和弦，不跟自动伴奏/转调链路混用
-        next = respellChordForCurrentKey(original);
+        next = original;
       }
       if(next !== current) el.textContent = next;
       try { el.style.fontSize = chordFontPx + 'px'; } catch(e) {}

@@ -271,12 +271,9 @@
   };
 
   function prefersFlatsFromKeyName(keyName) {
-    if (!keyName) return true;
-    const s = String(keyName).trim();
-    const m = s.match(/^([A-G](?:#|b)?)(.*)$/);
-    const tonic = m ? (m[1] + (m[2] || '')) : s;
-    const flatKeys = new Set(['F','Bb','Eb','Ab','Db','Gb','Cb','Dm','Gm','Cm','Fm','Bbm','Ebm','Abm']);
-    return flatKeys.has(tonic) || tonic.includes('b') || /^F(?:$|m)/i.test(tonic);
+    const raw = String(keyName || '').trim();
+    const normalized = ({ 'G#':'Ab', 'D#':'Eb', 'A#':'Bb', 'C#':'Db', 'F#':'Gb' })[raw] || raw;
+    return ['F','Bb','Eb','Ab','Db','Gb','Cb'].includes(normalized) || /^F(?:$|m)/i.test(normalized);
   }
 
   function transposePitchName(name, semitones, preferFlats) {
