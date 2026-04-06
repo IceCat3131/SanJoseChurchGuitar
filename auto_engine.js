@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_2i_flat_key_respelling';
+  const BUILD = 'V13_2j_full_respelling';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -26,7 +26,19 @@
   }
   function preferFlats(){
     const keyName = getDisplayedSongKeyName();
+    if(window.SchemeEngine && typeof SchemeEngine.prefersFlatsForKeyName === 'function'){
+      return SchemeEngine.prefersFlatsForKeyName(keyName);
+    }
     return typeof prefersFlatsFromKeyName === 'function' ? prefersFlatsFromKeyName(keyName) : true;
+  }
+  function respellForDisplayedKey(chord){
+    const raw = String(chord || '').trim();
+    if(!raw) return raw;
+    const keyName = getDisplayedSongKeyName();
+    if(window.SchemeEngine && typeof SchemeEngine.respellChordForKey === 'function'){
+      return SchemeEngine.respellChordForKey(raw, keyName);
+    }
+    return raw;
   }
   function getTransposeSafe(){ return (typeof getUserTranspose === 'function') ? getUserTranspose() : (window.viewerPrefs ? (parseInt(viewerPrefs.transposeSemitones, 10) || 0) : 0); }
 
@@ -50,7 +62,8 @@
     const useFlats = preferFlats();
     return (chords || []).map((ch)=>{
       try{
-        return SchemeEngine.shiftChord(ch, capo || 0, useFlats);
+        const shifted = SchemeEngine.shiftChord(ch, capo || 0, useFlats);
+        return respellForDisplayedKey(shifted);
       }catch(e){
         return ch;
       }
@@ -159,8 +172,8 @@
         chords: original.length ? original.join(', ') : '--'
       };
     }
-    const realPreview = applyCapoToChords(original, getSongCapoSafe()).slice(0, 5);
-    const mapped = realPreview.map((c)=> AUTO.currentScheme.chordMap?.[c] || c);
+    const realPreview = applyCapoToChords(original, getSongCapoSafe()).slice(0, 5).map((c)=>respellForDisplayedKey(c));
+    const mapped = realPreview.map((c)=> respellForDisplayedKey(AUTO.currentScheme.chordMap?.[c] || c));
     return {
       capo: `CAPO ${AUTO.currentScheme.capo}`,
       family: `family:${AUTO.currentScheme.family || '--'}`,
@@ -203,11 +216,11 @@
       if(!el.getAttribute('data-orig-chord')) el.setAttribute('data-orig-chord', original);
       let next = original;
       if(AUTO.mode === 'auto' && AUTO.currentScheme && AUTO.currentScheme.chordMap){
-        const realChord = window.SchemeEngine ? SchemeEngine.shiftChord(original, getSongCapoSafe(), useFlats) : original;
-        next = AUTO.currentScheme.chordMap[realChord] || original;
+        const realChord = window.SchemeEngine ? respellForDisplayedKey(SchemeEngine.shiftChord(original, getSongCapoSafe(), useFlats)) : original;
+        next = respellForDisplayedKey(AUTO.currentScheme.chordMap[realChord] || original);
       } else {
         // 原谱模式保持原谱和弦，不跟自动伴奏/转调链路混用
-        next = original;
+        next = respellForDisplayedKey(original);
       }
       if(next !== current) el.textContent = next;
       try { el.style.fontSize = chordFontPx + 'px'; } catch(e) {}

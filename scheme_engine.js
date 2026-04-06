@@ -19,8 +19,6 @@
     'Am7':['x',0,2,0,1,0], 'Bm7':['x',2,4,2,3,2], 'Cm7':['x',3,5,3,4,3], 'Dm7':['x','x',0,2,1,1], 'Em7':[0,2,2,0,3,0], 'Fm7':[1,3,1,1,1,1], 'Gm7':[3,5,3,3,3,3], 'C#m7':['x',4,6,4,5,4], 'F#m7':[2,4,2,2,2,2], 'G#m7':[4,6,4,4,4,4],
     'Asus4':['x',0,2,2,3,0], 'Dsus4':['x','x',0,2,3,3], 'Esus4':[0,2,2,2,0,0], 'Gsus4':[3,3,0,0,1,3], 'Csus4':['x',3,3,0,1,1], 'Fsus4':[1,3,3,3,1,1]
   };
-  const FLAT_KEYS = new Set(['F','Bb','Eb','Ab','Db','Gb','Cb']);
-  const SHARP_KEYS = new Set(['G','D','A','E','B','F#','C#']);
 
   function idx(name){ return INDEX[name] ?? null; }
   function normalizeNote(note, preferFlats){
@@ -43,26 +41,66 @@
     if(!parts) return '';
     return parts.root + (parts.quality || '') + (parts.bass ? '/' + parts.bass : '');
   }
-  function resolvePreferFlats(options){
-    if(options && typeof options.preferFlats === 'boolean') return options.preferFlats;
-    const key = (options && options.targetKey) ? String(options.targetKey).trim() : '';
-    if(FLAT_KEYS.has(key)) return true;
-    if(SHARP_KEYS.has(key)) return false;
-    return !!(options && options.preferFlats);
-  }
-  function respellChord(symbol, options){
+  function shiftChord(symbol, semitones, preferFlats){
     const p = parseChord(symbol); if(!p) return String(symbol || '');
-    const preferFlats = resolvePreferFlats(options || {});
+    return formatChord({ root:add(p.root,semitones,preferFlats), quality:p.quality, bass:p.bass ? add(p.bass,semitones,preferFlats) : '' });
+  }
+  function prefersFlatsForKeyName(keyName){
+    const note = String(keyName || '').trim().match(/^([A-G](?:#|b)?)/);
+    const root = note ? note[1] : 'C';
+    if(/b/.test(root)) return true;
+    if(/#/.test(root)) return false;
+    return ['F'].includes(root);
+  }
+  function respellChord(symbol, preferFlats){
+    const p = parseChord(symbol);
+    if(!p) return String(symbol || '');
     return formatChord({
       root: normalizeNote(p.root, preferFlats),
       quality: p.quality,
       bass: p.bass ? normalizeNote(p.bass, preferFlats) : ''
     });
   }
-  function shiftChord(symbol, semitones, preferFlats, targetKey){
-    const p = parseChord(symbol); if(!p) return String(symbol || '');
-    const shifted = formatChord({ root:add(p.root,semitones,preferFlats), quality:p.quality, bass:p.bass ? add(p.bass,semitones,preferFlats) : '' });
-    return respellChord(shifted, { preferFlats, targetKey });
+  function respellChordForKey(symbol, keyName){
+    return respellChord(symbol, prefersFlatsForKeyName(keyName));
+  }
+  function respellChordListForKey(chords, keyName){
+    return (chords || []).map((ch)=>respellChordForKey(ch, keyName));
+  }
+  function chordLookupVariants(symbol, preferFlats){
+    const p = parseChord(symbol);
+    if(!p) return [String(symbol || '')];
+    const rootFlat = normalizeNote(p.root, true);
+    const rootSharp = normalizeNote(p.root, false);
+    const bassFlat = p.bass ? normalizeNote(p.bass, true) : '';
+    const bassSharp = p.bass ? normalizeNote(p.bass, false) : '';
+    const out = [];
+    const seen = new Set();
+    const push = (root, includeBass) => {
+      const value = formatChord({ root, quality: p.quality, bass: includeBass ? (preferFlats ? bassFlat : bassSharp) : '' });
+      if(value && !seen.has(value)){
+        seen.add(value);
+        out.push(value);
+      }
+    };
+    push(normalizeNote(p.root, preferFlats), false);
+    push(normalizeNote(p.root, !preferFlats), false);
+    push(rootFlat, false);
+    push(rootSharp, false);
+    return out;
+  }
+  function findShapeForChord(symbol, preferFlats){
+    const variants = chordLookupVariants(symbol, preferFlats);
+    for(const key of variants){
+      if(DEFAULT_SHAPES[key]) return DEFAULT_SHAPES[key];
+    }
+    const p = parseChord(symbol);
+    if(!p) return null;
+    const roots = [normalizeNote(p.root, preferFlats), normalizeNote(p.root, !preferFlats), normalizeNote(p.root, true), normalizeNote(p.root, false)];
+    for(const root of roots){
+      if(DEFAULT_SHAPES[root]) return DEFAULT_SHAPES[root];
+    }
+    return null;
   }
   function penaltyForChord(ch){
     if(!ch) return 2;
@@ -71,32 +109,12 @@
     if(/sus4|maj7|m7|7/i.test(q)) return 1.1;
     return 0.2;
   }
-  function buildShapeAliases(){
-    const aliases = Object.assign({}, DEFAULT_SHAPES);
-    Object.keys(DEFAULT_SHAPES).forEach((name)=>{
-      const parsed = parseChord(name);
-      if(!parsed) return;
-      const sharpName = formatChord({ root: normalizeNote(parsed.root, false), quality: parsed.quality, bass: '' });
-      const flatName = formatChord({ root: normalizeNote(parsed.root, true), quality: parsed.quality, bass: '' });
-      if(!(sharpName in aliases)) aliases[sharpName] = DEFAULT_SHAPES[name];
-      if(!(flatName in aliases)) aliases[flatName] = DEFAULT_SHAPES[name];
-    });
-    return aliases;
-  }
-  const SHAPE_ALIASES = buildShapeAliases();
-  function findShape(symbol, preferFlats, targetKey){
-    const parsed = parseChord(symbol);
-    if(!parsed) return null;
-    const canonical = respellChord(symbol, { preferFlats, targetKey });
-    const parsedCanonical = parseChord(canonical) || parsed;
-    const fullKey = formatChord({ root: parsedCanonical.root, quality: parsedCanonical.quality, bass: '' });
-    return SHAPE_ALIASES[fullKey] || SHAPE_ALIASES[parsedCanonical.root] || null;
-  }
-  function buildShapeMap(chords, displayDelta, preferFlats, targetKey){
+  function buildShapeMap(chords, displayDelta, targetConcertKey){
+    const preferFlats = prefersFlatsForKeyName(targetConcertKey);
     const map = {};
     chords.forEach((symbol) => {
-      const shifted = shiftChord(symbol, displayDelta, preferFlats, targetKey);
-      const shape = findShape(shifted, preferFlats, targetKey);
+      const shifted = respellChordForKey(shiftChord(symbol, displayDelta, preferFlats), targetConcertKey);
+      const shape = findShapeForChord(shifted, preferFlats);
       if(shape) map[symbol] = { displayChord: shifted, shape };
     });
     return map;
@@ -107,12 +125,14 @@
     return out;
   }
   function buildScheme(opts){
-    const { family, capo, originalChords, songCapo, autoTranspose, preferFlats, targetConcertKey } = opts;
+    const { family, capo, originalChords, targetConcertKey } = opts;
+    const preferFlats = prefersFlatsForKeyName(targetConcertKey);
     const displayDelta = -capo;
-    const shapeMap = buildShapeMap(originalChords, displayDelta, preferFlats, targetConcertKey);
+    const shapeMap = buildShapeMap(originalChords, displayDelta, targetConcertKey);
     const chordMap = {};
     originalChords.forEach((symbol)=>{
-      chordMap[symbol] = shapeMap[symbol]?.displayChord || shiftChord(symbol, displayDelta, preferFlats, targetConcertKey);
+      const shifted = shiftChord(symbol, displayDelta, preferFlats);
+      chordMap[symbol] = respellChordForKey(shapeMap[symbol]?.displayChord || shifted, targetConcertKey);
     });
     let score = Math.abs(capo - 2);
     if(capo > 4) score += 1.2;
@@ -131,12 +151,13 @@
     };
   }
   function generateSchemes(ctx){
-    const preferFlats = !!ctx.preferFlats;
     const originalKey = ctx.originalKey || 'C';
-    const targetConcertKey = add(originalKey, ctx.transpose || 0, preferFlats);
-    const targetIdx = idx(targetConcertKey);
+    const transpose = ctx.transpose || 0;
+    const originalPreferFlats = prefersFlatsForKeyName(originalKey);
+    const targetConcertKey = respellChordForKey(add(originalKey, transpose, originalPreferFlats), add(originalKey, transpose, originalPreferFlats));
+    const targetIdx = idx(parseChord(targetConcertKey)?.root || targetConcertKey);
     if(targetIdx == null) return [];
-    const originalChords = uniqueChordSymbols(ctx.originalChords).map((symbol)=> respellChord(symbol, { preferFlats, targetKey: targetConcertKey }));
+    const originalChords = uniqueChordSymbols(ctx.originalChords).map((ch)=>respellChordForKey(ch, targetConcertKey));
     const out=[];
     FAMILY_ROOTS.forEach((family)=>{
       const familyIdx = idx(family);
@@ -147,14 +168,24 @@
         family,
         capo,
         originalChords,
-        songCapo: 0,
-        autoTranspose: ctx.transpose || 0,
-        preferFlats,
         targetConcertKey
       }));
     });
     out.sort((a,b)=>a.score-b.score);
     return out.slice(0,3);
   }
-  window.SchemeEngine = { parseChord, shiftChord, generateSchemes, buildScheme, uniqueChordSymbols, FAMILY_ROOTS, respellChord };
+  window.SchemeEngine = {
+    parseChord,
+    shiftChord,
+    generateSchemes,
+    buildScheme,
+    uniqueChordSymbols,
+    FAMILY_ROOTS,
+    normalizeNote,
+    respellChord,
+    respellChordForKey,
+    respellChordListForKey,
+    prefersFlatsForKeyName,
+    findShapeForChord
+  };
 })();
