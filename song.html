@@ -231,7 +231,6 @@
   }
 
   function getDisplayedCapoLabel() {
-    // 原谱模式：顶部CP只反映GTZ sourceCapo + 用户转调。
     return getSongCapo() + getUserTranspose();
   }
 
@@ -250,10 +249,8 @@
   }
 
   function getTrackTransposeSemitones(track) {
-    const userTranspose = getUserTranspose();
-    const sourceCapo = getSongCapo();
-    // 原谱模式：实际音高只加一次 GTZ sourceCapo 和一次用户转调。
-    return trackUsesTab(track) ? (sourceCapo + userTranspose) : userTranspose;
+    const base = getUserTranspose();
+    return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -337,7 +334,7 @@
       if (!el.getAttribute('data-orig-chord')) {
         el.setAttribute('data-orig-chord', original);
       }
-      const next = original;
+      const next = semitones === 0 ? original : transposeChordSymbol(original, semitones, preferFlats);
       if (next && next !== current) {
         el.textContent = next;
       }
@@ -411,9 +408,7 @@
       if (!api.settings.notation) api.settings.notation = {};
       api.settings.notation.transpositionPitches = trackTranspositions.slice();
       api.updateSettings();
-      // 注意：不要同时使用 notation.transpositionPitches 和 live changeTrackTranspositionPitch，
-      // 否则原谱TAB/音高会被重复转调。
-
+      // 这里不要再叠加 changeTrackTranspositionPitch，避免 sourceCapo/transpose 被双重应用。
       try { api.render(); } catch (e) {}
       scheduleChordRewrite(120);
       scheduleTabCapoOverlay(140);
@@ -658,7 +653,7 @@
 
   function getDisplayedFretForCapo(note) {
     if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
-    // 原谱模式：TAB显示永远保持原始按法数字，不跟CAPO或转调变化。
+    // 原谱TAB数字始终显示原始按法数字，不跟CAPO或转调一起平移。
     return note.fret;
   }
 
@@ -670,9 +665,7 @@
 
     const offset = getEffectiveCapo() + getUserTranspose();
     const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
-    if (!lookup || !Array.isArray(lookup.staffSystems)) return;
-    // 只要存在GTZ sourceCapo或用户转调，就用原始按法数字覆盖原谱TAB显示。
-    if (!offset) return;
+    if (!offset || !lookup || !Array.isArray(lookup.staffSystems)) return;
 
     for (const system of lookup.staffSystems) {
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];
