@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_0f_auto_menu_layout';
+  const BUILD = 'V13_0h_auto_menu_layout2';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -60,7 +60,7 @@
       if(!$('panel-rhythm-hub')){
         layer.insertAdjacentHTML('beforeend', `
           <div class="core-panel auto-panel-hub" id="panel-rhythm-hub" hidden>
-            <div class="core-panel-head auto-hub-hidden-head"><span>节</span><span id="auto-chip-build" class="auto-chip">${BUILD}</span></div>
+            <div class="core-panel-head"><span>节</span><span id="auto-chip-build" class="auto-chip">${BUILD}</span></div>
             <div class="auto-hub-layout auto-hub-layout-v2">
               <div class="auto-hub-left auto-hub-left-v2">
                 <div class="auto-hub-col-title">和弦组</div>
@@ -71,7 +71,7 @@
                 </div>
                 <div class="auto-hub-scheme-info" id="ui-auto-scheme-info">
                   <div>CAPO ${getSongCapoSafe()}</div>
-                  <div>family:C</div>
+                  <div>family:原谱</div>
                   <div>--</div>
                 </div>
               </div>
@@ -122,7 +122,7 @@
     return patterns.find((p)=>p.id === AUTO.currentPatternId) || patterns[0] || null;
   }
 
-  function schemeInfoLines(){
+  function schemeInfoData(){
     const original = extractOriginalChords().slice(0, 5);
     if(AUTO.mode !== 'auto' || !AUTO.currentScheme){
       return {
@@ -140,7 +140,6 @@
   }
 
   function updateUi(){
-    const currentPattern = getCurrentPattern();
     const inAuto = AUTO.mode === 'auto';
     $('ui-rhythm') && ($('ui-rhythm').textContent = inAuto ? '节·伴' : '节·原');
     ['a','b','c'].forEach((k, idx)=>{
@@ -152,7 +151,7 @@
     });
     const infoBox = $('ui-auto-scheme-info');
     if(infoBox){
-      const info = schemeInfoLines();
+      const info = schemeInfoData();
       infoBox.innerHTML = `<div>${info.capo}</div><div>${info.family}</div><div>${info.chords}</div>`;
     }
     buildRhythmPanel();
@@ -217,31 +216,30 @@
     applyScheme();
   }
 
-function buildRhythmPanel(){
-  const list = $('ui-rhythm-list');
-  if(!list || !window.RhythmEngine) return;
-  const patterns = RhythmEngine.getPatternsForMeter(currentMeter());
-  if(patterns.length && !AUTO.currentPatternId) AUTO.currentPatternId = AUTO.lastAutoPatternId || patterns[0].id;
-  list.innerHTML = '';
+  function buildRhythmPanel(){
+    const list = $('ui-rhythm-list');
+    if(!list || !window.RhythmEngine) return;
+    const patterns = RhythmEngine.getPatternsForMeter(currentMeter());
+    if(patterns.length && !AUTO.currentPatternId) AUTO.currentPatternId = AUTO.lastAutoPatternId || patterns[0].id;
+    list.innerHTML = '';
 
-  const originalBtn = document.createElement('button');
-  originalBtn.type = 'button';
-  originalBtn.className = 'core-option-btn auto-rhythm-item';
-  originalBtn.textContent = '原谱';
-  originalBtn.classList.toggle('active', AUTO.mode !== 'auto');
-  originalBtn.addEventListener('click', ()=> setMode('original'));
-  list.appendChild(originalBtn);
+    const originalBtn = document.createElement('button');
+    originalBtn.type = 'button';
+    originalBtn.className = 'core-option-btn auto-rhythm-item';
+    originalBtn.textContent = '原谱';
+    originalBtn.classList.toggle('active', AUTO.mode !== 'auto');
+    originalBtn.addEventListener('click', ()=> setMode('original'));
+    list.appendChild(originalBtn);
 
-  patterns.forEach((pattern)=>{
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'core-option-btn auto-rhythm-item';
-    btn.textContent = pattern.name;
-    btn.classList.toggle('active', pattern.id === AUTO.currentPatternId && AUTO.mode === 'auto');
-    btn.addEventListener('click', ()=> choosePattern(pattern.id));
-    list.appendChild(btn);
-  });
-});
+    patterns.forEach((pattern)=>{
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'core-option-btn auto-rhythm-item';
+      btn.textContent = pattern.name;
+      btn.classList.toggle('active', pattern.id === AUTO.currentPatternId && AUTO.mode === 'auto');
+      btn.addEventListener('click', ()=> choosePattern(pattern.id));
+      list.appendChild(btn);
+    });
   }
 
   function wrapGlobals(){

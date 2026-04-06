@@ -648,7 +648,7 @@ flex: 1;
 .core-ui-title-sub{font-size:clamp(15px,2vw,22px); color:#374151; font-weight:700; margin-top:4px; line-height:1.35;}
 .core-panel-layer{position:relative; margin-top:10px;}
 .core-panel{background:#fff; border:1px solid var(--border-soft); border-radius:18px; box-shadow:var(--shadow-soft); padding:14px;}
-.core-panel[hidden]{}
+.core-panel[hidden]{display:none !important;}
 .core-panel-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; font-weight:800; color:var(--text-main);}
 .core-panel-close,.core-panel-ghost,.core-option-btn,.core-step-btn{border:none; background:#eef4ff; color:var(--primary); border-radius:12px; min-height:38px; padding:0 14px; font-weight:700; cursor:pointer;}
 .core-panel-body input[type="range"]{width:100%; accent-color:var(--primary);}
@@ -690,7 +690,7 @@ flex: 1;
 .core-option-btn.active{background:var(--primary); color:#fff; border-color:transparent;}
 
 /* rewrite track panel */
-#tracks-panel {  }
+#tracks-panel { display:none !important; }
 
 .new-track-panel{
   position:fixed;
@@ -699,7 +699,7 @@ flex: 1;
   z-index:10001;
   width:min(360px, calc(100vw - 24px));
 }
-.new-track-panel.hidden{  }
+.new-track-panel.hidden{ display:none !important; }
 .new-track-panel-inner{
   background:#fff;
   border:1px solid var(--border-soft);
@@ -778,7 +778,7 @@ flex: 1;
 .meta-row,
 .adjust-row,
 .controls-row{
-  
+  display:none !important;
 }
 
 
@@ -799,7 +799,7 @@ flex: 1;
 
 /* 重写轨道二级菜单：不再依赖旧 tracks-panel */
 #tracks-panel{
-  
+  display:none !important;
 }
 
 .new-track-panel{
@@ -810,7 +810,7 @@ flex: 1;
   width:min(360px, calc(100vw - 24px));
 }
 .new-track-panel.hidden{
-  
+  display:none !important;
 }
 .new-track-panel-inner{
   background:#fff;
@@ -1108,7 +1108,7 @@ flex: 1;
 
 
 /* phase4 floating panels + search results */
-.core-panel-layer[hidden]{}
+.core-panel-layer[hidden]{display:none !important;}
 .core-panel-layer{position:fixed; inset:0; margin-top:0; z-index:1200; pointer-events:auto; background:transparent; display:block !important;}
 .core-panel{position:absolute; left:50%; top:172px; transform:translateX(-50%); margin:0; width:min(560px, calc(100vw - 24px)); max-width:none;}
 #panel-speed,#panel-key,#panel-mode,#panel-text,#panel-lang,#panel-search,#panel-staff{top:172px;}
@@ -1139,7 +1139,7 @@ flex: 1;
 .auto-scheme-summary{font-size:12px;color:#d8e0ff;margin-top:8px;line-height:1.5}
 
 
-/* V13_0d_auto_ui_layout */
+/* V13_0b_auto_ui_merge */
 
 .auto-panel-hub{width:min(560px,calc(100vw - 24px));}
 .auto-hub-status{font-size:12px;color:#666;margin-bottom:8px;}
@@ -1164,7 +1164,7 @@ flex: 1;
   .auto-debug-grid{grid-template-columns:1fr;}
 }
 
-/* V13_0d_auto_ui_layout overrides */
+/* V13_0c_auto_ui_refine overrides */
 .auto-panel-hub{width:min(460px,calc(100vw - 24px)) !important;}
 .auto-hub-toprow{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:8px;}
 .auto-mini-btn{width:auto !important;min-width:0 !important;padding:7px 12px !important;flex:0 0 auto;}
@@ -1174,7 +1174,7 @@ flex: 1;
 .auto-hub-right{max-height:120px !important;overflow:auto;display:grid;gap:6px;padding-right:4px;}
 .auto-rhythm-item{text-align:left;justify-content:flex-start;padding:8px 10px;}
 .auto-chip{display:inline-flex;align-items:center;justify-content:center;min-height:22px;padding:0 8px;border-radius:999px;background:#f3f4f6;color:#374151;font-size:11px;}
-.auto-debug-info{}
+.auto-debug-info{display:none !important;}
 @media (max-width: 720px){
   .auto-panel-hub{width:min(94vw,460px) !important;}
   .auto-hub-toprow{gap:6px;flex-wrap:wrap;}
@@ -1183,66 +1183,58 @@ flex: 1;
 }
 
 
-/* V13_0f_auto_menu_layout */
-.auto-panel-hub{
-  width:min(860px, calc(100vw - 28px)) !important;
+
+/* V13_0h_auto_menu_layout2 */
+#panel-rhythm-hub .core-panel-head{
+  display:none;
 }
-.auto-panel-hub .core-panel-head.auto-hub-hidden-head{
-  
+.auto-panel-hub{
+  width:min(860px, calc(100vw - 28px));
 }
 .auto-hub-layout-v2{
-  display:grid !important;
-  grid-template-columns:minmax(0, 0.95fr) minmax(0, 1.05fr) !important;
-  gap:20px !important;
-  align-items:start !important;
+  display:grid;
+  grid-template-columns:minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap:22px;
+  align-items:start;
 }
 .auto-hub-col-title{
   font-size:18px;
   font-weight:800;
   line-height:1.2;
   color:#111827;
-  margin:0 0 14px;
-}
-.auto-hub-left-v2{
-  min-width:0;
+  margin:0 0 16px;
 }
 .auto-hub-chord-row{
   display:flex;
-  gap:12px;
-  margin-bottom:22px;
+  gap:14px;
+  margin-bottom:26px;
   flex-wrap:nowrap;
 }
 .auto-chord-btn{
   width:auto !important;
   min-width:0 !important;
-  padding:10px 18px !important;
-  border-radius:22px !important;
+  padding:10px 20px !important;
+  border-radius:24px !important;
   flex:0 0 auto !important;
 }
 .auto-hub-scheme-info{
   display:grid;
-  gap:10px;
+  gap:12px;
+  color:#111827;
   font-size:18px;
   line-height:1.45;
-  color:#111827;
-}
-.auto-hub-scheme-info div{
-  word-break:break-word;
-}
-.auto-hub-right-wrap-v2{
-  min-width:0;
 }
 .auto-hub-right-v2{
-  max-height:372px !important;
+  max-height:390px;
   overflow:auto;
   display:grid;
   gap:12px;
   padding-right:6px;
 }
 .auto-rhythm-item{
-  text-align:left !important;
-  justify-content:flex-start !important;
-  padding:12px 18px !important;
+  text-align:left;
+  justify-content:flex-start;
+  padding:13px 20px !important;
   border-radius:20px !important;
   font-size:18px !important;
   line-height:1.25;
@@ -1251,24 +1243,15 @@ flex: 1;
   background:#2f6bff !important;
   color:#fff !important;
 }
-.auto-version-badge{
-  content:'build: V13_0f_auto_menu_layout';
-}
-@media (max-width: 720px){
+@media (max-width:720px){
   .auto-panel-hub{
-    width:min(94vw, 860px) !important;
+    width:min(94vw, 860px);
   }
   .auto-hub-layout-v2{
-    grid-template-columns:1fr !important;
-    gap:16px !important;
+    grid-template-columns:1fr;
+    gap:18px;
   }
   .auto-hub-right-v2{
-    max-height:260px !important;
-  }
-  .auto-hub-col-title{
-    font-size:17px;
-  }
-  .auto-rhythm-item{
-    font-size:17px !important;
+    max-height:260px;
   }
 }
