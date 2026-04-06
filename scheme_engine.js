@@ -3,19 +3,6 @@
   const SHARP = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const FLAT  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
   const INDEX = {C:0,'B#':0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,Fb:4,F:5,'E#':5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11,Cb:11};
-  const FLAT_KEYS = new Set(['F','Bb','Eb','Ab','Db','Gb','Cb','Dm','Gm','Cm','Fm','Bbm','Ebm','Abm']);
-  function tonicOfKeyName(keyName){
-    const s = String(keyName || '').trim();
-    const m = s.match(/^([A-G](?:#|b)?)(.*)$/);
-    return m ? (m[1] + (m[2] || '')) : s;
-  }
-  function preferFlatsForKeyName(keyName){
-    const s = tonicOfKeyName(keyName);
-    if(!s) return false;
-    if(FLAT_KEYS.has(s)) return true;
-    if(/^F(?:$|m)/.test(s)) return true;
-    return s.includes('b');
-  }
   const FAMILY_ROOTS = ['G','C','D','A','E','F'];
   const FAMILY_CHORDS = {
     G:['G','Am','Bm','C','D','Em'],
@@ -25,6 +12,25 @@
     E:['E','F#m','G#m','A','B','C#m'],
     F:['F','Gm','Am','Bb','C','Dm']
   };
+
+  const FLAT_KEYS = new Set(['F','Bb','Eb','Ab','Db','Gb','Cb']);
+  function baseKeyName(name){
+    const m = String(name || '').trim().match(/^([A-G](?:#|b)?)/);
+    return m ? m[1] : String(name || '').trim();
+  }
+  function prefersFlatsForKeyName(name){
+    return FLAT_KEYS.has(baseKeyName(name));
+  }
+  function respellChordForKey(symbol, keyName){
+    const p = parseChord(symbol); if(!p) return String(symbol || '');
+    const useFlats = prefersFlatsForKeyName(keyName);
+    return formatChord({
+      root: normalizeNote(p.root, useFlats),
+      quality: p.quality,
+      bass: p.bass ? normalizeNote(p.bass, useFlats) : ''
+    });
+  }
+
   const DEFAULT_SHAPES = {
     C:['x',3,2,0,1,0], D:['x','x',0,2,3,2], E:[0,2,2,1,0,0], F:[1,3,3,2,1,1], G:[3,2,0,0,0,3], A:['x',0,2,2,2,0], B:['x',2,4,4,4,2],
     Am:['x',0,2,2,1,0], Bm:['x',2,4,4,3,2], Cm:['x',3,5,5,4,3], Dm:['x','x',0,2,3,1], Em:[0,2,2,0,0,0], Fm:[1,3,3,1,1,1], 'F#m':[2,4,4,2,2,2], Gm:[3,5,5,3,3,3], 'G#m':[4,6,6,4,4,4], 'C#m':['x',4,6,6,5,4],
@@ -58,15 +64,6 @@
     const p = parseChord(symbol); if(!p) return String(symbol || '');
     return formatChord({ root:add(p.root,semitones,preferFlats), quality:p.quality, bass:p.bass ? add(p.bass,semitones,preferFlats) : '' });
   }
-  function normalizeChordForKey(symbol, keyName){
-    const p = parseChord(symbol); if(!p) return String(symbol || '');
-    const useFlats = preferFlatsForKeyName(keyName);
-    return formatChord({
-      root: normalizeNote(p.root, useFlats),
-      quality: p.quality,
-      bass: p.bass ? normalizeNote(p.bass, useFlats) : ''
-    });
-  }
   function penaltyForChord(ch){
     if(!ch) return 2;
     const q = ch.quality || '';
@@ -74,10 +71,10 @@
     if(/sus4|maj7|m7|7/i.test(q)) return 1.1;
     return 0.2;
   }
-  function buildShapeMap(chords, displayDelta, preferFlats, targetConcertKey){
+  function buildShapeMap(chords, displayDelta, preferFlats){
     const map = {};
     chords.forEach((symbol) => {
-      const shifted = normalizeChordForKey(shiftChord(symbol, displayDelta, preferFlats), targetConcertKey);
+      const shifted = shiftChord(symbol, displayDelta, preferFlats);
       const p = parseChord(shifted);
       if(!p) return;
       const key = formatChord({ root:normalizeNote(p.root, preferFlats), quality:p.quality, bass:'' });
@@ -96,10 +93,10 @@
     // originalChords 进入这里前已经是“真实和弦”（原谱和弦 + sourceCapo）。
     // 吉他手实际看到/按的是：真实和弦 - 当前方案 CAPO。
     const displayDelta = -capo;
-    const shapeMap = buildShapeMap(originalChords, displayDelta, preferFlats, targetConcertKey);
+    const shapeMap = buildShapeMap(originalChords, displayDelta, preferFlats);
     const chordMap = {};
     originalChords.forEach((symbol)=>{
-      chordMap[symbol] = shapeMap[symbol]?.displayChord || normalizeChordForKey(shiftChord(symbol, displayDelta, preferFlats), targetConcertKey);
+      chordMap[symbol] = respellChordForKey(shapeMap[symbol]?.displayChord || shiftChord(symbol, displayDelta, preferFlats), targetConcertKey);
     });
     let score = Math.abs(capo - 2);
     if(capo > 4) score += 1.2;
@@ -144,5 +141,5 @@
     out.sort((a,b)=>a.score-b.score);
     return out.slice(0,3);
   }
-  window.SchemeEngine = { parseChord, shiftChord, normalizeChordForKey, preferFlatsForKeyName, generateSchemes, buildScheme, uniqueChordSymbols, FAMILY_ROOTS };
+  window.SchemeEngine = { parseChord, shiftChord, generateSchemes, buildScheme, uniqueChordSymbols, FAMILY_ROOTS, respellChordForKey, prefersFlatsForKeyName };
 })();
