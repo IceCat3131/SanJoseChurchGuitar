@@ -71,21 +71,19 @@
   }
   function buildScheme(opts){
     const { family, capo, originalChords, songCapo, autoTranspose, preferFlats, targetConcertKey } = opts;
-    // originalChords 在进入这里前，已经是“真实和弦”（原谱和弦 + sourceCapo）。
-    // 给吉他手看的显示和弦，应为：真实和弦 - 当前方案 CAPO。
+    // originalChords 进入这里前已经是“真实和弦”（原谱和弦 + sourceCapo）。
+    // 吉他手实际看到/按的是：真实和弦 - 当前方案 CAPO。
     const displayDelta = -capo;
     const shapeMap = buildShapeMap(originalChords, displayDelta, preferFlats);
     const chordMap = {};
-    originalChords.forEach((symbol) => {
+    originalChords.forEach((symbol)=>{
       chordMap[symbol] = shapeMap[symbol]?.displayChord || shiftChord(symbol, displayDelta, preferFlats);
     });
-
     let score = Math.abs(capo - 2);
     if(capo > 4) score += 1.2;
     if(capo === 0) score += 0.5;
     score += (FAMILY_ROOTS.indexOf(family) * 0.05);
     originalChords.forEach((sym)=>{ score += penaltyForChord(parseChord(chordMap[sym] || sym)); });
-
     return {
       family,
       capo,
@@ -100,15 +98,12 @@
   function generateSchemes(ctx){
     const preferFlats = !!ctx.preferFlats;
     const originalKey = ctx.originalKey || 'C';
-    // 顶部“当前调号” = 原调 + 用户转调。sourceCapo 不再重复参与这里。
+    // 目标调只看“当前歌曲调号 + 用户转调”，sourceCapo 不再重复参与。
     const targetConcertKey = add(originalKey, ctx.transpose || 0, preferFlats);
     const targetIdx = idx(targetConcertKey);
     if(targetIdx == null) return [];
-
-    // originalChords 进入这里前已经是“真实和弦”
-    const originalChords = uniqueChordSymbols(ctx.originalChords);
-    const out = [];
-
+    const originalChords = uniqueChordSymbols(ctx.originalChords); // 已经是真实和弦
+    const out=[];
     FAMILY_ROOTS.forEach((family)=>{
       const familyIdx = idx(family);
       if(familyIdx == null) return;
@@ -124,7 +119,6 @@
         targetConcertKey
       }));
     });
-
     out.sort((a,b)=>a.score-b.score);
     return out.slice(0,3);
   }

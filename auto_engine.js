@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_2g_capo_dedupe_fix';
+  const BUILD = 'V13_2h_spelling_fix';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -48,7 +48,7 @@
   function applyCapoToChords(chords, capo){
     if(!window.SchemeEngine) return chords;
     const useFlats = preferFlats();
-    return (chords||[]).map((ch)=>{
+    return (chords || []).map((ch)=>{
       try{
         return SchemeEngine.shiftChord(ch, capo || 0, useFlats);
       }catch(e){
@@ -124,8 +124,8 @@
     const realChords = applyCapoToChords(rawChords, sourceCapo);
     return {
       originalKey: getOriginalKeyName(),
-      // 注意：自动伴奏里 sourceCapo 只在这里用于把原谱和弦提升成真实和弦；
-      // 进入 scheme_engine 后，不再让 songCapo 重复参与目标调和显示和弦计算。
+      // sourceCapo 在这里用于把原谱和弦提升成“真实和弦”；
+      // 进入 scheme_engine 后不再重复参与目标调和显示和弦计算。
       songCapo: 0,
       transpose: getTransposeSafe(),
       originalChords: realChords,
@@ -159,7 +159,6 @@
         chords: original.length ? original.join(', ') : '--'
       };
     }
-    // 这里显示给吉他手看的，是“方案按法和弦”，不是原谱真实和弦。
     const realPreview = applyCapoToChords(original, getSongCapoSafe()).slice(0, 5);
     const mapped = realPreview.map((c)=> AUTO.currentScheme.chordMap?.[c] || c);
     return {
@@ -207,7 +206,7 @@
         const realChord = window.SchemeEngine ? SchemeEngine.shiftChord(original, getSongCapoSafe(), useFlats) : original;
         next = AUTO.currentScheme.chordMap[realChord] || original;
       } else {
-        // 原谱模式：保持原谱和弦不变（不跟转调变）
+        // 原谱模式保持原谱和弦，不跟自动伴奏/转调链路混用
         next = original;
       }
       if(next !== current) el.textContent = next;
@@ -282,8 +281,7 @@
     };
     const oldComputeDisplayedKeyName = window.computeDisplayedKeyName;
     window.computeDisplayedKeyName = function(meta){
-      // 自动伴奏模式不改变顶部“歌曲当前调号”的显示来源；
-      // 顶部始终显示 原调 + 用户转调。
+      // 自动伴奏模式不覆盖顶部歌曲调号；顶部始终显示 原调 + 用户转调。
       return oldComputeDisplayedKeyName ? oldComputeDisplayedKeyName(meta) : getOriginalKeyName();
     };
     const oldChangeTranspose = window.changeTranspose;
