@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_0k_menu_size_tune';
+  const BUILD = 'V13_0l_rhythm_list_compact';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
