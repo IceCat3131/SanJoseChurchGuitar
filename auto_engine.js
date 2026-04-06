@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = '14.4.2';
+  const BUILD = '14.4.1';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -384,11 +384,6 @@
     });
   }
 
-  function refreshChordSchemePanel(){
-    refreshSchemes();
-    applyScheme();
-  }
-
   function wrapGlobals(){
     const oldDisplayedCapo = window.getDisplayedCapoLabel;
     window.getDisplayedCapoLabel = function(){
@@ -401,18 +396,27 @@
       // 自动伴奏模式不覆盖顶部歌曲调号；顶部始终显示 原调 + 用户转调。
       return oldComputeDisplayedKeyName ? oldComputeDisplayedKeyName(meta) : getOriginalKeyName();
     };
-    window.refreshChordSchemePanel = refreshChordSchemePanel;
     const oldChangeTranspose = window.changeTranspose;
     window.changeTranspose = function(delta){
-      const result = oldChangeTranspose ? oldChangeTranspose(delta) : undefined;
-      refreshChordSchemePanel();
-      return result;
+      if(AUTO.mode === 'auto'){
+        viewerPrefs.transposeSemitones = Math.max(-11, Math.min(11, ((parseInt(viewerPrefs.transposeSemitones, 10) || 0) + delta)));
+        try { saveViewerPrefs(); } catch(e) {}
+        refreshSchemes();
+        applyScheme();
+        return;
+      }
+      return oldChangeTranspose ? oldChangeTranspose(delta) : undefined;
     };
     const oldResetTranspose = window.resetTranspose;
     window.resetTranspose = function(){
-      const result = oldResetTranspose ? oldResetTranspose() : undefined;
-      refreshChordSchemePanel();
-      return result;
+      if(AUTO.mode === 'auto'){
+        viewerPrefs.transposeSemitones = 0;
+        try { saveViewerPrefs(); } catch(e) {}
+        refreshSchemes();
+        applyScheme();
+        return;
+      }
+      return oldResetTranspose ? oldResetTranspose() : undefined;
     };
     const oldRewrite = window.rewriteRenderedChordTexts;
     window.rewriteRenderedChordTexts = function(){

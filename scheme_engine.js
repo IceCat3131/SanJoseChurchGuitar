@@ -91,20 +91,21 @@
     return out;
   }
   function buildScheme(opts){
-    const { family, capo, originalChords, songCapo, autoTranspose, preferFlats, targetConcertKey } = opts;
-    // originalChords 进入这里前已经是“真实和弦”（原谱和弦 + sourceCapo）。
-    // 吉他手实际看到/按的是：真实和弦 - 当前方案 CAPO。
+    const { capo, originalChords, preferFlats, targetConcertKey } = opts;
+    const targetConcertChords = uniqueChordSymbols((originalChords || []).map((symbol)=>shiftChord(symbol, 0, preferFlats)));
     const displayDelta = -capo;
-    const shapeMap = buildShapeMap(originalChords, displayDelta, preferFlats);
+    const shapeMap = buildShapeMap(targetConcertChords, displayDelta, preferFlats);
     const chordMap = {};
-    originalChords.forEach((symbol)=>{
+    targetConcertChords.forEach((symbol)=>{
       chordMap[symbol] = normalizeChordForKey(shapeMap[symbol]?.displayChord || shiftChord(symbol, displayDelta, preferFlats), targetConcertKey);
     });
+    const first = parseChord(chordMap[targetConcertChords[0]] || targetConcertChords[0] || '');
+    const family = first && first.root ? first.root : '--';
     let score = Math.abs(capo - 2);
     if(capo > 4) score += 1.2;
     if(capo === 0) score += 0.5;
-    score += (FAMILY_ROOTS.indexOf(family) * 0.05);
-    originalChords.forEach((sym)=>{ score += penaltyForChord(parseChord(chordMap[sym] || sym)); });
+    targetConcertChords.forEach((sym)=>{ score += penaltyForChord(parseChord(chordMap[sym] || sym)); });
+    if(first && /#|b/.test(first.root)) score += 0.25;
     return {
       family,
       capo,
@@ -119,28 +120,21 @@
   function generateSchemes(ctx){
     const preferFlats = !!ctx.preferFlats;
     const originalKey = normalizeEnharmonicKeyName(ctx.originalKey || 'C');
-    // 目标调只看“当前歌曲调号 + 用户转调”，sourceCapo 不再重复参与。
     const targetConcertKey = normalizeEnharmonicKeyName(add(originalKey, ctx.transpose || 0, preferFlats));
-    const targetIdx = idx(targetConcertKey);
-    if(targetIdx == null) return [];
     const originalChords = uniqueChordSymbols(ctx.originalChords); // 已经是真实和弦
+    if(!originalChords.length) return [];
+    const targetConcertChords = uniqueChordSymbols(originalChords.map((symbol)=>normalizeChordForKey(shiftChord(symbol, ctx.transpose || 0, preferFlats), targetConcertKey)));
     const out=[];
-    FAMILY_ROOTS.forEach((family)=>{
-      const familyIdx = idx(family);
-      if(familyIdx == null) return;
-      const capo = (targetIdx - familyIdx + 12) % 12;
-      if(capo < 0 || capo > 6) return;
-      out.push(buildScheme({
-        family,
+    for(let capo=0; capo<=6; capo++){
+      const scheme = buildScheme({
         capo,
-        originalChords,
-        songCapo: 0,
-        autoTranspose: ctx.transpose || 0,
+        originalChords: targetConcertChords,
         preferFlats,
         targetConcertKey
-      }));
-    });
-    out.sort((a,b)=>a.score-b.score);
+      });
+      out.push(scheme);
+    }
+    out.sort((a,b)=>a.score-b.score || a.capo-b.capo);
     return out.slice(0,3);
   }
   window.SchemeEngine = { parseChord, shiftChord, generateSchemes, buildScheme, uniqueChordSymbols, FAMILY_ROOTS, normalizeEnharmonicKeyName, isFlatKeyName, normalizeChordForKey };
