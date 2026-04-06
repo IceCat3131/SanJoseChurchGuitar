@@ -11,6 +11,51 @@
   <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
 </head>
 <body>
+<style>
+.at-panel{background:#eee;border-radius:20px;padding:20px;margin:10px;}
+.at-panel-body{display:flex;gap:20px;}
+.left-panel,.right-panel{flex:1;}
+.panel-title{font-weight:bold;margin-bottom:10px;}
+.chord-buttons{display:flex;gap:10px;margin-bottom:10px;}
+.btn{padding:6px 12px;border-radius:10px;background:#ddd;border:none;}
+.btn.active{background:#2f6bff;color:#fff;}
+.chord-info{font-size:14px;line-height:1.6;}
+.rhythm-list{max-height:180px;overflow-y:auto;}
+.rhythm-item{padding:10px;border-radius:10px;margin-bottom:8px;background:#ddd;}
+.rhythm-item.active{background:#2f6bff;color:white;}
+</style>
+
+<div class="at-panel">
+  <div class="at-panel-header">
+    <span>节</span>
+    <span class="build-tag">V13_0e_auto_ui_layout2</span>
+  </div>
+  <div class="at-panel-body">
+    <div class="left-panel">
+      <div class="panel-title">和弦组</div>
+      <div class="chord-buttons">
+        <button class="btn active">和弦A</button>
+        <button class="btn">和弦B</button>
+        <button class="btn">和弦C</button>
+      </div>
+      <div class="chord-info">
+        <div>CAPO 1</div>
+        <div>family:C</div>
+        <div>G, Gsus4, C, D7, G</div>
+      </div>
+    </div>
+    <div class="right-panel">
+      <div class="panel-title">节奏组</div>
+      <div class="rhythm-list">
+        <div class="rhythm-item active">原谱</div>
+        <div class="rhythm-item">分解 53231323</div>
+        <div class="rhythm-item">分解 53212323</div>
+        <div class="rhythm-item">扫弦 基础</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="page">
   <div class="page-inner">
 
@@ -1899,9 +1944,5 @@ function pad4(num) {
 })();
 </script>
 
-
-<script src="scheme_engine.js"></script>
-<script src="rhythm_engine.js"></script>
-<script src="auto_engine.js"></script>
 </body>
 </html>
