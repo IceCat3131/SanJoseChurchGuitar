@@ -31,27 +31,6 @@
     const n = (i + (semis % 12) + 12) % 12;
     return (preferFlats ? FLAT : SHARP)[n];
   }
-
-  function normalizeEnharmonicKeyName(name){
-    const raw = String(name || '').trim();
-    const map = { 'G#':'Ab', 'D#':'Eb', 'A#':'Bb', 'C#':'Db', 'F#':'Gb', 'Cb':'B', 'E#':'F', 'B#':'C' };
-    return map[raw] || raw;
-  }
-  function isFlatKeyName(name){
-    const n = normalizeEnharmonicKeyName(name);
-    return ['F','Bb','Eb','Ab','Db','Gb','Cb'].includes(n);
-  }
-  function normalizeChordForKey(symbol, keyName){
-    const useFlats = isFlatKeyName(keyName);
-    const p = parseChord(symbol);
-    if(!p) return String(symbol || '');
-    return formatChord({
-      root: normalizeNote(p.root, useFlats),
-      quality: p.quality,
-      bass: p.bass ? normalizeNote(p.bass, useFlats) : ''
-    });
-  }
-
   function parseChord(symbol){
     const raw = String(symbol || '').trim();
     const m = raw.match(/^([A-G](?:#|b)?)([^/]*?)(?:\/([A-G](?:#|b)?))?$/);
@@ -98,7 +77,7 @@
     const shapeMap = buildShapeMap(originalChords, displayDelta, preferFlats);
     const chordMap = {};
     originalChords.forEach((symbol)=>{
-      chordMap[symbol] = normalizeChordForKey(shapeMap[symbol]?.displayChord || shiftChord(symbol, displayDelta, preferFlats), targetConcertKey);
+      chordMap[symbol] = shapeMap[symbol]?.displayChord || shiftChord(symbol, displayDelta, preferFlats);
     });
     let score = Math.abs(capo - 2);
     if(capo > 4) score += 1.2;
@@ -116,11 +95,11 @@
       summary: `${family}组 / CP${capo}`
     };
   }
-  function generateSchemes(ctx){
+  function generateAllSchemes(ctx){
     const preferFlats = !!ctx.preferFlats;
-    const originalKey = normalizeEnharmonicKeyName(ctx.originalKey || 'C');
+    const originalKey = ctx.originalKey || 'C';
     // 目标调只看“当前歌曲调号 + 用户转调”，sourceCapo 不再重复参与。
-    const targetConcertKey = normalizeEnharmonicKeyName(add(originalKey, ctx.transpose || 0, preferFlats));
+    const targetConcertKey = add(originalKey, ctx.transpose || 0, preferFlats);
     const targetIdx = idx(targetConcertKey);
     if(targetIdx == null) return [];
     const originalChords = uniqueChordSymbols(ctx.originalChords); // 已经是真实和弦
@@ -141,7 +120,16 @@
       }));
     });
     out.sort((a,b)=>a.score-b.score);
-    return out.slice(0,3);
+    return out;
   }
-  window.SchemeEngine = { parseChord, shiftChord, generateSchemes, buildScheme, uniqueChordSymbols, FAMILY_ROOTS, normalizeEnharmonicKeyName, isFlatKeyName, normalizeChordForKey };
+  function generateSchemes(ctx){
+    return generateAllSchemes(ctx).slice(0,3);
+  }
+  function getSchemeForCapo(ctx, capo){
+    const list = generateAllSchemes(ctx);
+    const target = Number(capo);
+    if(!Number.isFinite(target)) return null;
+    return list.find((item)=>item.capo === target) || null;
+  }
+  window.SchemeEngine = { parseChord, shiftChord, generateSchemes, generateAllSchemes, getSchemeForCapo, buildScheme, uniqueChordSymbols, FAMILY_ROOTS };
 })();
