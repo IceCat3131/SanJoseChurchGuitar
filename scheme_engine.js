@@ -116,7 +116,7 @@
       summary: `${family}组 / CP${capo}`
     };
   }
-  function generateAllSchemes(ctx){
+  function generateSchemes(ctx){
     const preferFlats = !!ctx.preferFlats;
     const originalKey = normalizeEnharmonicKeyName(ctx.originalKey || 'C');
     // 目标调只看“当前歌曲调号 + 用户转调”，sourceCapo 不再重复参与。
@@ -141,16 +141,7 @@
       }));
     });
     out.sort((a,b)=>a.score-b.score);
-    return out;
+    return out.slice(0,3);
   }
-  function generateSchemes(ctx){
-    return generateAllSchemes(ctx).slice(0,3);
-  }
-  function getSchemeForCapo(ctx, capo){
-    const list = generateAllSchemes(ctx);
-    const target = Number(capo);
-    if(!Number.isFinite(target)) return null;
-    return list.find((item)=>item.capo === target) || null;
-  }
-  window.SchemeEngine = { parseChord, shiftChord, generateSchemes, generateAllSchemes, getSchemeForCapo, buildScheme, uniqueChordSymbols, FAMILY_ROOTS, normalizeEnharmonicKeyName, isFlatKeyName, normalizeChordForKey };
+  window.SchemeEngine = { parseChord, shiftChord, generateSchemes, buildScheme, uniqueChordSymbols, FAMILY_ROOTS, normalizeEnharmonicKeyName, isFlatKeyName, normalizeChordForKey };
 })();
