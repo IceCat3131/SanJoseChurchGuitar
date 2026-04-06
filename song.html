@@ -1113,14 +1113,16 @@ function remapTimelineTimesIfNeeded() {
 // ===== 多轨道同页显示 + 轨道开关 =====
   let __currentScore = null;
   let __visibleTrackIndices = null;
+  let __trackSelectionTouched = false;
+  let __trackSelectionRenderTimer = null;
 
   function renderVisibleTracks(api) {
     if (!api || !__currentScore) return;
     let idxs = Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : [];
     if (!idxs.length) {
-      // 默认：全选
       idxs = __currentScore.tracks.map((_, i) => i);
     }
+    window.__visibleTrackIndices = idxs.slice();
     try {
       api.renderScore(__currentScore, idxs);
     } catch (e) {
@@ -1698,7 +1700,12 @@ function pad4(num) {
       window.__atApi.scoreLoaded.on((e) => {
         __currentScore = e.score || window.__atApi.score;
         const st = window.__gtzState || {};
-        __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
+        if (!__trackSelectionTouched) {
+          __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
+        } else if (Array.isArray(window.__visibleTrackIndices) && window.__visibleTrackIndices.length) {
+          __visibleTrackIndices = window.__visibleTrackIndices.slice();
+        }
+        window.__visibleTrackIndices = Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : [];
 
         if (!viewerPrefs.__initializedFromSong) {
           viewerPrefs.scoreFontSizePx = st.fontSizePx || viewerPrefs.scoreFontSizePx;
@@ -1718,7 +1725,6 @@ function pad4(num) {
         const oldFallback = document.getElementById('score-fallback-image');
         if (oldFallback) oldFallback.remove();
 
-        renderVisibleTracks(window.__atApi);
         applyScoreTransposition(window.__atApi);
         applyPlaybackTrackVisibility(window.__atApi);
         scheduleTabCapoOverlay(180);
@@ -2166,24 +2172,34 @@ function pad4(num) {
   }
 
   function setSelectedTrackIndicesSafe(indices){
+    const sorted = indices.slice().sort((a,b)=>a-b);
     try {
+      __trackSelectionTouched = true;
       if (typeof __visibleTrackIndices !== 'undefined') {
-        __visibleTrackIndices = indices.slice().sort((a,b)=>a-b);
+        __visibleTrackIndices = sorted;
       } else {
-        window.__visibleTrackIndices = indices.slice().sort((a,b)=>a-b);
+        window.__visibleTrackIndices = sorted;
       }
     } catch(e) {
-      window.__visibleTrackIndices = indices.slice().sort((a,b)=>a-b);
+      window.__visibleTrackIndices = sorted;
     }
+    window.__visibleTrackIndices = sorted.slice();
   }
 
   function applyTrackSelection(){
     try {
-      if (window.__atApi && typeof renderVisibleTracks === 'function') {
-        renderVisibleTracks(window.__atApi);
-      } else if (window.__atApi && typeof applyPlaybackTrackVisibility === 'function') {
-        applyPlaybackTrackVisibility(window.__atApi);
-      }
+      if (__trackSelectionRenderTimer) clearTimeout(__trackSelectionRenderTimer);
+      __trackSelectionRenderTimer = setTimeout(() => {
+        try {
+          if (window.__atApi && typeof renderVisibleTracks === 'function') {
+            renderVisibleTracks(window.__atApi);
+          } else if (window.__atApi && typeof applyPlaybackTrackVisibility === 'function') {
+            applyPlaybackTrackVisibility(window.__atApi);
+          }
+        } catch(err) {
+          console.warn('applyTrackSelection failed', err);
+        }
+      }, 10);
     } catch(e) {
       console.warn('applyTrackSelection failed', e);
     }
