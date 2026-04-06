@@ -1255,3 +1255,19 @@ flex: 1;
     max-height:260px;
   }
 }
+
+/* V13_0i button spacing fix */
+.auto-hub-chord-row{
+  gap:6px !important;
+}
+
+.auto-chord-btn{
+  padding:6px 10px !important;
+  min-width:auto !important;
+  width:auto !important;
+  flex:0 0 auto !important;
+}
+
+.auto-hub-layout-v2{
+  grid-template-columns:minmax(0, 0.8fr) minmax(0, 1.2fr) !important;
+}
