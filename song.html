@@ -250,9 +250,7 @@
 
   function getTrackTransposeSemitones(track) {
     const base = getUserTranspose();
-    // GTZ 里的 CAPO 只是前端显示/语义提示；TAB 对应的音高本身已按乐谱语义生成，
-    // 这里播放层只再应用用户转调，避免把 sourceCapo 重复算进音高。
-    return base;
+    return trackUsesTab(track) ? (base + getEffectiveCapo()) : base;
   }
 
   const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -410,12 +408,7 @@
       if (!api.settings.notation) api.settings.notation = {};
       api.settings.notation.transpositionPitches = trackTranspositions.slice();
       api.updateSettings();
-      if (typeof api.changeTrackTranspositionPitch === 'function' && tracks.length) {
-        tracks.forEach((track, i) => {
-          const semitones = trackTranspositions[i] || 0;
-          try { api.changeTrackTranspositionPitch([track], semitones); } catch (e) { console.warn('live transpose failed', e); }
-        });
-      }
+      // 这里不要再叠加 changeTrackTranspositionPitch，避免 sourceCapo/transpose 被双重应用。
       try { api.render(); } catch (e) {}
       scheduleChordRewrite(120);
       scheduleTabCapoOverlay(140);
@@ -660,16 +653,8 @@
 
   function getDisplayedFretForCapo(note) {
     if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
-
-    const capo = getEffectiveCapo();
-    const transpose = getUserTranspose();
-
-    // GTZ 里的 TAB 品位按 CAPO=0 存储；前端显示时需要补上 sourceCapo 与用户转调。
-    // TAB显示 = 原始品位 + sourceCapo + 用户转调
-    const displayed = note.fret + capo + transpose;
-
-    if (!Number.isFinite(displayed) || displayed < 0) return null;
-    return displayed;
+    // 原谱TAB数字始终显示原始按法数字，不跟CAPO或转调一起平移。
+    return note.fret;
   }
 
   function renderTabCapoOverlay() {
