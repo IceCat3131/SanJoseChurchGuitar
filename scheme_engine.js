@@ -71,7 +71,7 @@
   }
   function buildScheme(opts){
     const { family, capo, originalChords, songCapo, autoTranspose, preferFlats, targetConcertKey } = opts;
-    const displayDelta = songCapo + autoTranspose - capo;
+    const displayDelta = autoTranspose - capo;
     const shapeMap = buildShapeMap(originalChords, displayDelta, preferFlats);
     const chordMap = {};
     originalChords.forEach((symbol)=>{
@@ -96,7 +96,7 @@
   function generateSchemes(ctx){
     const preferFlats = !!ctx.preferFlats;
     const originalKey = ctx.originalKey || 'C';
-    const originalConcertKey = add(originalKey, ctx.songCapo || 0, preferFlats);
+    const originalConcertKey = originalKey;
     const targetConcertKey = add(originalConcertKey, ctx.transpose || 0, preferFlats);
     const targetIdx = idx(targetConcertKey);
     if(targetIdx == null) return [];
