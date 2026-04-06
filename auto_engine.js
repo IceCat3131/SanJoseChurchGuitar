@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_3a_full_unified_respelling';
+  const BUILD = 'V13_3b_family_coherent_fix';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -172,7 +172,7 @@
       };
     }
     const realPreview = applyCapoToChords(original, getSongCapoSafe()).slice(0, 5);
-    const mapped = respellListForDisplayedKey(realPreview.map((c)=> AUTO.currentScheme.chordMap?.[c] || c));
+    const mapped = realPreview.map((c)=> AUTO.currentScheme.chordMap?.[c] || c);
     return {
       capo: `CAPO ${AUTO.currentScheme.capo}`,
       family: `family:${AUTO.currentScheme.family || '--'}`,
@@ -219,8 +219,8 @@
         next = AUTO.currentScheme.chordMap[realChord] || realChord;
       } else {
         next = respellForDisplayedKey(original);
+        next = respellForDisplayedKey(next);
       }
-      next = respellForDisplayedKey(next);
       if(next !== current) el.textContent = next;
       try { el.style.fontSize = chordFontPx + 'px'; } catch(e) {}
     });

@@ -19,18 +19,18 @@
   const OPEN_FAMILY_ROOTS = ['G','C','D','A','E','F','Bb','Eb','Ab','Db'];
   const FAMILY_ROOTS = ['C','G','D','A','E','F','Bb','Eb','Ab','Db','B','Gb'];
   const FAMILY_CHORDS = {
-    C:['C','Dm','Em','F','G','Am'],
-    G:['G','Am','Bm','C','D','Em'],
-    D:['D','Em','F#m','G','A','Bm'],
-    A:['A','Bm','C#m','D','E','F#m'],
-    E:['E','F#m','G#m','A','B','C#m'],
-    F:['F','Gm','Am','Bb','C','Dm'],
-    Bb:['Bb','Cm','Dm','Eb','F','Gm'],
-    Eb:['Eb','Fm','Gm','Ab','Bb','Cm'],
-    Ab:['Ab','Bbm','Cm','Db','Eb','Fm'],
-    Db:['Db','Ebm','Fm','Gb','Ab','Bbm'],
-    B:['B','C#m','D#m','E','F#','G#m'],
-    Gb:['Gb','Abm','Bbm','Cb','Db','Ebm']
+    C:['C','Dm','Em','F','G','Am','Bdim'],
+    G:['G','Am','Bm','C','D','Em','F#dim'],
+    D:['D','Em','F#m','G','A','Bm','C#dim'],
+    A:['A','Bm','C#m','D','E','F#m','G#dim'],
+    E:['E','F#m','G#m','A','B','C#m','D#dim'],
+    F:['F','Gm','Am','Bb','C','Dm','Edim'],
+    Bb:['Bb','Cm','Dm','Eb','F','Gm','Adim'],
+    Eb:['Eb','Fm','Gm','Ab','Bb','Cm','Ddim'],
+    Ab:['Ab','Bbm','Cm','Db','Eb','Fm','Gdim'],
+    Db:['Db','Ebm','Fm','Gb','Ab','Bbm','Cdim'],
+    B:['B','C#m','D#m','E','F#','G#m','A#dim'],
+    Gb:['Gb','Abm','Bbm','Cb','Db','Ebm','Fdim']
   };
 
   const DEFAULT_SHAPES = {
@@ -187,16 +187,6 @@
     return 1.4 + (FAMILY_ROOTS.indexOf(root) * 0.04);
   }
 
-  function buildShapeMap(chords, displayDelta, targetKey){
-    const map = {};
-    (chords || []).forEach((symbol) => {
-      const shifted = respellChordForKey(shiftChord(symbol, displayDelta, null, targetKey), targetKey);
-      const shape = findShapeForChord(shifted, targetKey);
-      if(shape) map[symbol] = { displayChord: shifted, shape };
-    });
-    return map;
-  }
-
   function uniqueChordSymbols(chords){
     const out = [];
     const seen = new Set();
@@ -210,13 +200,72 @@
     return out;
   }
 
+  function familyRootList(family){
+    return (FAMILY_CHORDS[family] || []).map((symbol) => parseChord(symbol)?.root).filter(Boolean);
+  }
+
+  function detectDegreeIndex(root, keyName){
+    const family = normalizeKeyName(keyName).replace(/m$/, '');
+    const scale = familyRootList(family);
+    if(!scale.length) return -1;
+    const rootIdx = idx(root);
+    for(let i = 0; i < scale.length; i++){
+      if(idx(scale[i]) === rootIdx) return i;
+    }
+    return -1;
+  }
+
+  function respellChordForFamily(symbol, family){
+    const p = parseChord(symbol);
+    if(!p) return String(symbol || '');
+    return formatChord({
+      root: normalizeNote(p.root, keyUsesFlats(family), family),
+      quality: p.quality,
+      bass: p.bass ? normalizeNote(p.bass, keyUsesFlats(family), family) : ''
+    });
+  }
+
+  function buildFamilyChordFromDegree(symbol, family, targetConcertKey, capo){
+    const parsed = parseChord(symbol);
+    if(!parsed) return respellChordForFamily(shiftChord(symbol, -capo, null, family), family);
+    const degreeIndex = detectDegreeIndex(parsed.root, targetConcertKey);
+    if(degreeIndex < 0){
+      return respellChordForFamily(shiftChord(symbol, -capo, null, family), family);
+    }
+    const familyScale = FAMILY_CHORDS[family] || [];
+    const familyDegree = parseChord(familyScale[degreeIndex] || '');
+    if(!familyDegree) return respellChordForFamily(shiftChord(symbol, -capo, null, family), family);
+
+    let bass = '';
+    if(parsed.bass){
+      const bassDegree = detectDegreeIndex(parsed.bass, targetConcertKey);
+      if(bassDegree >= 0 && familyScale[bassDegree]) bass = parseChord(familyScale[bassDegree]).root;
+      else bass = normalizeNote(add(parsed.bass, -capo, null, family), keyUsesFlats(family), family);
+    }
+    return formatChord({
+      root: familyDegree.root,
+      quality: parsed.quality,
+      bass
+    });
+  }
+
+  function buildShapeMap(chords, family, targetConcertKey, capo){
+    const map = {};
+    (chords || []).forEach((symbol) => {
+      const displayChord = buildFamilyChordFromDegree(symbol, family, targetConcertKey, capo);
+      const shape = findShapeForChord(displayChord, family);
+      if(shape) map[symbol] = { displayChord, shape };
+      else map[symbol] = { displayChord, shape:null };
+    });
+    return map;
+  }
+
   function buildScheme(opts){
     const { family, capo, originalChords, targetConcertKey } = opts;
-    const displayDelta = -capo;
-    const shapeMap = buildShapeMap(originalChords, displayDelta, targetConcertKey);
+    const shapeMap = buildShapeMap(originalChords, family, targetConcertKey, capo);
     const chordMap = {};
     originalChords.forEach((symbol) => {
-      chordMap[symbol] = shapeMap[symbol]?.displayChord || respellChordForKey(shiftChord(symbol, displayDelta, null, targetConcertKey), targetConcertKey);
+      chordMap[symbol] = shapeMap[symbol]?.displayChord || buildFamilyChordFromDegree(symbol, family, targetConcertKey, capo);
     });
 
     let score = Math.abs(capo - 2);
@@ -228,21 +277,21 @@
     });
 
     return {
-      family: respellChordForKey(family, targetConcertKey),
+      family,
       familyRoot: family,
       capo,
       score: Math.round(score * 100) / 100,
       targetConcertKey: normalizeKeyName(targetConcertKey),
-      displayDelta,
+      displayDelta: -capo,
       chordMap,
       shapeMap,
-      summary: `${respellChordForKey(family, targetConcertKey)}组 / CP${capo}`
+      summary: `${family}组 / CP${capo}`
     };
   }
 
   function generateSchemes(ctx){
-    const originalKey = normalizeKeyName(ctx.originalKey || 'C');
-    const targetConcertKey = add(originalKey.replace(/m$/, ''), ctx.transpose || 0, null, originalKey);
+    const originalKey = normalizeKeyName(ctx.originalKey || 'C').replace(/m$/, '');
+    const targetConcertKey = add(originalKey, ctx.transpose || 0, null, originalKey);
     const targetIdx = idx(targetConcertKey);
     if(targetIdx == null) return [];
     const originalChords = uniqueChordSymbols(respellChordListForKey(ctx.originalChords, targetConcertKey));
@@ -270,6 +319,7 @@
     respellChord,
     respellChordForKey,
     respellChordListForKey,
+    respellChordForFamily,
     generateSchemes,
     buildScheme,
     uniqueChordSymbols,
@@ -277,6 +327,8 @@
     FAMILY_CHORDS,
     findShapeForChord,
     normalizeKeyName,
-    keyUsesFlats
+    keyUsesFlats,
+    detectDegreeIndex,
+    buildFamilyChordFromDegree
   };
 })();
