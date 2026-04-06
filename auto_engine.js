@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_2e_scheme_truth_and_transpose';
+  const BUILD = 'V13_2f_scheme_display_fix';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -16,18 +16,7 @@
   function qa(sel, root){ return Array.from((root || document).querySelectorAll(sel)); }
   function getSongCapoSafe(){ return typeof getSongCapo === 'function' ? getSongCapo() : 0; }
   function getOriginalKeyName(){ return (window.__currentMeta && window.__currentMeta.key_name) || 'C'; }
-  function getDisplayedSongKeyName(){
-    try{
-      if(typeof computeDisplayedKeyName === 'function'){
-        return computeDisplayedKeyName(window.__currentMeta || { key_name: getOriginalKeyName() });
-      }
-    }catch(e){}
-    return getOriginalKeyName();
-  }
-  function preferFlats(){
-    const keyName = getDisplayedSongKeyName();
-    return typeof prefersFlatsFromKeyName === 'function' ? prefersFlatsFromKeyName(keyName) : true;
-  }
+  function preferFlats(){ return typeof prefersFlatsFromKeyName === 'function' ? prefersFlatsFromKeyName(getOriginalKeyName()) : true; }
   function getTransposeSafe(){ return (typeof getUserTranspose === 'function') ? getUserTranspose() : (window.viewerPrefs ? (parseInt(viewerPrefs.transposeSemitones, 10) || 0) : 0); }
 
   function extractOriginalChords(){
@@ -43,15 +32,6 @@
       if(!seen.has(raw)){ seen.add(raw); out.push(raw); }
     });
     return out;
-  }
-
-  function applyCapoToChords(chords, capo){
-    if(!window.SchemeEngine) return (chords || []).slice();
-    const useFlats = preferFlats();
-    return (chords || []).map((ch)=>{
-      try { return SchemeEngine.shiftChord(ch, capo || 0, useFlats); }
-      catch(e){ return ch; }
-    });
   }
 
   function currentMeter(){ return '4/4'; }
@@ -116,15 +96,11 @@
   }
 
   function buildContext(){
-    const rawOriginalChords = extractOriginalChords();
-    const songCapo = getSongCapoSafe();
-    const realChords = applyCapoToChords(rawOriginalChords, songCapo);
     return {
       originalKey: getOriginalKeyName(),
-      songCapo,
+      songCapo: getSongCapoSafe(),
       transpose: getTransposeSafe(),
-      rawOriginalChords,
-      originalChords: realChords,
+      originalChords: extractOriginalChords(),
       preferFlats: preferFlats()
     };
   }
@@ -147,19 +123,19 @@
   }
 
   function schemeInfoData(){
-    const rawOriginal = extractOriginalChords().slice(0, 5);
+    const original = extractOriginalChords().slice(0, 5);
     if(AUTO.mode !== 'auto' || !AUTO.currentScheme){
       return {
         capo: `CAPO ${getSongCapoSafe()}`,
         family: 'family:原谱',
-        chords: rawOriginal.length ? rawOriginal.join(', ') : '--'
+        chords: original.length ? original.join(', ') : '--'
       };
     }
-    const preview = Array.isArray(AUTO.currentScheme.previewChords) ? AUTO.currentScheme.previewChords.slice(0, 5) : [];
+    const mapped = original.map((c)=> AUTO.currentScheme.chordMap?.[c] || c);
     return {
       capo: `CAPO ${AUTO.currentScheme.capo}`,
       family: `family:${AUTO.currentScheme.family || '--'}`,
-      chords: preview.length ? preview.join(', ') : '--'
+      chords: mapped.length ? mapped.join(', ') : '--'
     };
   }
 
@@ -274,8 +250,8 @@
     };
     const oldComputeDisplayedKeyName = window.computeDisplayedKeyName;
     window.computeDisplayedKeyName = function(meta){
-      // 自动伴奏不改变歌曲“当前调号”的显示；只显示 原调 + 用户转调。
-      return oldComputeDisplayedKeyName ? oldComputeDisplayedKeyName(meta) : getOriginalKeyName();
+      if(AUTO.mode === 'auto' && AUTO.currentScheme) return AUTO.currentScheme.targetConcertKey || '--';
+      return oldComputeDisplayedKeyName ? oldComputeDisplayedKeyName(meta) : '--';
     };
     const oldChangeTranspose = window.changeTranspose;
     window.changeTranspose = function(delta){
