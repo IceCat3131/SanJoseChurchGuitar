@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_0b_auto_ui_merge';
+  const BUILD = 'V13_0c_auto_ui_refine';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -60,47 +60,26 @@
       if(!$('panel-rhythm-hub')){
         layer.insertAdjacentHTML('beforeend', `
           <div class="core-panel auto-panel-hub" id="panel-rhythm-hub" hidden>
-            <div class="core-panel-head"><span>节</span></div>
-            <div class="auto-hub-status" id="ui-auto-hub-status">当前：原谱</div>
+            <div class="core-panel-head"><span>节</span><span id="auto-chip-build" class="auto-chip">${BUILD}</span></div>
+            <div class="auto-hub-toprow">
+              <button type="button" class="core-option-btn auto-mini-btn" id="ui-auto-original">原谱</button>
+              <button type="button" class="core-option-btn auto-mini-btn" id="ui-scheme-a">自动A</button>
+              <button type="button" class="core-option-btn auto-mini-btn" id="ui-scheme-b">自动B</button>
+              <button type="button" class="core-option-btn auto-mini-btn" id="ui-scheme-c">自动C</button>
+            </div>
+            <div class="auto-hub-inline" id="ui-auto-hub-inline">CP${getSongCapoSafe()} ｜ --</div>
             <div class="auto-hub-layout">
-              <div class="auto-hub-left">
-                <button type="button" class="core-option-btn" id="ui-auto-original">原谱</button>
-                <button type="button" class="core-option-btn" id="ui-scheme-a">方案 A</button>
-                <button type="button" class="core-option-btn" id="ui-scheme-b">方案 B</button>
-                <button type="button" class="core-option-btn" id="ui-scheme-c">方案 C</button>
-              </div>
+              <div class="auto-hub-left-note">点击原谱返回原谱模式；点击右侧任意节奏进入自动伴奏并默认启用自动A。</div>
               <div class="auto-hub-right-wrap">
                 <div class="auto-hub-right-title">节奏</div>
                 <div class="auto-hub-right" id="ui-rhythm-list"></div>
               </div>
             </div>
-            <div class="auto-hub-note">点击“原谱”进入原谱模式；点击任意分解/扫弦节奏，立即进入自动伴奏模式并默认启用方案 A。</div>
           </div>`);
       }
     }
 
-    const contentCard = q('.content-card');
-    if(contentCard && !$('auto-debug-info')){
-      const box = document.createElement('div');
-      box.id = 'auto-debug-info';
-      box.className = 'auto-debug-info';
-      box.innerHTML = `
-        <div class="auto-debug-head">
-          <strong>自动伴奏测试信息</strong>
-          <span id="auto-chip-build" class="auto-chip">${BUILD}</span>
-        </div>
-        <div class="auto-debug-grid">
-          <div class="auto-debug-row"><span>当前模式</span><strong id="ui-auto-current-mode">原谱</strong></div>
-          <div class="auto-debug-row"><span>当前方案</span><strong id="ui-auto-current-scheme">--</strong></div>
-          <div class="auto-debug-row"><span>当前 Family</span><strong id="ui-auto-current-family">--</strong></div>
-          <div class="auto-debug-row"><span>当前 CAPO</span><strong id="ui-auto-current-capo">--</strong></div>
-          <div class="auto-debug-row"><span>目标调</span><strong id="ui-auto-current-key">--</strong></div>
-          <div class="auto-debug-row"><span>当前节奏</span><strong id="ui-auto-current-pattern">--</strong></div>
-        </div>
-        <div class="auto-debug-chords" id="ui-auto-chord-preview">等待生成方案…</div>
-      `;
-      contentCard.parentNode.insertBefore(box, contentCard);
-    }
+    $('auto-debug-info')?.remove();
 
     if(!$('auto-version-badge')){
       const badge = document.createElement('div');
@@ -139,13 +118,13 @@
   }
 
   function chordPreviewText(){
-    const original = extractOriginalChords().slice(0, 6);
-    if(!original.length) return '前几个和弦：暂未抓取到乐谱和弦。';
+    const original = extractOriginalChords().slice(0, 5);
+    if(!original.length) return `CP${getSongCapoSafe()} ｜ --`;
     if(AUTO.mode !== 'auto' || !AUTO.currentScheme){
-      return `原谱前几个和弦：${original.join(' / ')} ｜ 原谱CAPO=CP${getSongCapoSafe()}`;
+      return `CP${getSongCapoSafe()} ｜ ${original.join('')}`;
     }
     const mapped = original.map((c)=> AUTO.currentScheme.chordMap?.[c] || c);
-    return `原谱前几个和弦：${original.join(' / ')} ｜ 方案${['A','B','C'][AUTO.schemeIndex] || 'A'}：${mapped.join(' / ')} ｜ 方案CAPO=CP${AUTO.currentScheme.capo}`;
+    return `CP${AUTO.currentScheme.capo} ｜ ${mapped.join('')}`;
   }
 
   function updateUi(){
@@ -160,14 +139,7 @@
       btn.disabled = !inAuto;
       btn.classList.toggle('disabled', !inAuto);
     });
-    $('ui-auto-current-mode') && ($('ui-auto-current-mode').textContent = inAuto ? '自动伴奏' : '原谱');
-    $('ui-auto-current-scheme') && ($('ui-auto-current-scheme').textContent = inAuto ? (['A','B','C'][AUTO.schemeIndex] || '--') : '--');
-    $('ui-auto-current-family') && ($('ui-auto-current-family').textContent = (inAuto && AUTO.currentScheme) ? AUTO.currentScheme.family : '--');
-    $('ui-auto-current-capo') && ($('ui-auto-current-capo').textContent = (inAuto && AUTO.currentScheme) ? ('CP' + AUTO.currentScheme.capo) : ('CP' + getSongCapoSafe()));
-    $('ui-auto-current-key') && ($('ui-auto-current-key').textContent = (inAuto && AUTO.currentScheme) ? AUTO.currentScheme.targetConcertKey : getOriginalKeyName());
-    $('ui-auto-current-pattern') && ($('ui-auto-current-pattern').textContent = inAuto && currentPattern ? currentPattern.name : '原谱');
-    $('ui-auto-hub-status') && ($('ui-auto-hub-status').textContent = !inAuto ? '当前：原谱' : `当前：${currentPattern ? currentPattern.name : '--'} / 方案 ${['A','B','C'][AUTO.schemeIndex] || 'A'}`);
-    $('ui-auto-chord-preview') && ($('ui-auto-chord-preview').textContent = chordPreviewText());
+    $('ui-auto-hub-inline') && ($('ui-auto-hub-inline').textContent = chordPreviewText());
     buildRhythmPanel();
     setTimeout(rewriteChordsForAuto, 40);
     setTimeout(rewriteChordsForAuto, 180);
