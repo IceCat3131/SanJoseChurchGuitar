@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V15_FULL_SCHEME_REWORK';
+  const BUILD = 'V13_2i_flat_spelling_fix';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -26,6 +26,9 @@
   }
   function preferFlats(){
     const keyName = getDisplayedSongKeyName();
+    if(window.SchemeEngine && typeof SchemeEngine.prefersFlatsForKey === 'function'){
+      return SchemeEngine.prefersFlatsForKey(keyName, true);
+    }
     return typeof prefersFlatsFromKeyName === 'function' ? prefersFlatsFromKeyName(keyName) : true;
   }
   function getTransposeSafe(){ return (typeof getUserTranspose === 'function') ? getUserTranspose() : (window.viewerPrefs ? (parseInt(viewerPrefs.transposeSemitones, 10) || 0) : 0); }
@@ -124,8 +127,9 @@
     const realChords = applyCapoToChords(rawChords, sourceCapo);
     return {
       originalKey: getOriginalKeyName(),
-      displayedKey: getDisplayedSongKeyName(),
-      songCapo: sourceCapo,
+      // sourceCapo 在这里用于把原谱和弦提升成“真实和弦”；
+      // 进入 scheme_engine 后不再重复参与目标调和显示和弦计算。
+      songCapo: 0,
       transpose: getTransposeSafe(),
       originalChords: realChords,
       preferFlats: preferFlats()
@@ -158,10 +162,12 @@
         chords: original.length ? original.join(', ') : '--'
       };
     }
+    const realPreview = applyCapoToChords(original, getSongCapoSafe()).slice(0, 5);
+    const mapped = realPreview.map((c)=> AUTO.currentScheme.chordMap?.[c] || c);
     return {
       capo: `CAPO ${AUTO.currentScheme.capo}`,
-      family: `family:${AUTO.currentScheme.familyDisplay || AUTO.currentScheme.family || '--'}`,
-      chords: (AUTO.currentScheme.displayChords && AUTO.currentScheme.displayChords.length) ? AUTO.currentScheme.displayChords.join(', ') : '--'
+      family: `family:${AUTO.currentScheme.family || '--'}`,
+      chords: mapped.length ? mapped.join(', ') : '--'
     };
   }
 
@@ -203,8 +209,10 @@
         const realChord = window.SchemeEngine ? SchemeEngine.shiftChord(original, getSongCapoSafe(), useFlats) : original;
         next = AUTO.currentScheme.chordMap[realChord] || original;
       } else {
-        // 原谱模式保持原谱和弦，不跟自动伴奏/转调链路混用
-        next = original;
+        // 原谱模式保持原谱和弦，但仍按当前调号统一升降号拼写。
+        next = (window.SchemeEngine && typeof SchemeEngine.respellChordForKey === 'function')
+          ? SchemeEngine.respellChordForKey(original, getDisplayedSongKeyName(), useFlats)
+          : original;
       }
       if(next !== current) el.textContent = next;
       try { el.style.fontSize = chordFontPx + 'px'; } catch(e) {}
