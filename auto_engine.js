@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_2h_spelling_fix';
+  const BUILD='V13_2h_FIX_REAL';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -16,18 +16,7 @@
   function qa(sel, root){ return Array.from((root || document).querySelectorAll(sel)); }
   function getSongCapoSafe(){ return typeof getSongCapo === 'function' ? getSongCapo() : 0; }
   function getOriginalKeyName(){ return (window.__currentMeta && window.__currentMeta.key_name) || 'C'; }
-  function getDisplayedSongKeyName(){
-    try{
-      if(typeof computeDisplayedKeyName === 'function'){
-        return computeDisplayedKeyName(window.__currentMeta || { key_name: getOriginalKeyName() });
-      }
-    }catch(e){}
-    return getOriginalKeyName();
-  }
-  function preferFlats(){
-    const keyName = getDisplayedSongKeyName();
-    return typeof prefersFlatsFromKeyName === 'function' ? prefersFlatsFromKeyName(keyName) : true;
-  }
+  function preferFlats(){ return typeof prefersFlatsFromKeyName === 'function' ? prefersFlatsFromKeyName(getOriginalKeyName()) : true; }
   function getTransposeSafe(){ return (typeof getUserTranspose === 'function') ? getUserTranspose() : (window.viewerPrefs ? (parseInt(viewerPrefs.transposeSemitones, 10) || 0) : 0); }
 
   function extractOriginalChords(){
@@ -43,18 +32,6 @@
       if(!seen.has(raw)){ seen.add(raw); out.push(raw); }
     });
     return out;
-  }
-
-  function applyCapoToChords(chords, capo){
-    if(!window.SchemeEngine) return chords;
-    const useFlats = preferFlats();
-    return (chords || []).map((ch)=>{
-      try{
-        return SchemeEngine.shiftChord(ch, capo || 0, useFlats);
-      }catch(e){
-        return ch;
-      }
-    });
   }
 
   function currentMeter(){ return '4/4'; }
@@ -119,18 +96,17 @@
   }
 
   function buildContext(){
-    const rawChords = extractOriginalChords();
-    const sourceCapo = getSongCapoSafe();
-    const realChords = applyCapoToChords(rawChords, sourceCapo);
-    return {
-      originalKey: getOriginalKeyName(),
-      // sourceCapo 在这里用于把原谱和弦提升成“真实和弦”；
-      // 进入 scheme_engine 后不再重复参与目标调和显示和弦计算。
-      songCapo: 0,
-      transpose: getTransposeSafe(),
-      originalChords: realChords,
-      preferFlats: preferFlats()
-    };
+ const raw=extractOriginalChords();
+ const capo=getSongCapoSafe();
+ const real=raw.map(c=>window.SchemeEngine?SchemeEngine.shiftChord(c,capo,true):c);
+ return {
+   originalKey:getOriginalKeyName(),
+   songCapo:0,
+   transpose:getTransposeSafe(),
+   originalChords:real,
+   preferFlats:true
+ };
+};
   }
 
   function refreshSchemes(){
@@ -152,137 +128,8 @@
 
   function schemeInfoData(){
     const original = extractOriginalChords().slice(0, 5);
-    if(AUTO.mode !== 'auto' || !AUTO.currentScheme){
-      return {
-        capo: `CAPO ${getSongCapoSafe()}`,
-        family: 'family:原谱',
-        chords: original.length ? original.join(', ') : '--'
-      };
-    }
-    const realPreview = applyCapoToChords(original, getSongCapoSafe()).slice(0, 5);
-    const mapped = realPreview.map((c)=> AUTO.currentScheme.chordMap?.[c] || c);
-    return {
-      capo: `CAPO ${AUTO.currentScheme.capo}`,
-      family: `family:${AUTO.currentScheme.family || '--'}`,
-      chords: mapped.length ? mapped.join(', ') : '--'
-    };
-  }
-
-  function updateUi(){
-    const inAuto = AUTO.mode === 'auto';
-    $('ui-rhythm') && ($('ui-rhythm').textContent = inAuto ? '节·伴' : '节·原');
-    ['a','b','c'].forEach((k, idx)=>{
-      const btn = $('ui-scheme-' + k);
-      if(!btn) return;
-      btn.classList.toggle('active', inAuto && AUTO.schemeIndex === idx);
-      btn.disabled = !inAuto;
-      btn.classList.toggle('disabled', !inAuto);
-    });
-    const infoBox = $('ui-auto-scheme-info');
-    if(infoBox){
-      const info = schemeInfoData();
-      infoBox.innerHTML = `<div>${info.capo}</div><div>${info.family}</div><div>${info.chords}</div>`;
-    }
-    buildRhythmPanel();
-    setTimeout(rewriteChordsForAuto, 40);
-    setTimeout(rewriteChordsForAuto, 180);
-    setTimeout(() => { window.dispatchEvent(new CustomEvent('auto13:statechange', { detail: { ...AUTO } })); }, 0);
-  }
-
-  function rewriteChordsForAuto(){
-    const root = $('alphaTab');
-    if(!root) return;
-    const chordFontPx = (typeof getChordFontSizePx === 'function') ? getChordFontSizePx() : 16;
-    const useFlats = preferFlats();
-    qa('text, tspan', root).forEach((el)=>{
-      if(el.children && el.children.length) return;
-      const current = (el.textContent || '').trim();
-      if(!current) return;
-      const original = el.getAttribute('data-orig-chord') || current;
-      if(typeof looksLikeChordSymbol === 'function' && !looksLikeChordSymbol(original)) return;
-      if(!el.getAttribute('data-orig-chord')) el.setAttribute('data-orig-chord', original);
-      let next = original;
-      if(AUTO.mode === 'auto' && AUTO.currentScheme && AUTO.currentScheme.chordMap){
-        const realChord = window.SchemeEngine ? SchemeEngine.shiftChord(original, getSongCapoSafe(), useFlats) : original;
-        next = AUTO.currentScheme.chordMap[realChord] || original;
-      } else {
-        // 原谱模式保持原谱和弦，不跟自动伴奏/转调链路混用
-        next = original;
-      }
-      if(next !== current) el.textContent = next;
-      try { el.style.fontSize = chordFontPx + 'px'; } catch(e) {}
-    });
-  }
-
-  function applyScheme(){
-    if(AUTO.mode !== 'auto'){
-      updateUi();
-      return;
-    }
-    if(!AUTO.schemes.length) refreshSchemes();
-    AUTO.currentScheme = AUTO.schemes[AUTO.schemeIndex] || AUTO.schemes[0] || null;
-    updateUi();
-    if(typeof scheduleChordRewrite === 'function') scheduleChordRewrite(20);
-  }
-
-  function setMode(mode){
-    AUTO.mode = mode === 'auto' ? 'auto' : 'original';
-    if(AUTO.mode === 'auto'){
-      refreshSchemes();
-      if(!AUTO.currentPatternId) AUTO.currentPatternId = AUTO.lastAutoPatternId || (window.RhythmEngine ? (RhythmEngine.getDefaultPattern(currentMeter()) || {}).id : null) || null;
-    }
-    applyScheme();
-  }
-
-  function choosePattern(patternId){
-    AUTO.currentPatternId = patternId;
-    AUTO.lastAutoPatternId = patternId;
-    AUTO.schemeIndex = 0;
-    setMode('auto');
-  }
-
-  function setSchemeIndex(index){
-    if(AUTO.mode !== 'auto') return;
-    AUTO.schemeIndex = Math.max(0, Math.min(index, Math.max(0, AUTO.schemes.length - 1)));
-    applyScheme();
-  }
-
-  function buildRhythmPanel(){
-    const list = $('ui-rhythm-list');
-    if(!list || !window.RhythmEngine) return;
-    const patterns = RhythmEngine.getPatternsForMeter(currentMeter());
-    if(patterns.length && !AUTO.currentPatternId) AUTO.currentPatternId = AUTO.lastAutoPatternId || patterns[0].id;
-    list.innerHTML = '';
-
-    const originalBtn = document.createElement('button');
-    originalBtn.type = 'button';
-    originalBtn.className = 'core-option-btn auto-rhythm-item';
-    originalBtn.textContent = '原谱';
-    originalBtn.classList.toggle('active', AUTO.mode !== 'auto');
-    originalBtn.addEventListener('click', ()=> setMode('original'));
-    list.appendChild(originalBtn);
-
-    patterns.forEach((pattern)=>{
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'core-option-btn auto-rhythm-item';
-      btn.textContent = pattern.name;
-      btn.classList.toggle('active', pattern.id === AUTO.currentPatternId && AUTO.mode === 'auto');
-      btn.addEventListener('click', ()=> choosePattern(pattern.id));
-      list.appendChild(btn);
-    });
-  }
-
-  function wrapGlobals(){
-    const oldDisplayedCapo = window.getDisplayedCapoLabel;
-    window.getDisplayedCapoLabel = function(){
-      if(AUTO.mode === 'auto' && AUTO.currentScheme) return AUTO.currentScheme.capo;
-      return oldDisplayedCapo ? oldDisplayedCapo() : 0;
-    };
-    const oldComputeDisplayedKeyName = window.computeDisplayedKeyName;
-    window.computeDisplayedKeyName = function(meta){
-      // 自动伴奏模式不覆盖顶部歌曲调号；顶部始终显示 原调 + 用户转调。
-      return oldComputeDisplayedKeyName ? oldComputeDisplayedKeyName(meta) : getOriginalKeyName();
+    return oldComputeDisplayedKeyName ? oldComputeDisplayedKeyName(meta) : getOriginalKeyName();
+      return oldComputeDisplayedKeyName ? oldComputeDisplayedKeyName(meta) : '--';
     };
     const oldChangeTranspose = window.changeTranspose;
     window.changeTranspose = function(delta){
