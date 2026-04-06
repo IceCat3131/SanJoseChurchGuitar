@@ -652,10 +652,31 @@
     return !!staff.showTablature;
   }
 
+  function getActiveSchemeCapoForTab() {
+    const auto = window.__AUTO13;
+    if (auto && auto.mode === 'auto') {
+      if (auto.manualCapoMode) {
+        const m = parseInt(auto.manualCapo, 10);
+        return Number.isFinite(m) ? Math.max(0, Math.min(11, m)) : 0;
+      }
+      const c = parseInt(auto.currentScheme?.capo, 10);
+      if (Number.isFinite(c)) return Math.max(0, Math.min(11, c));
+    }
+    return getEffectiveCapo();
+  }
+
+  function getTabDisplayShift() {
+    const auto = window.__AUTO13;
+    if (auto && auto.mode === 'auto') {
+      return getEffectiveCapo() + getUserTranspose() - getActiveSchemeCapoForTab();
+    }
+    return getEffectiveCapo() + getUserTranspose();
+  }
+
   function getDisplayedFretForCapo(note) {
     if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
-    // 原谱TAB数字始终显示原始按法数字，不跟CAPO或转调一起平移。
-    return note.fret;
+    const shifted = note.fret + getTabDisplayShift();
+    return Math.max(0, shifted);
   }
 
   function renderTabCapoOverlay() {
@@ -719,6 +740,10 @@
       try { renderTabCapoOverlay(); } catch (e) { console.warn('renderTabCapoOverlay failed', e); }
     }, delay);
   }
+
+  window.addEventListener('auto13:statechange', () => {
+    scheduleTabCapoOverlay(20);
+  });
 
 
   function applyViewerPrefsToLyricsPage() {

@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = '14.4.2.1';
+  const BUILD = '14.4.2.2';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -285,7 +285,7 @@
     buildRhythmPanel();
     setTimeout(rewriteChordsForAuto, 40);
     setTimeout(rewriteChordsForAuto, 180);
-    setTimeout(() => { window.dispatchEvent(new CustomEvent('auto13:statechange', { detail: { ...AUTO } })); }, 0);
+    setTimeout(() => { window.dispatchEvent(new CustomEvent('auto13:statechange', { detail: { ...AUTO, currentSchemeResult: getCurrentSchemeResult() } })); }, 0);
   }
 
   function rewriteChordsForAuto(){
@@ -389,6 +389,25 @@
     applyScheme();
   }
 
+
+  function getCurrentSchemeResult(){
+    const info = schemeInfoData();
+    const activeCapo = (AUTO.mode === 'auto')
+      ? (AUTO.manualCapoMode ? (parseInt(AUTO.manualCapo, 10) || 0) : (AUTO.currentScheme ? (parseInt(AUTO.currentScheme.capo, 10) || 0) : getSongCapoSafe()))
+      : getSongCapoSafe();
+    return {
+      mode: AUTO.mode,
+      manualCapoMode: !!AUTO.manualCapoMode,
+      selectedSchemeIndex: AUTO.mode === 'auto' && !AUTO.manualCapoMode ? AUTO.schemeIndex : null,
+      activeCapo,
+      family: AUTO.mode === 'auto'
+        ? (AUTO.manualCapoMode ? String(info.family || '').replace(/^family:/,'') : (AUTO.currentScheme?.family || '--'))
+        : '原谱',
+      chords: String(info.chords || '--').split(/\s*,\s*/).filter(Boolean),
+      displayText: info.chords || '--'
+    };
+  }
+
   function wrapGlobals(){
     const oldDisplayedCapo = window.getDisplayedCapoLabel;
     window.getDisplayedCapoLabel = function(){
@@ -402,6 +421,7 @@
       return oldComputeDisplayedKeyName ? oldComputeDisplayedKeyName(meta) : getOriginalKeyName();
     };
     window.refreshChordSchemePanel = refreshChordSchemePanel;
+    window.getCurrentSchemeResult = getCurrentSchemeResult;
     const oldChangeTranspose = window.changeTranspose;
     window.changeTranspose = function(delta){
       const result = oldChangeTranspose ? oldChangeTranspose(delta) : undefined;
