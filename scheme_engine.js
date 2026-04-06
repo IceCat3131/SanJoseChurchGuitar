@@ -143,5 +143,5 @@
     out.sort((a,b)=>a.score-b.score);
     return out.slice(0,3);
   }
-  window.SchemeEngine = { parseChord, shiftChord, generateSchemes, buildScheme, uniqueChordSymbols, FAMILY_ROOTS, normalizeEnharmonicKeyName, isFlatKeyName, normalizeChordForKey };
+  window.SchemeEngine = { parseChord, shiftChord, generateSchemes, buildScheme, uniqueChordSymbols, FAMILY_ROOTS, DEFAULT_SHAPES, normalizeEnharmonicKeyName, isFlatKeyName, normalizeChordForKey };
 })();

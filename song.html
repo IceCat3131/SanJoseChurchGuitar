@@ -668,9 +668,9 @@
   function getTabDisplayShift() {
     const auto = window.__AUTO13;
     if (auto && auto.mode === 'auto') {
-      return getEffectiveCapo() + getUserTranspose() - getActiveSchemeCapoForTab();
+      return 0;
     }
-    return getEffectiveCapo() + getUserTranspose();
+    return getUserTranspose();
   }
 
   function getDisplayedFretForCapo(note) {
@@ -679,15 +679,173 @@
     return Math.max(0, shifted);
   }
 
+
+  function getCurrentAutoPattern() {
+    const auto = window.__AUTO13;
+    if (!auto || auto.mode !== 'auto' || !window.RhythmEngine) return null;
+    const patterns = RhythmEngine.getPatternsForMeter('4/4') || [];
+    return patterns.find((p) => p.id === auto.currentPatternId) || patterns[0] || null;
+  }
+
+  function getCurrentDisplayedChordSequence() {
+    const root = document.getElementById('alphaTab');
+    if (!root) return [];
+    const out = [];
+    const seen = new Set();
+    root.querySelectorAll('text, tspan').forEach((el) => {
+      if (el.children && el.children.length) return;
+      const raw = String(el.textContent || '').trim();
+      if (!raw) return;
+      if (typeof looksLikeChordSymbol === 'function' && !looksLikeChordSymbol(raw)) return;
+      const key = raw + '@' + Math.round(parseFloat(el.getAttribute('x') || '0'));
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(raw);
+    });
+    return out;
+  }
+
+  function getChordShapeForDisplayChord(chordText) {
+    if (!window.SchemeEngine || !SchemeEngine.parseChord) return null;
+    const parsed = SchemeEngine.parseChord(chordText);
+    if (!parsed) return null;
+    const key = parsed.root + (parsed.quality || '');
+    const shapes = SchemeEngine.DEFAULT_SHAPES || {};
+    return shapes[key] || shapes[parsed.root] || null;
+  }
+
+  function resolveShapeStep(shape, step) {
+    const s = parseInt(String(step || '').replace(/[^1-6]/g, ''), 10);
+    if (!shape || !Number.isFinite(s) || s < 1 || s > 6) return null;
+    const preferredIndex = 6 - s;
+    const candidates = [];
+    for (let i = 0; i < shape.length; i++) {
+      const fret = shape[i];
+      if (fret === 'x' || fret == null) continue;
+      candidates.push({ string: 6 - i, fret: fret, dist: Math.abs(i - preferredIndex) });
+    }
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => a.dist - b.dist || a.string - b.string);
+    return candidates[0];
+  }
+
+  function buildTabStringYMap(lookup) {
+    const sums = { 1:[0,0], 2:[0,0], 3:[0,0], 4:[0,0], 5:[0,0], 6:[0,0] };
+    if (!lookup || !Array.isArray(lookup.staffSystems)) return null;
+    for (const system of lookup.staffSystems) {
+      for (const masterBar of (system?.bars || [])) {
+        for (const barBounds of (masterBar?.bars || [])) {
+          if (!isTabBarBounds(barBounds)) continue;
+          for (const beatBounds of (barBounds?.beats || [])) {
+            for (const noteBounds of (beatBounds?.notes || [])) {
+              const note = noteBounds?.note;
+              const box = noteBounds?.noteHeadBounds || noteBounds;
+              const stringNo = note?.string;
+              if (!Number.isFinite(stringNo) || !box) continue;
+              const y = (box.y ?? 0) + ((box.h ?? box.height ?? 16) / 2);
+              sums[stringNo][0] += y;
+              sums[stringNo][1] += 1;
+            }
+          }
+        }
+      }
+    }
+    const map = {};
+    const present = [];
+    for (let s = 1; s <= 6; s++) {
+      if (sums[s][1] > 0) {
+        map[s] = sums[s][0] / sums[s][1];
+        present.push(s);
+      }
+    }
+    if (!present.length) return null;
+    if (present.length >= 2) {
+      const top = present[0];
+      const bottom = present[present.length - 1];
+      const step = (map[bottom] - map[top]) / (bottom - top || 1);
+      for (let s = 1; s <= 6; s++) {
+        if (!Number.isFinite(map[s])) map[s] = map[top] + step * (s - top);
+      }
+    } else {
+      for (let s = 1; s <= 6; s++) map[s] = map[present[0]] + (s - present[0]) * 12;
+    }
+    return map;
+  }
+
+  function renderAutoPatternTabOverlay(api, root, lookup) {
+    const pattern = getCurrentAutoPattern();
+    const steps = Array.isArray(pattern?.steps) ? pattern.steps.filter((s) => /^[1-6]$/.test(String(s))) : [];
+    if (!steps.length) return false;
+    const chordSequence = getCurrentDisplayedChordSequence();
+    if (!chordSequence.length) return false;
+    const yMap = buildTabStringYMap(lookup);
+    if (!yMap) return false;
+    let barIndex = 0;
+    for (const system of lookup.staffSystems) {
+      for (const masterBar of (system?.bars || [])) {
+        for (const barBounds of (masterBar?.bars || [])) {
+          if (!isTabBarBounds(barBounds)) continue;
+          const chordText = chordSequence[Math.min(barIndex, chordSequence.length - 1)] || chordSequence[chordSequence.length - 1];
+          const shape = getChordShapeForDisplayChord(chordText);
+          const notes = [];
+          for (const beatBounds of (barBounds?.beats || [])) {
+            for (const noteBounds of (beatBounds?.notes || [])) {
+              notes.push(noteBounds);
+            }
+          }
+          notes.forEach((noteBounds, idx) => {
+            const box = noteBounds?.noteHeadBounds || noteBounds;
+            if (!box) return;
+            const resolved = resolveShapeStep(shape, steps[idx % steps.length]);
+            if (!resolved) return;
+            const bw = box.w ?? box.width ?? 16;
+            const bh = box.h ?? box.height ?? 16;
+            const bx = box.x ?? 0;
+            const cy = yMap[resolved.string] ?? ((box.y ?? 0) + bh / 2);
+            const top = cy - bh / 2;
+            const el = document.createElement('div');
+            el.className = 'tab-capo-overlay-note';
+            el.textContent = String(resolved.fret);
+            el.style.position = 'absolute';
+            el.style.left = `${bx}px`;
+            el.style.top = `${top}px`;
+            el.style.width = `${bw}px`;
+            el.style.height = `${bh}px`;
+            el.style.display = 'flex';
+            el.style.alignItems = 'center';
+            el.style.justifyContent = 'center';
+            el.style.background = '#fff';
+            el.style.color = '#111';
+            el.style.fontWeight = '700';
+            el.style.fontSize = `${Math.max(12, Math.round(bh * 0.95))}px`;
+            el.style.lineHeight = '1';
+            el.style.borderRadius = '2px';
+            el.style.boxSizing = 'border-box';
+            root.appendChild(el);
+          });
+          barIndex += 1;
+        }
+      }
+    }
+    return true;
+  }
+
   function renderTabCapoOverlay() {
     const api = window.__atApi;
     const root = ensureTabCapoOverlayRoot();
     if (!api || !root) return;
     root.innerHTML = '';
 
-    const offset = getEffectiveCapo() + getUserTranspose();
     const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
-    if (!offset || !lookup || !Array.isArray(lookup.staffSystems)) return;
+    if (!lookup || !Array.isArray(lookup.staffSystems)) return;
+
+    const auto = window.__AUTO13;
+    if (auto && auto.mode === 'auto') {
+      if (renderAutoPatternTabOverlay(api, root, lookup)) return;
+    }
+
+    const offset = getTabDisplayShift();
+    if (!offset) return;
 
     for (const system of lookup.staffSystems) {
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];

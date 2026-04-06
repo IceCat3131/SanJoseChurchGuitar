@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = '14.4.2.2';
+  const BUILD = '14.4.2.3';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -404,7 +404,8 @@
         ? (AUTO.manualCapoMode ? String(info.family || '').replace(/^family:/,'') : (AUTO.currentScheme?.family || '--'))
         : '原谱',
       chords: String(info.chords || '--').split(/\s*,\s*/).filter(Boolean),
-      displayText: info.chords || '--'
+      displayText: info.chords || '--',
+      currentPatternId: AUTO.currentPatternId || null
     };
   }
 
