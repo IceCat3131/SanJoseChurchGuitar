@@ -4,7 +4,18 @@
   const FLAT  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
   const INDEX = {C:0,'B#':0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,Fb:4,F:5,'E#':5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11,Cb:11};
   const FLAT_KEYS = new Set(['F','Bb','Eb','Ab','Db','Gb','Cb','Dm','Gm','Cm','Fm','Bbm','Ebm','Abm']);
-  const SHARP_KEYS = new Set(['G','D','A','E','B','F#','C#','Em','Bm','F#m','C#m','G#m','D#m','A#m']);
+  function tonicOfKeyName(keyName){
+    const s = String(keyName || '').trim();
+    const m = s.match(/^([A-G](?:#|b)?)(.*)$/);
+    return m ? (m[1] + (m[2] || '')) : s;
+  }
+  function preferFlatsForKeyName(keyName){
+    const s = tonicOfKeyName(keyName);
+    if(!s) return false;
+    if(FLAT_KEYS.has(s)) return true;
+    if(/^F(?:$|m)/.test(s)) return true;
+    return s.includes('b');
+  }
   const FAMILY_ROOTS = ['G','C','D','A','E','F'];
   const FAMILY_CHORDS = {
     G:['G','Am','Bm','C','D','Em'],
@@ -23,28 +34,10 @@
     'Asus4':['x',0,2,2,3,0], 'Dsus4':['x','x',0,2,3,3], 'Esus4':[0,2,2,2,0,0], 'Gsus4':[3,3,0,0,1,3], 'Csus4':['x',3,3,0,1,1], 'Fsus4':[1,3,3,3,1,1]
   };
   function idx(name){ return INDEX[name] ?? null; }
-  function keyToken(keyName){
-    const raw = String(keyName || '').trim();
-    const m = raw.match(/^([A-G](?:#|b)?)(?:[^a-zA-Z]*)(m?)/);
-    if(!m) return raw;
-    return m[1] + (m[2] || '');
-  }
-  function prefersFlatsForKey(keyName, fallback){
-    const token = keyToken(keyName);
-    if(FLAT_KEYS.has(token)) return true;
-    if(SHARP_KEYS.has(token)) return false;
-    if(/b/.test(token)) return true;
-    if(/#/.test(token)) return false;
-    if(token === 'F') return true;
-    return !!fallback;
-  }
   function normalizeNote(note, preferFlats){
     const i = idx(note);
     if(i == null) return note;
     return (preferFlats ? FLAT : SHARP)[i];
-  }
-  function normalizeNoteForKey(note, keyName, fallback){
-    return normalizeNote(note, prefersFlatsForKey(keyName, fallback));
   }
   function add(note, semis, preferFlats){
     const i = idx(note); if(i == null) return note;
@@ -65,26 +58,14 @@
     const p = parseChord(symbol); if(!p) return String(symbol || '');
     return formatChord({ root:add(p.root,semitones,preferFlats), quality:p.quality, bass:p.bass ? add(p.bass,semitones,preferFlats) : '' });
   }
-  function respellChordForKey(symbol, keyName, fallback){
-    const p = parseChord(symbol);
-    if(!p) return String(symbol || '');
+  function normalizeChordForKey(symbol, keyName){
+    const p = parseChord(symbol); if(!p) return String(symbol || '');
+    const useFlats = preferFlatsForKeyName(keyName);
     return formatChord({
-      root: normalizeNoteForKey(p.root, keyName, fallback),
+      root: normalizeNote(p.root, useFlats),
       quality: p.quality,
-      bass: p.bass ? normalizeNoteForKey(p.bass, keyName, fallback) : ''
+      bass: p.bass ? normalizeNote(p.bass, useFlats) : ''
     });
-  }
-  function accidentalPenalty(symbol, keyName, fallback){
-    const p = parseChord(symbol);
-    if(!p) return 1.2;
-    const wantFlats = prefersFlatsForKey(keyName, fallback);
-    const notes = [p.root].concat(p.bass ? [p.bass] : []);
-    let score = 0;
-    notes.forEach((n) => {
-      if(/#/.test(n)) score += wantFlats ? 3.5 : 0.1;
-      if(/b/.test(n)) score += wantFlats ? 0.1 : 2.5;
-    });
-    return score;
   }
   function penaltyForChord(ch){
     if(!ch) return 2;
@@ -93,17 +74,15 @@
     if(/sus4|maj7|m7|7/i.test(q)) return 1.1;
     return 0.2;
   }
-  function buildShapeMap(chords, displayDelta, preferFlats, displayKey){
+  function buildShapeMap(chords, displayDelta, preferFlats, targetConcertKey){
     const map = {};
     chords.forEach((symbol) => {
-      const shiftedNative = shiftChord(symbol, displayDelta, preferFlats);
-      const shiftedDisplay = respellChordForKey(shiftedNative, displayKey, preferFlats);
-      const p = parseChord(shiftedNative);
+      const shifted = normalizeChordForKey(shiftChord(symbol, displayDelta, preferFlats), targetConcertKey);
+      const p = parseChord(shifted);
       if(!p) return;
       const key = formatChord({ root:normalizeNote(p.root, preferFlats), quality:p.quality, bass:'' });
       const shape = DEFAULT_SHAPES[key] || DEFAULT_SHAPES[normalizeNote(p.root, preferFlats)] || null;
-      if(shape) map[symbol] = { displayChord: shiftedDisplay, shape, nativeChord: shiftedNative };
-      else map[symbol] = { displayChord: shiftedDisplay, nativeChord: shiftedNative, shape: null };
+      if(shape) map[symbol] = { displayChord: shifted, shape };
     });
     return map;
   }
@@ -114,24 +93,19 @@
   }
   function buildScheme(opts){
     const { family, capo, originalChords, songCapo, autoTranspose, preferFlats, targetConcertKey } = opts;
-    const displayKey = add(targetConcertKey, -capo, preferFlats);
     // originalChords 进入这里前已经是“真实和弦”（原谱和弦 + sourceCapo）。
     // 吉他手实际看到/按的是：真实和弦 - 当前方案 CAPO。
     const displayDelta = -capo;
-    const shapeMap = buildShapeMap(originalChords, displayDelta, preferFlats, displayKey);
+    const shapeMap = buildShapeMap(originalChords, displayDelta, preferFlats, targetConcertKey);
     const chordMap = {};
     originalChords.forEach((symbol)=>{
-      chordMap[symbol] = shapeMap[symbol]?.displayChord || respellChordForKey(shiftChord(symbol, displayDelta, preferFlats), displayKey, preferFlats);
+      chordMap[symbol] = shapeMap[symbol]?.displayChord || normalizeChordForKey(shiftChord(symbol, displayDelta, preferFlats), targetConcertKey);
     });
     let score = Math.abs(capo - 2);
     if(capo > 4) score += 1.2;
     if(capo === 0) score += 0.5;
     score += (FAMILY_ROOTS.indexOf(family) * 0.05);
-    originalChords.forEach((sym)=>{ 
-      const displayChord = chordMap[sym] || sym;
-      score += penaltyForChord(parseChord(displayChord));
-      score += accidentalPenalty(displayChord, targetConcertKey, preferFlats);
-    });
+    originalChords.forEach((sym)=>{ score += penaltyForChord(parseChord(chordMap[sym] || sym)); });
     return {
       family,
       capo,
@@ -170,5 +144,5 @@
     out.sort((a,b)=>a.score-b.score);
     return out.slice(0,3);
   }
-  window.SchemeEngine = { parseChord, shiftChord, respellChordForKey, generateSchemes, buildScheme, uniqueChordSymbols, FAMILY_ROOTS, prefersFlatsForKey };
+  window.SchemeEngine = { parseChord, shiftChord, normalizeChordForKey, preferFlatsForKeyName, generateSchemes, buildScheme, uniqueChordSymbols, FAMILY_ROOTS };
 })();
