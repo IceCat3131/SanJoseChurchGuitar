@@ -648,7 +648,7 @@ flex: 1;
 .core-ui-title-sub{font-size:clamp(15px,2vw,22px); color:#374151; font-weight:700; margin-top:4px; line-height:1.35;}
 .core-panel-layer{position:relative; margin-top:10px;}
 .core-panel{background:#fff; border:1px solid var(--border-soft); border-radius:18px; box-shadow:var(--shadow-soft); padding:14px;}
-.core-panel[hidden]{display:none !important;}
+.core-panel[hidden]{}
 .core-panel-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; font-weight:800; color:var(--text-main);}
 .core-panel-close,.core-panel-ghost,.core-option-btn,.core-step-btn{border:none; background:#eef4ff; color:var(--primary); border-radius:12px; min-height:38px; padding:0 14px; font-weight:700; cursor:pointer;}
 .core-panel-body input[type="range"]{width:100%; accent-color:var(--primary);}
@@ -690,7 +690,7 @@ flex: 1;
 .core-option-btn.active{background:var(--primary); color:#fff; border-color:transparent;}
 
 /* rewrite track panel */
-#tracks-panel { display:none !important; }
+#tracks-panel {  }
 
 .new-track-panel{
   position:fixed;
@@ -699,7 +699,7 @@ flex: 1;
   z-index:10001;
   width:min(360px, calc(100vw - 24px));
 }
-.new-track-panel.hidden{ display:none !important; }
+.new-track-panel.hidden{  }
 .new-track-panel-inner{
   background:#fff;
   border:1px solid var(--border-soft);
@@ -778,7 +778,7 @@ flex: 1;
 .meta-row,
 .adjust-row,
 .controls-row{
-  display:none !important;
+  
 }
 
 
@@ -799,7 +799,7 @@ flex: 1;
 
 /* 重写轨道二级菜单：不再依赖旧 tracks-panel */
 #tracks-panel{
-  display:none !important;
+  
 }
 
 .new-track-panel{
@@ -810,7 +810,7 @@ flex: 1;
   width:min(360px, calc(100vw - 24px));
 }
 .new-track-panel.hidden{
-  display:none !important;
+  
 }
 .new-track-panel-inner{
   background:#fff;
@@ -1108,7 +1108,7 @@ flex: 1;
 
 
 /* phase4 floating panels + search results */
-.core-panel-layer[hidden]{display:none !important;}
+.core-panel-layer[hidden]{}
 .core-panel-layer{position:fixed; inset:0; margin-top:0; z-index:1200; pointer-events:auto; background:transparent; display:block !important;}
 .core-panel{position:absolute; left:50%; top:172px; transform:translateX(-50%); margin:0; width:min(560px, calc(100vw - 24px)); max-width:none;}
 #panel-speed,#panel-key,#panel-mode,#panel-text,#panel-lang,#panel-search,#panel-staff{top:172px;}
@@ -1174,7 +1174,7 @@ flex: 1;
 .auto-hub-right{max-height:120px !important;overflow:auto;display:grid;gap:6px;padding-right:4px;}
 .auto-rhythm-item{text-align:left;justify-content:flex-start;padding:8px 10px;}
 .auto-chip{display:inline-flex;align-items:center;justify-content:center;min-height:22px;padding:0 8px;border-radius:999px;background:#f3f4f6;color:#374151;font-size:11px;}
-.auto-debug-info{display:none !important;}
+.auto-debug-info{}
 @media (max-width: 720px){
   .auto-panel-hub{width:min(94vw,460px) !important;}
   .auto-hub-toprow{gap:6px;flex-wrap:wrap;}
@@ -1188,7 +1188,7 @@ flex: 1;
   width:min(860px, calc(100vw - 28px)) !important;
 }
 .auto-panel-hub .core-panel-head.auto-hub-hidden-head{
-  display:none !important;
+  
 }
 .auto-hub-layout-v2{
   display:grid !important;
