@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_4a_scheme_unified_fix';
+  const BUILD = 'V14_FULL_REBUILD_SCHEME_ENGINE';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -159,16 +159,11 @@
         chords: original.length ? original.join(', ') : '--'
       };
     }
-    const preview = (AUTO.currentScheme.previewChords || []).slice(0, 5);
-    const mapped = preview.length
-      ? preview.map((c)=> (window.SchemeEngine && typeof SchemeEngine.respellChordForKey === 'function')
-          ? SchemeEngine.respellChordForKey(c, getDisplayedSongKeyName())
-          : c)
-      : [];
+    const preview = Array.isArray(AUTO.currentScheme.previewChords) ? AUTO.currentScheme.previewChords : [];
     return {
       capo: `CAPO ${AUTO.currentScheme.capo}`,
-      family: `family:${AUTO.currentScheme.family || '--'}`,
-      chords: mapped.length ? mapped.join(', ') : '--'
+      family: `family:${AUTO.currentScheme.familyDisplay || AUTO.currentScheme.family || '--'}`,
+      chords: preview.length ? preview.join(', ') : '--'
     };
   }
 
@@ -197,7 +192,7 @@
     const root = $('alphaTab');
     if(!root) return;
     const chordFontPx = (typeof getChordFontSizePx === 'function') ? getChordFontSizePx() : 16;
-    const useFlats = preferFlats();
+    const displayKey = getDisplayedSongKeyName();
     qa('text, tspan', root).forEach((el)=>{
       if(el.children && el.children.length) return;
       const current = (el.textContent || '').trim();
@@ -207,11 +202,8 @@
       if(!el.getAttribute('data-orig-chord')) el.setAttribute('data-orig-chord', original);
       let next = original;
       if(AUTO.mode === 'auto' && AUTO.currentScheme && AUTO.currentScheme.chordMap){
-        const realChord = window.SchemeEngine ? SchemeEngine.shiftChord(original, getSongCapoSafe(), useFlats) : original;
-        next = AUTO.currentScheme.chordMap[realChord] || AUTO.currentScheme.chordMap[original] || original;
-        if(window.SchemeEngine && typeof SchemeEngine.respellChordForKey === 'function'){
-          next = SchemeEngine.respellChordForKey(next, getDisplayedSongKeyName());
-        }
+        const realChord = window.SchemeEngine ? SchemeEngine.respellChordForKey(SchemeEngine.shiftChord(original, getSongCapoSafe(), true), displayKey) : original;
+        next = AUTO.currentScheme.chordMap[realChord] || original;
       } else {
         // 原谱模式保持原谱和弦，不跟自动伴奏/转调链路混用
         next = original;
