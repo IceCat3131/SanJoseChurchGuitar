@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = 'V13_1c_fix_original_capo_truth';
+  const BUILD = 'V13_1d_fix_original_mode_truth';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
