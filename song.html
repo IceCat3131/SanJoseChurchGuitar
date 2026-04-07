@@ -1016,7 +1016,7 @@ function remapTimelineTimesIfNeeded() {
       window.__measureTimelineRaw = [];
     }
 
-    const bytes = window.__originalXmlText ? encodeTextToUint8Array(window.__originalXmlText) : base64ToUint8Array(scoreB64);
+    const bytes = base64ToUint8Array(scoreB64);
     api.load(bytes);
 
     setPlayerStatus('谱面已加载');
