@@ -1414,7 +1414,12 @@ function rebuildAutoTabTrack(){
     const stepCount = Math.max(1, (bar.notes || []).length || 1);
     const beatsPerBar = meterInfo.beats;
     const durationBeat = beatsPerBar / stepCount;
-    return { measure: bar.measure, meter: bar.meter, chordRaw: bar.chordRaw, chordDisplay: bar.chordDisplay, beats: meterInfo.beats, beatType: meterInfo.beatType, stepCount, notes: (bar.notes || []).map((n,i)=>({ string: n.string, fret: n.fret, stepIndex: i, startBeat: +(i*durationBeat).toFixed(4), durationBeat: +durationBeat.toFixed(4) })) };
+    let schemeCapo = 0;
+    try {
+      const scheme = (typeof window.getCurrentSchemeResult === 'function') ? window.getCurrentSchemeResult() : null;
+      if (scheme && scheme.mode === 'auto') schemeCapo = Number(scheme.activeCapo || 0) || 0;
+    } catch (e) {}
+    return { measure: bar.measure, meter: bar.meter, chordRaw: bar.chordRaw, chordDisplay: bar.chordDisplay, beats: meterInfo.beats, beatType: meterInfo.beatType, stepCount, schemeCapo, notes: (bar.notes || []).map((n,i)=>({ string: n.string, fret: n.fret, schemeCapo, stepIndex: i, startBeat: +(i*durationBeat).toFixed(4), durationBeat: +durationBeat.toFixed(4) })) };
   });
 }
 
@@ -1450,7 +1455,16 @@ function rebuildAutoTabTrack(){
   function createTextEl(doc, name, text) { const el = doc.createElement(name); el.textContent = String(text); return el; }
   function createNoteEl(doc, n, durationUnits, divisions, beamState) {
     const note = doc.createElement('note');
-    const midi = OPEN_STRING_MIDI[n.string] + Number(n.fret || 0);
+    let schemeCapo = Number(n && n.schemeCapo);
+    if (!Number.isFinite(schemeCapo)) {
+      try {
+        const scheme = (typeof window.getCurrentSchemeResult === 'function') ? window.getCurrentSchemeResult() : null;
+        schemeCapo = (scheme && scheme.mode === 'auto') ? Number(scheme.activeCapo || 0) : 0;
+      } catch (e) {
+        schemeCapo = 0;
+      }
+    }
+    const midi = OPEN_STRING_MIDI[n.string] + Number(n.fret || 0) + schemeCapo;
     const pitch = midiToPitch(midi);
     const pitchEl = doc.createElement('pitch');
     pitchEl.appendChild(createTextEl(doc, 'step', pitch.step));
