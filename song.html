@@ -1124,6 +1124,45 @@ function remapTimelineTimesIfNeeded() {
   let __trackSelectionTouched = false;
   let __trackSelectionRenderTimer = null;
 
+  function snapshotTrackStaffVisibility(score) {
+    if (!score || !Array.isArray(score.tracks)) return;
+    for (const track of score.tracks) {
+      if (!track || !Array.isArray(track.staves)) continue;
+      for (const staff of track.staves) {
+        if (!staff) continue;
+        if (staff.__origShowStandardNotation == null) staff.__origShowStandardNotation = !!staff.showStandardNotation;
+        if (staff.__origShowTablature == null) staff.__origShowTablature = !!staff.showTablature;
+        if ('showNumbered' in staff && staff.__origShowNumbered == null) staff.__origShowNumbered = !!staff.showNumbered;
+        if ('showNumberedNotation' in staff && staff.__origShowNumberedNotation == null) staff.__origShowNumberedNotation = !!staff.showNumberedNotation;
+      }
+    }
+  }
+
+  function applyTrackSelectionToScore(score, selectedIdxs) {
+    if (!score || !Array.isArray(score.tracks)) return;
+    snapshotTrackStaffVisibility(score);
+    const selected = new Set(Array.isArray(selectedIdxs) ? selectedIdxs : []);
+    const showAll = !selected.size || selected.size === score.tracks.length;
+    score.tracks.forEach((track, trackIndex) => {
+      if (!track || !Array.isArray(track.staves)) return;
+      const keep = showAll || selected.has(trackIndex);
+      track.staves.forEach((staff) => {
+        if (!staff) return;
+        if (keep) {
+          if (staff.__origShowStandardNotation != null) staff.showStandardNotation = !!staff.__origShowStandardNotation;
+          if (staff.__origShowTablature != null) staff.showTablature = !!staff.__origShowTablature;
+          if ('showNumbered' in staff && staff.__origShowNumbered != null) staff.showNumbered = !!staff.__origShowNumbered;
+          if ('showNumberedNotation' in staff && staff.__origShowNumberedNotation != null) staff.showNumberedNotation = !!staff.__origShowNumberedNotation;
+        } else {
+          staff.showStandardNotation = false;
+          staff.showTablature = false;
+          if ('showNumbered' in staff) staff.showNumbered = false;
+          if ('showNumberedNotation' in staff) staff.showNumberedNotation = false;
+        }
+      });
+    });
+  }
+
   function renderVisibleTracks(api) {
     if (!api || !__currentScore) return;
     let idxs = Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : [];
@@ -1132,7 +1171,10 @@ function remapTimelineTimesIfNeeded() {
     }
     window.__visibleTrackIndices = idxs.slice();
     try {
-      api.renderScore(__currentScore, idxs);
+      applyTrackSelectionToScore(__currentScore, idxs);
+      if (api.score && api.score !== __currentScore) applyTrackSelectionToScore(api.score, idxs);
+      const renderIdxs = __currentScore.tracks.map((_, i) => i);
+      api.renderScore(__currentScore, renderIdxs);
     } catch (e) {
       console.warn('renderScore failed, fallback render', e);
       try { api.render(); } catch(e2) {}
