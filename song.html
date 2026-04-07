@@ -1160,6 +1160,8 @@ function remapTimelineTimesIfNeeded() {
     snapshotTrackStaffVisibility(score);
     const selected = new Set(Array.isArray(selectedIdxs) ? selectedIdxs : []);
     const showAll = !selected.size || selected.size === score.tracks.length;
+    let staffMode = 'five';
+    try { staffMode = localStorage.getItem('staffMode') || 'five'; } catch (e) {}
     score.tracks.forEach((track, trackIndex) => {
       if (!track || !Array.isArray(track.staves)) return;
       const keep = showAll || selected.has(trackIndex);
@@ -1170,6 +1172,11 @@ function remapTimelineTimesIfNeeded() {
           if (staff.__origShowTablature != null) staff.showTablature = !!staff.__origShowTablature;
           if ('showNumbered' in staff && staff.__origShowNumbered != null) staff.showNumbered = !!staff.__origShowNumbered;
           if ('showNumberedNotation' in staff && staff.__origShowNumberedNotation != null) staff.showNumberedNotation = !!staff.__origShowNumberedNotation;
+          if (!staff.showTablature) {
+            staff.showStandardNotation = (staffMode !== 'jian');
+            if ('showNumbered' in staff) staff.showNumbered = (staffMode === 'jian');
+            if ('showNumberedNotation' in staff) staff.showNumberedNotation = (staffMode === 'jian');
+          }
         } else {
           staff.showStandardNotation = false;
           staff.showTablature = false;
