@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = '14.4.2.13';
+  const BUILD = '14.4.2.14';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -122,6 +122,7 @@
     if(!force && sig === __lastStateDispatchSignature) return;
     __lastStateDispatchSignature = sig;
     setTimeout(() => {
+      try { window.__autoTabDisplayCapo = getCurrentSchemeResult().activeCapo; } catch (e) {}
       window.dispatchEvent(new CustomEvent('auto13:statechange', { detail: { ...AUTO, currentSchemeResult: getCurrentSchemeResult(), currentPatternResult: getCurrentPatternResult() } }));
     }, 0);
   }

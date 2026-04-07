@@ -777,6 +777,8 @@ function remapTimelineTimesIfNeeded() {
   }
 
   function getActiveSchemeCapoForTab() {
+    const cached = parseInt(window.__autoTabDisplayCapo, 10);
+    if (Number.isFinite(cached)) return Math.max(0, Math.min(11, cached));
     const auto = window.__AUTO13;
     if (auto && auto.mode === 'auto') {
       if (auto.manualCapoMode) {
@@ -785,9 +787,15 @@ function remapTimelineTimesIfNeeded() {
       }
       const c = parseInt(auto.currentScheme?.capo, 10);
       if (Number.isFinite(c)) return Math.max(0, Math.min(11, c));
+      try {
+        if (typeof window.getCurrentSchemeResult === 'function') {
+          const s = window.getCurrentSchemeResult();
+          const a = parseInt(s?.activeCapo, 10);
+          if (Number.isFinite(a)) return Math.max(0, Math.min(11, a));
+        }
+      } catch (e) {}
+      return 0;
     }
-    const cached = parseInt(window.__autoTabDisplayCapo, 10);
-    if (Number.isFinite(cached)) return Math.max(0, Math.min(11, cached));
     return getEffectiveCapo();
   }
 
@@ -815,7 +823,9 @@ function remapTimelineTimesIfNeeded() {
 
     const offset = getTabDisplayShift();
     const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
-    if (!offset || !lookup || !Array.isArray(lookup.staffSystems)) return;
+    const scheme = (typeof window.getCurrentSchemeResult === 'function') ? window.getCurrentSchemeResult() : null;
+    const isAuto = !!(scheme && scheme.mode === 'auto');
+    if ((!offset && !isAuto) || !lookup || !Array.isArray(lookup.staffSystems)) return;
 
     for (const system of lookup.staffSystems) {
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];
@@ -849,8 +859,9 @@ function remapTimelineTimesIfNeeded() {
               el.style.justifyContent = 'center';
               el.style.background = '#fff';
               el.style.color = '#111';
-              el.style.fontWeight = '700';
-              el.style.fontSize = `${Math.max(12, Math.round(bh * 0.95))}px`;
+              el.style.fontWeight = '800';
+              el.style.fontSize = `${Math.max(14, Math.round(bh * 1.05))}px`;
+              el.style.border = '1px solid transparent';
               el.style.lineHeight = '1';
               el.style.borderRadius = '2px';
               el.style.boxSizing = 'border-box';
@@ -1419,6 +1430,7 @@ function rebuildAutoTabTrack(){
     const m = String(meterText || '').match(/^(\d+)\/(\d+)$/);
     return { beats: m ? parseInt(m[1], 10) : 4, beatType: m ? parseInt(m[2], 10) : 4 };
   }
+  window.__autoTabDisplayCapo = activeCapo;
   window.__autoAccompanimentTabTrack = song.map(bar => {
     const measureObj = measures.find(m => m.measure === bar.measure) || null;
     const meterInfo = parseMeterText(bar.meter || (measureObj && measureObj.meter) || '4/4');
