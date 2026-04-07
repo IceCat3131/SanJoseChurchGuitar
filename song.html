@@ -1380,26 +1380,43 @@ function mapAutoPatternEventToString(patternEvent, bassString, shape) {
   const b = Number.isFinite(+bassString) ? +bassString : 6;
   const role = String(patternEvent?.role || 'mid1');
   const hint = Number.isFinite(+patternEvent?.stringHint) ? +patternEvent.stringHint : null;
+  function isPlayableString(s) {
+    if (!Number.isFinite(+s) || s < 1 || s > 6) return false;
+    if (!Array.isArray(shape)) return true;
+    const fret = shape[6 - s];
+    return !(fret === 'x' || fret === 'X' || fret == null);
+  }
   if (role === 'bass') return b;
-  if (hint && hint >= 1 && hint <= 6) return hint;
+  if (hint && hint >= 1 && hint <= 6 && isPlayableString(hint)) return hint;
   const map = { mid1: Math.max(1, b - 1), mid2: Math.max(1, b - 2), mid3: Math.max(1, b - 3), high: Math.max(1, b - 4), strum: Math.max(1, b - 1) };
   let s = map[role] || Math.max(1, b - 1);
   if (Array.isArray(shape)) {
-    while (s <= 6) {
+    while (s >= 1) {
       const fret = shape[6 - s];
       if (fret !== 'x' && fret !== 'X' && fret != null) break;
       s -= 1;
-      if (s < 1) { s = 1; break; }
+    }
+    if (s < 1) {
+      for (let probe = 6; probe >= 1; probe--) {
+        if (isPlayableString(probe)) return probe;
+      }
+      s = 1;
     }
   }
   return Math.max(1, Math.min(6, s));
 }
 
 function expandAutoPatternEventToStrings(patternEvent, bassString, shape) {
+  const role = String(patternEvent?.role || 'mid1');
   const arr = Array.isArray(patternEvent?.stringHints)
     ? patternEvent.stringHints.map((v) => parseInt(v, 10)).filter((v) => Number.isFinite(v) && v >= 1 && v <= 6)
     : [];
-  if (arr.length) return Array.from(new Set(arr));
+  const playable = arr.filter((s) => {
+    if (!Array.isArray(shape)) return true;
+    const fret = shape[6 - s];
+    return !(fret === 'x' || fret === 'X' || fret == null);
+  });
+  if (playable.length && role !== 'bass') return Array.from(new Set(playable));
   const single = mapAutoPatternEventToString(patternEvent, bassString, shape);
   return Number.isFinite(single) ? [single] : [];
 }
@@ -1435,38 +1452,78 @@ function rebuildAutoAccompanimentSong() {
   const chords = getMappedChordTimeline();
 
   let lastChordObj = null;
+  function parseMeterBeats(meterText) {
+    const m = String(meterText || '').match(/^(\d+)\/(\d+)$/);
+    return { beats: m ? parseInt(m[1], 10) : 4, beatType: m ? parseInt(m[2], 10) : 4 };
+  }
+  function getMeasureChordSegments(measureNo, beatsInMeasure) {
+    const mNo = Number(measureNo) || 0;
+    const local = (chords || []).filter((c) => (Number(c.measure) || 0) === mNo)
+      .map((c) => ({ ...c, beat: Number.isFinite(+c.beat) ? +c.beat : 0 }))
+      .sort((a,b)=>a.beat-b.beat || (a.index||0)-(b.index||0));
+    const seed = findChordAtMeasureBeat(mNo, 0, chords, lastChordObj) || lastChordObj;
+    const starts = [];
+    if (seed) starts.push({ beat: 0, chordObj: seed });
+    local.forEach((c) => {
+      if (c.beat < 0 || c.beat >= beatsInMeasure + 1e-6) return;
+      const existing = starts.find((s) => Math.abs(s.beat - c.beat) < 1e-6);
+      if (existing) existing.chordObj = c;
+      else starts.push({ beat: c.beat, chordObj: c });
+    });
+    starts.sort((a,b)=>a.beat-b.beat);
+    if (!starts.length) return [];
+    const out = [];
+    for (let i = 0; i < starts.length; i++) {
+      const segStart = starts[i].beat;
+      const segEnd = (i + 1 < starts.length) ? starts[i + 1].beat : beatsInMeasure;
+      if (segEnd - segStart <= 1e-6) continue;
+      out.push({ startBeat: segStart, durationBeat: +(segEnd - segStart).toFixed(4), chordObj: starts[i].chordObj });
+    }
+    const lastSeg = out[out.length - 1];
+    if (lastSeg && lastSeg.chordObj) lastChordObj = lastSeg.chordObj;
+    return out;
+  }
+
   window.__autoAccompanimentSong = measures.map((measureObj) => {
     if (!measureObj) return null;
     const measureNo = Number(measureObj.measure) || 0;
-    const initialChord = findChordAtMeasureBeat(measureNo, 0, chords, lastChordObj);
-    if (initialChord) lastChordObj = initialChord;
-    if (!initialChord) return null;
+    const meterInfo = parseMeterBeats(measureObj.meter || '4/4');
+    const segments = getMeasureChordSegments(measureNo, meterInfo.beats);
+    if (!segments.length) return null;
+
+    const initialChord = segments[0].chordObj;
     const initialResolved = getAutoShapeForChord(initialChord.chordDisplay, initialChord.chordRaw);
     const initialShape = initialResolved && initialResolved.shape ? initialResolved.shape.slice() : null;
     const initialBass = getBassStringFromShape(initialShape);
     const pattern = getAutoPatternForMeter(measureObj.meter, initialBass);
     const notes = [];
-    pattern.forEach((evt, idx) => {
-      const startBeat = Number.isFinite(+evt.beat) ? +evt.beat : idx * 0.5;
-      const durationBeat = Number.isFinite(+evt.dur) ? +evt.dur : 0.5;
-      const chordObj = findChordAtMeasureBeat(measureNo, startBeat, chords, lastChordObj) || lastChordObj;
-      if (chordObj) lastChordObj = chordObj;
-      if (!chordObj) return;
+
+    segments.forEach((segment) => {
+      const chordObj = segment.chordObj;
       const resolved = getAutoShapeForChord(chordObj.chordDisplay, chordObj.chordRaw);
       if (!resolved || !resolved.shape) return;
       const shape = resolved.shape;
       const bassString = getBassStringFromShape(shape);
-      const strings = expandAutoPatternEventToStrings(evt, bassString, shape);
-      strings.forEach((stringNum, chordPos) => {
-        if (!Number.isFinite(stringNum) || stringNum < 1 || stringNum > 6) return;
-        const fret = shape[6 - stringNum];
-        if (fret === 'x' || fret === 'X' || fret == null) return;
-        notes.push({ index: idx, chordPos, string: stringNum, fret: Number(fret), label: `${stringNum}弦${fret}`, startBeat, durationBeat, role: evt.role || 'mid1', accent: !!evt.accent, simultaneous: strings.length > 1, dotted: !!evt.dotted, tuplet: !!evt.tuplet, chordRaw: chordObj.chordRaw, chordDisplay: chordObj.chordDisplay });
+      (pattern || []).forEach((evt, idx) => {
+        const localBeat = Number.isFinite(+evt.beat) ? +evt.beat : idx * 0.5;
+        const durationBeat = Number.isFinite(+evt.dur) ? +evt.dur : 0.5;
+        if (localBeat >= segment.durationBeat - 1e-6) return;
+        const startBeat = +(segment.startBeat + localBeat).toFixed(4);
+        const clippedDuration = Math.min(durationBeat, +(segment.durationBeat - localBeat).toFixed(4));
+        if (clippedDuration <= 1e-6) return;
+        const strings = expandAutoPatternEventToStrings(evt, bassString, shape);
+        strings.forEach((stringNum, chordPos) => {
+          if (!Number.isFinite(stringNum) || stringNum < 1 || stringNum > 6) return;
+          const fret = shape[6 - stringNum];
+          if (fret === 'x' || fret === 'X' || fret == null) return;
+          notes.push({ index: idx, chordPos, string: stringNum, fret: Number(fret), label: `${stringNum}弦${fret}`, startBeat, durationBeat: clippedDuration, role: evt.role || 'mid1', accent: !!evt.accent, simultaneous: strings.length > 1, dotted: !!evt.dotted, tuplet: !!evt.tuplet, chordRaw: chordObj.chordRaw, chordDisplay: chordObj.chordDisplay });
+        });
       });
     });
     return { meter: measureObj.meter, measure: measureObj.measure, chordRaw: initialChord.chordRaw, chordDisplay: initialChord.chordDisplay, pattern: pattern.slice(), notes, bassString: initialBass, shape: initialShape || [] };
   }).filter(Boolean);
 }
+
 
 function rebuildAutoTabTrack(){
   const song = window.__autoAccompanimentSong || [];
