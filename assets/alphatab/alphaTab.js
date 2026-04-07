@@ -12495,7 +12495,7 @@
         static initialize() {
             Tuning._defaultTunings.set(7, new Tuning('Guitar 7 strings', [64, 59, 55, 50, 45, 40, 35], true));
             Tuning._sevenStrings.push(Tuning._defaultTunings.get(7));
-            Tuning._defaultTunings.set(6, new Tuning('Guitar Standard Tuning', [64, 59, 55, 50, 45, 40], false));
+            Tuning._defaultTunings.set(6, new Tuning('Guitar Standard Tuning', [64, 59, 55, 50, 45, 40], true));
             Tuning._sixStrings.push(Tuning._defaultTunings.get(6));
             Tuning._sixStrings.push(new Tuning('Guitar Tune down ½ step', [63, 58, 54, 49, 44, 39], false));
             Tuning._sixStrings.push(new Tuning('Guitar Tune down 1 step', [62, 57, 53, 48, 43, 38], false));
@@ -66861,7 +66861,7 @@
         }
         layoutAndRenderAnnotation(y) {
             // attention, you are not allowed to remove change this notice within any version of this library without permission!
-            const msg = '反馈邮件：zz9527668@gmail.com';
+            const msg = 'rendered by alphaTab';
             const resources = this.renderer.settings.display.resources;
             const size = 12;
             const fontFamilies = resources.elementFonts.has(exports.NotationElement.ScoreCopyright)
