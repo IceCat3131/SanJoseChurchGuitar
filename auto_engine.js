@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = '14.4.2.16';
+  const BUILD = '14.4.2.18';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -97,7 +97,11 @@
     });
   }
 
-  function currentMeter(){ return '4/4'; }
+  function currentMeter(){
+    const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
+    const first = measures.find((m)=>m && m.meter) || null;
+    return (first && first.meter) ? String(first.meter) : '4/4';
+  }
 
 
   let __lastStateDispatchSignature = null;

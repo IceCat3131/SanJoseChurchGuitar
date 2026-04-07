@@ -133,7 +133,6 @@ window.__autoAccompanimentSong = [];
 window.__autoAccompanimentTabTrack = [];
 window.__originalXmlText = null;
 window.__lastRenderedAutoXml = null;
-window.__autoTabDisplaySequence = [];
 
 function decodeBase64ToText(b64) {
   const binary = atob(b64);
@@ -810,13 +809,7 @@ function remapTimelineTimesIfNeeded() {
     return getEffectiveCapo() + getUserTranspose();
   }
 
-  function getDisplayedFretForCapo(note, autoSeqIndex) {
-    const auto = window.__AUTO13;
-    if (auto && auto.mode === 'auto') {
-      const seq = Array.isArray(window.__autoTabDisplaySequence) ? window.__autoTabDisplaySequence : [];
-      const v = seq[autoSeqIndex];
-      if (Number.isFinite(v)) return Math.max(0, v);
-    }
+  function getDisplayedFretForCapo(note) {
     if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
     const shifted = note.fret + getTabDisplayShift();
     return Math.max(0, shifted);
@@ -834,7 +827,6 @@ function remapTimelineTimesIfNeeded() {
     const isAuto = !!(scheme && scheme.mode === 'auto');
     if ((!offset && !isAuto) || !lookup || !Array.isArray(lookup.staffSystems)) return;
 
-    let autoSeqIndex = 0;
     for (const system of lookup.staffSystems) {
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];
       for (const masterBar of masterBars) {
@@ -846,8 +838,7 @@ function remapTimelineTimesIfNeeded() {
             const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
             for (const noteBounds of notes) {
               const note = noteBounds?.note;
-              const displayFret = getDisplayedFretForCapo(note, autoSeqIndex);
-              autoSeqIndex += 1;
+              const displayFret = getDisplayedFretForCapo(note);
               const box = noteBounds?.noteHeadBounds || noteBounds;
               if (displayFret === null || !box) continue;
               const bw = box.w ?? box.width ?? 16;
@@ -1348,9 +1339,57 @@ function getAutoPatternForMeter(meter, bassString) {
   const b = Number.isFinite(+bassString) ? +bassString : 6;
   const patterns = window.RhythmEngine && typeof window.RhythmEngine.getPatternsForMeter === 'function' ? window.RhythmEngine.getPatternsForMeter(meter) : [];
   const current = (typeof window.getCurrentPatternResult === 'function') ? window.getCurrentPatternResult() : null;
-  const p = (current && current.steps && current.steps.length) ? current : (patterns[0] || null);
-  if (!p || !Array.isArray(p.steps)) return [b,3,2,3,1,3,2,3];
-  return p.steps.map(step => /^\d+$/.test(String(step)) ? Number(step) : step === 'R' ? b : step);
+  const p = (current && Array.isArray(current.events) && current.events.length) ? current : (patterns[0] || null);
+  if (p && Array.isArray(p.events) && p.events.length) {
+    return p.events.map((e, idx) => ({
+      beat: Number.isFinite(+e.beat) ? +e.beat : idx * 0.5,
+      dur: Number.isFinite(+e.dur) ? +e.dur : 0.5,
+      role: e.role || 'mid1',
+      stringHint: Number.isFinite(+e.stringHint) ? +e.stringHint : null,
+      accent: !!e.accent,
+      token: (e.role === 'bass') ? b : (Number.isFinite(+e.stringHint) ? +e.stringHint : null)
+    }));
+  }
+  if (p && Array.isArray(p.steps) && p.steps.length) {
+    const stepDur = 0.5;
+    return p.steps.map((step, idx) => ({
+      beat: +(idx * stepDur).toFixed(4),
+      dur: stepDur,
+      role: (idx === 0 || String(step).toUpperCase() === 'R') ? 'bass' : (idx % 4 === 1 ? 'mid1' : (idx % 4 === 2 ? 'mid2' : (idx % 4 === 3 ? 'mid3' : 'high'))),
+      stringHint: /^\d+$/.test(String(step)) ? Number(step) : null,
+      accent: idx === 0,
+      token: /^\d+$/.test(String(step)) ? Number(step) : (String(step).toUpperCase() === 'R' ? b : null)
+    }));
+  }
+  return [
+    { beat:0, dur:0.5, role:'bass', stringHint:b, token:b, accent:true },
+    { beat:0.5, dur:0.5, role:'mid1', stringHint:3, token:3, accent:false },
+    { beat:1, dur:0.5, role:'mid2', stringHint:2, token:2, accent:false },
+    { beat:1.5, dur:0.5, role:'mid1', stringHint:3, token:3, accent:false },
+    { beat:2, dur:0.5, role:'high', stringHint:1, token:1, accent:true },
+    { beat:2.5, dur:0.5, role:'mid1', stringHint:3, token:3, accent:false },
+    { beat:3, dur:0.5, role:'mid2', stringHint:2, token:2, accent:false },
+    { beat:3.5, dur:0.5, role:'mid1', stringHint:3, token:3, accent:false }
+  ];
+}
+
+function mapAutoPatternEventToString(patternEvent, bassString, shape) {
+  const b = Number.isFinite(+bassString) ? +bassString : 6;
+  const role = String(patternEvent?.role || 'mid1');
+  const hint = Number.isFinite(+patternEvent?.stringHint) ? +patternEvent.stringHint : null;
+  if (role === 'bass') return b;
+  if (hint && hint >= 1 && hint <= 6) return hint;
+  const map = { mid1: Math.max(1, b - 1), mid2: Math.max(1, b - 2), mid3: Math.max(1, b - 3), high: Math.max(1, b - 4) };
+  let s = map[role] || Math.max(1, b - 1);
+  if (Array.isArray(shape)) {
+    while (s <= 6) {
+      const fret = shape[6 - s];
+      if (fret !== 'x' && fret !== 'X' && fret != null) break;
+      s -= 1;
+      if (s < 1) { s = 1; break; }
+    }
+  }
+  return Math.max(1, Math.min(6, s));
 }
 
 function getMappedChordTimeline() {
@@ -1402,12 +1441,12 @@ function rebuildAutoAccompanimentSong() {
     const shape = resolved.shape;
     const bassString = getBassStringFromShape(shape);
     const pattern = getAutoPatternForMeter(measureObj.meter, bassString);
-    const notes = pattern.map((token, idx) => {
-      const stringNum = parseInt(token, 10);
+    const notes = pattern.map((evt, idx) => {
+      const stringNum = mapAutoPatternEventToString(evt, bassString, shape);
       if (!Number.isFinite(stringNum) || stringNum < 1 || stringNum > 6) return null;
       const fret = shape[6 - stringNum];
       if (fret === 'x' || fret === 'X' || fret == null) return null;
-      return { index: idx, string: stringNum, fret: Number(fret), label: `${stringNum}弦${fret}` };
+      return { index: idx, string: stringNum, fret: Number(fret), label: `${stringNum}弦${fret}`, startBeat: Number.isFinite(+evt.beat) ? +evt.beat : idx * 0.5, durationBeat: Number.isFinite(+evt.dur) ? +evt.dur : 0.5, role: evt.role || 'mid1', accent: !!evt.accent };
     }).filter(Boolean);
     return { meter: measureObj.meter, measure: measureObj.measure, chordRaw: chordObj.chordRaw, chordDisplay: chordObj.chordDisplay, pattern: pattern.slice(), notes, bassString, shape: shape.slice() };
   }).filter(Boolean);
@@ -1504,7 +1543,6 @@ function rebuildAutoTabTrack(){
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
     const part = findTabPartNode(xmlDoc);
-    window.__autoTabDisplaySequence = [];
     if (!part) return xmlText;
     const bars = Array.isArray(window.__autoAccompanimentTabTrack) ? window.__autoAccompanimentTabTrack : [];
     const measures = Array.from(part.querySelectorAll(':scope > measure'));
@@ -1522,7 +1560,6 @@ function rebuildAutoTabTrack(){
       const beamable = autoBar.notes.length > 1 && noteTypeFromDuration(durationUnits, divisions) === 'eighth';
       autoBar.notes.forEach((n, idx) => {
         let beamState = null; if (beamable) { if (idx === 0) beamState = 'begin'; else if (idx === autoBar.notes.length - 1) beamState = 'end'; else beamState = 'continue'; }
-        window.__autoTabDisplaySequence.push(Number.isFinite(Number(n.fret)) ? Number(n.fret) : null);
         measureEl.appendChild(createNoteEl(xmlDoc, n, durationUnits, divisions, beamState));
       });
     }
@@ -1548,8 +1585,6 @@ function rebuildAutoTabTrack(){
     if (!scheme || scheme.mode !== 'auto') {
       if (window.__lastRenderedAutoXml) {
         window.__lastRenderedAutoXml = null;
-        window.__autoTabDisplaySequence = [];
-window.__autoTabDisplaySequence = [];
         __autoTabRewriteInProgress = true;
         try { loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText); } finally { setTimeout(() => { try { scheduleTabCapoOverlay(140); } catch (e) {} __autoTabRewriteInProgress = false; if (__autoTabRewritePending) { __autoTabRewritePending = false; applyCurrentPatternToOriginalTab(); } }, 120); }
       }
