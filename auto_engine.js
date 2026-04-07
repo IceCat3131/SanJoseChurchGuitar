@@ -9,7 +9,9 @@
     currentPatternId: null,
     lastAutoPatternId: null,
     manualCapoMode: false,
-    manualCapo: 0
+    manualCapo: 0,
+    cachedOriginalChords: [],
+    currentDisplayedChords: []
   };
   window.__AUTO13 = AUTO;
 
@@ -47,9 +49,29 @@
   }
   function getTransposeSafe(){ return (typeof getUserTranspose === 'function') ? getUserTranspose() : (window.viewerPrefs ? (parseInt(viewerPrefs.transposeSemitones, 10) || 0) : 0); }
 
+  function extractTimelineOriginalChords(){
+    const raw = Array.isArray(window.__chordTimelineRaw) ? window.__chordTimelineRaw : [];
+    const out = [];
+    const seen = new Set();
+    raw.forEach((item)=>{
+      const chord = String(item?.chordRaw || '').trim();
+      if(!chord) return;
+      if(typeof looksLikeChordSymbol === 'function' && !looksLikeChordSymbol(chord)) return;
+      if(!seen.has(chord)){ seen.add(chord); out.push(chord); }
+    });
+    return out;
+  }
+
   function extractOriginalChords(){
+    const timelineChords = extractTimelineOriginalChords();
+    if(timelineChords.length){
+      AUTO.cachedOriginalChords = timelineChords.slice();
+      return timelineChords;
+    }
     const root = $('alphaTab');
-    if(!root) return [];
+    if(!root){
+      return Array.isArray(AUTO.cachedOriginalChords) ? AUTO.cachedOriginalChords.slice() : [];
+    }
     const out=[]; const seen = new Set();
     qa('text, tspan', root).forEach((el)=>{
       if(el.children && el.children.length) return;
@@ -59,7 +81,8 @@
       if(!el.getAttribute('data-orig-chord')) el.setAttribute('data-orig-chord', raw);
       if(!seen.has(raw)){ seen.add(raw); out.push(raw); }
     });
-    return out;
+    if(out.length) AUTO.cachedOriginalChords = out.slice();
+    return out.length ? out : (Array.isArray(AUTO.cachedOriginalChords) ? AUTO.cachedOriginalChords.slice() : []);
   }
 
   function applyCapoToChords(chords, capo){
@@ -279,6 +302,7 @@
   function schemeInfoData(){
     const original = extractOriginalChords().slice(0, 5);
     if(AUTO.mode !== 'auto'){
+      AUTO.currentDisplayedChords = original.slice();
       return {
         capo: `CAPO ${getSongCapoSafe()}`,
         family: 'family:原谱',
@@ -286,9 +310,12 @@
       };
     }
     if(AUTO.manualCapoMode){
-      return getManualCapoInfo();
+      const info = getManualCapoInfo();
+      AUTO.currentDisplayedChords = String(info.chords || '').split(/\s*,\s*/).filter(Boolean);
+      return info;
     }
     if(!AUTO.currentScheme){
+      AUTO.currentDisplayedChords = original.slice();
       return {
         capo: `CAPO ${getSongCapoSafe()}`,
         family: 'family:原谱',
@@ -301,6 +328,7 @@
       const raw = AUTO.currentScheme.chordMap?.[c] || c;
       return (window.SchemeEngine && typeof SchemeEngine.normalizeChordForKey === 'function') ? SchemeEngine.normalizeChordForKey(raw, targetKey) : raw;
     });
+    AUTO.currentDisplayedChords = mapped.slice();
     return {
       capo: `CAPO ${AUTO.currentScheme.capo}`,
       family: `family:${AUTO.currentScheme.family || '--'}`,
@@ -456,7 +484,9 @@
       family: AUTO.mode === 'auto'
         ? (AUTO.manualCapoMode ? String(info.family || '').replace(/^family:/,'') : (AUTO.currentScheme?.family || '--'))
         : '原谱',
-      chords: String(info.chords || '--').split(/\s*,\s*/).filter(Boolean),
+      chords: (Array.isArray(AUTO.currentDisplayedChords) && AUTO.currentDisplayedChords.length
+        ? AUTO.currentDisplayedChords.slice()
+        : String(info.chords || '--').split(/\s*,\s*/).filter((v)=>v && v !== '--')),
       displayText: info.chords || '--'
     };
   }

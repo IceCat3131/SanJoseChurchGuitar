@@ -807,7 +807,8 @@ function remapTimelineTimesIfNeeded() {
     root.innerHTML = '';
 
     const scheme = (typeof window.getCurrentSchemeResult === 'function') ? window.getCurrentSchemeResult() : null;
-    const offset = (scheme && scheme.mode === 'auto') ? 0 : getUserTranspose();
+    if (scheme && scheme.mode === 'auto') return;
+    const offset = getUserTranspose();
     const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
     if (!offset || !lookup || !Array.isArray(lookup.staffSystems)) return;
 
@@ -857,6 +858,11 @@ function remapTimelineTimesIfNeeded() {
   }
 
   function scheduleTabCapoOverlay(delay = 60) {
+    const scheme = (typeof window.getCurrentSchemeResult === 'function') ? window.getCurrentSchemeResult() : null;
+    if (scheme && scheme.mode === 'auto') {
+      try { clearTabCapoOverlay(); } catch (e) {}
+      return;
+    }
     try { if (__tabCapoOverlayTimer) clearTimeout(__tabCapoOverlayTimer); } catch (e) {}
     __tabCapoOverlayTimer = setTimeout(() => {
       try { renderTabCapoOverlay(); } catch (e) { console.warn('renderTabCapoOverlay failed', e); }
@@ -872,7 +878,12 @@ function remapTimelineTimesIfNeeded() {
   }
 
   window.addEventListener('auto13:statechange', () => {
-    scheduleTabCapoOverlay(20);
+    const scheme = (typeof window.getCurrentSchemeResult === 'function') ? window.getCurrentSchemeResult() : null;
+    if (scheme && scheme.mode === 'auto') {
+      try { clearTabCapoOverlay(); } catch (e) {}
+    } else {
+      scheduleTabCapoOverlay(20);
+    }
     scheduleAutoTabRewrite(50);
   });
 
