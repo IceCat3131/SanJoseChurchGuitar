@@ -133,7 +133,6 @@ window.__autoAccompanimentSong = [];
 window.__autoAccompanimentTabTrack = [];
 window.__originalXmlText = null;
 window.__lastRenderedAutoXml = null;
-window.__autoTabDisplaySequence = [];
 
 function decodeBase64ToText(b64) {
   const binary = atob(b64);
@@ -769,6 +768,43 @@ function remapTimelineTimesIfNeeded() {
     if (root) root.innerHTML = '';
   }
 
+  function getAutoDisplayFretSequence() {
+    const bars = Array.isArray(window.__autoAccompanimentTabTrack) ? window.__autoAccompanimentTabTrack : [];
+    const seq = [];
+    bars.forEach((bar) => {
+      const notes = Array.isArray(bar?.notes) ? bar.notes : [];
+      notes.forEach((n) => {
+        const fret = Number(n?.fret);
+        if (Number.isFinite(fret) && fret >= 0) seq.push(fret);
+      });
+    });
+    return seq;
+  }
+
+  function setNativeTabNumbersHidden(hidden) {
+    const root = document.getElementById('alphaTab');
+    if (!root) return;
+    const nodes = root.querySelectorAll('svg text, svg tspan');
+    nodes.forEach((el) => {
+      if (el.children && el.children.length) return;
+      const raw = String(el.textContent || '').trim();
+      if (!/^\d{1,2}$/.test(raw)) return;
+      try {
+        if (hidden) {
+          el.setAttribute('data-auto-hidden-fret', '1');
+          el.style.fill = 'transparent';
+          el.style.stroke = 'transparent';
+          el.style.opacity = '0';
+        } else if (el.getAttribute('data-auto-hidden-fret') === '1') {
+          el.style.fill = '';
+          el.style.stroke = '';
+          el.style.opacity = '';
+          el.removeAttribute('data-auto-hidden-fret');
+        }
+      } catch (e) {}
+    });
+  }
+
   function isTabBarBounds(barBounds) {
     const staff = barBounds?.bar?.staff;
     if (!staff) return false;
@@ -810,12 +846,17 @@ function remapTimelineTimesIfNeeded() {
     return getEffectiveCapo() + getUserTranspose();
   }
 
-  function getDisplayedFretForCapo(note, autoSeqIndex) {
-    const auto = window.__AUTO13;
-    if (auto && auto.mode === 'auto') {
-      const seq = Array.isArray(window.__autoTabDisplaySequence) ? window.__autoTabDisplaySequence : [];
-      const v = seq[autoSeqIndex];
-      if (Number.isFinite(v)) return Math.max(0, v);
+  function getDisplayedFretForCapo(note, autoDisplaySeq, autoSeqIndexRef) {
+    const scheme = (typeof window.getCurrentSchemeResult === 'function') ? window.getCurrentSchemeResult() : null;
+    if (scheme && scheme.mode === 'auto') {
+      const idx = autoSeqIndexRef.value++;
+      if (Array.isArray(autoDisplaySeq) && idx < autoDisplaySeq.length) {
+        const fret = Number(autoDisplaySeq[idx]);
+        return Number.isFinite(fret) && fret >= 0 ? fret : null;
+      }
+      if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
+      const shifted = note.fret + getTabDisplayShift();
+      return Math.max(0, shifted);
     }
     if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
     const shifted = note.fret + getTabDisplayShift();
@@ -832,9 +873,11 @@ function remapTimelineTimesIfNeeded() {
     const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
     const scheme = (typeof window.getCurrentSchemeResult === 'function') ? window.getCurrentSchemeResult() : null;
     const isAuto = !!(scheme && scheme.mode === 'auto');
+    setNativeTabNumbersHidden(isAuto);
     if ((!offset && !isAuto) || !lookup || !Array.isArray(lookup.staffSystems)) return;
+    const autoDisplaySeq = isAuto ? getAutoDisplayFretSequence() : null;
+    const autoSeqIndexRef = { value: 0 };
 
-    let autoSeqIndex = 0;
     for (const system of lookup.staffSystems) {
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];
       for (const masterBar of masterBars) {
@@ -846,8 +889,7 @@ function remapTimelineTimesIfNeeded() {
             const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
             for (const noteBounds of notes) {
               const note = noteBounds?.note;
-              const displayFret = getDisplayedFretForCapo(note, autoSeqIndex);
-              autoSeqIndex += 1;
+              const displayFret = getDisplayedFretForCapo(note, autoDisplaySeq, autoSeqIndexRef);
               const box = noteBounds?.noteHeadBounds || noteBounds;
               if (displayFret === null || !box) continue;
               const bw = box.w ?? box.width ?? 16;
@@ -1504,7 +1546,6 @@ function rebuildAutoTabTrack(){
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
     const part = findTabPartNode(xmlDoc);
-    window.__autoTabDisplaySequence = [];
     if (!part) return xmlText;
     const bars = Array.isArray(window.__autoAccompanimentTabTrack) ? window.__autoAccompanimentTabTrack : [];
     const measures = Array.from(part.querySelectorAll(':scope > measure'));
@@ -1522,7 +1563,6 @@ function rebuildAutoTabTrack(){
       const beamable = autoBar.notes.length > 1 && noteTypeFromDuration(durationUnits, divisions) === 'eighth';
       autoBar.notes.forEach((n, idx) => {
         let beamState = null; if (beamable) { if (idx === 0) beamState = 'begin'; else if (idx === autoBar.notes.length - 1) beamState = 'end'; else beamState = 'continue'; }
-        window.__autoTabDisplaySequence.push(Number.isFinite(Number(n.fret)) ? Number(n.fret) : null);
         measureEl.appendChild(createNoteEl(xmlDoc, n, durationUnits, divisions, beamState));
       });
     }
@@ -1548,8 +1588,6 @@ function rebuildAutoTabTrack(){
     if (!scheme || scheme.mode !== 'auto') {
       if (window.__lastRenderedAutoXml) {
         window.__lastRenderedAutoXml = null;
-        window.__autoTabDisplaySequence = [];
-window.__autoTabDisplaySequence = [];
         __autoTabRewriteInProgress = true;
         try { loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText); } finally { setTimeout(() => { try { scheduleTabCapoOverlay(140); } catch (e) {} __autoTabRewriteInProgress = false; if (__autoTabRewritePending) { __autoTabRewritePending = false; applyCurrentPatternToOriginalTab(); } }, 120); }
       }
