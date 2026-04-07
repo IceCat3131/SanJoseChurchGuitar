@@ -1346,7 +1346,10 @@ function getAutoPatternForMeter(meter, bassString) {
       dur: Number.isFinite(+e.dur) ? +e.dur : 0.5,
       role: e.role || 'mid1',
       stringHint: Number.isFinite(+e.stringHint) ? +e.stringHint : null,
+      stringHints: Array.isArray(e.stringHints) ? e.stringHints.map((v)=>parseInt(v,10)).filter((v)=>Number.isFinite(v) && v >= 1 && v <= 6) : [],
       accent: !!e.accent,
+      dotted: !!e.dotted,
+      tuplet: !!e.tuplet,
       token: (e.role === 'bass') ? b : (Number.isFinite(+e.stringHint) ? +e.stringHint : null)
     }));
   }
@@ -1379,7 +1382,7 @@ function mapAutoPatternEventToString(patternEvent, bassString, shape) {
   const hint = Number.isFinite(+patternEvent?.stringHint) ? +patternEvent.stringHint : null;
   if (role === 'bass') return b;
   if (hint && hint >= 1 && hint <= 6) return hint;
-  const map = { mid1: Math.max(1, b - 1), mid2: Math.max(1, b - 2), mid3: Math.max(1, b - 3), high: Math.max(1, b - 4) };
+  const map = { mid1: Math.max(1, b - 1), mid2: Math.max(1, b - 2), mid3: Math.max(1, b - 3), high: Math.max(1, b - 4), strum: Math.max(1, b - 1) };
   let s = map[role] || Math.max(1, b - 1);
   if (Array.isArray(shape)) {
     while (s <= 6) {
@@ -1390,6 +1393,15 @@ function mapAutoPatternEventToString(patternEvent, bassString, shape) {
     }
   }
   return Math.max(1, Math.min(6, s));
+}
+
+function expandAutoPatternEventToStrings(patternEvent, bassString, shape) {
+  const arr = Array.isArray(patternEvent?.stringHints)
+    ? patternEvent.stringHints.map((v) => parseInt(v, 10)).filter((v) => Number.isFinite(v) && v >= 1 && v <= 6)
+    : [];
+  if (arr.length) return Array.from(new Set(arr));
+  const single = mapAutoPatternEventToString(patternEvent, bassString, shape);
+  return Number.isFinite(single) ? [single] : [];
 }
 
 function getMappedChordTimeline() {
@@ -1441,13 +1453,18 @@ function rebuildAutoAccompanimentSong() {
     const shape = resolved.shape;
     const bassString = getBassStringFromShape(shape);
     const pattern = getAutoPatternForMeter(measureObj.meter, bassString);
-    const notes = pattern.map((evt, idx) => {
-      const stringNum = mapAutoPatternEventToString(evt, bassString, shape);
-      if (!Number.isFinite(stringNum) || stringNum < 1 || stringNum > 6) return null;
-      const fret = shape[6 - stringNum];
-      if (fret === 'x' || fret === 'X' || fret == null) return null;
-      return { index: idx, string: stringNum, fret: Number(fret), label: `${stringNum}弦${fret}`, startBeat: Number.isFinite(+evt.beat) ? +evt.beat : idx * 0.5, durationBeat: Number.isFinite(+evt.dur) ? +evt.dur : 0.5, role: evt.role || 'mid1', accent: !!evt.accent };
-    }).filter(Boolean);
+    const notes = [];
+    pattern.forEach((evt, idx) => {
+      const strings = expandAutoPatternEventToStrings(evt, bassString, shape);
+      const startBeat = Number.isFinite(+evt.beat) ? +evt.beat : idx * 0.5;
+      const durationBeat = Number.isFinite(+evt.dur) ? +evt.dur : 0.5;
+      strings.forEach((stringNum, chordPos) => {
+        if (!Number.isFinite(stringNum) || stringNum < 1 || stringNum > 6) return;
+        const fret = shape[6 - stringNum];
+        if (fret === 'x' || fret === 'X' || fret == null) return;
+        notes.push({ index: idx, chordPos, string: stringNum, fret: Number(fret), label: `${stringNum}弦${fret}`, startBeat, durationBeat, role: evt.role || 'mid1', accent: !!evt.accent, simultaneous: strings.length > 1 });
+      });
+    });
     return { meter: measureObj.meter, measure: measureObj.measure, chordRaw: chordObj.chordRaw, chordDisplay: chordObj.chordDisplay, pattern: pattern.slice(), notes, bassString, shape: shape.slice() };
   }).filter(Boolean);
 }
@@ -1482,10 +1499,9 @@ function rebuildAutoTabTrack(){
   window.__autoAccompanimentTabTrack = song.map(bar => {
     const measureObj = measures.find(m => m.measure === bar.measure) || null;
     const meterInfo = parseMeterText(bar.meter || (measureObj && measureObj.meter) || '4/4');
-    const stepCount = Math.max(1, (bar.notes || []).length || 1);
-    const beatsPerBar = meterInfo.beats;
-    const durationBeat = beatsPerBar / stepCount;
-    return { measure: bar.measure, meter: bar.meter, chordRaw: bar.chordRaw, chordDisplay: bar.chordDisplay, beats: meterInfo.beats, beatType: meterInfo.beatType, stepCount, notes: (bar.notes || []).map((n,i)=>({ string: n.string, fret: n.fret, playFret: Number(n.fret || 0) + activeCapo, stepIndex: i, startBeat: +(i*durationBeat).toFixed(4), durationBeat: +durationBeat.toFixed(4) })) };
+    const uniqueSteps = Array.from(new Set((bar.notes || []).map((n) => `${Number(n.startBeat || 0).toFixed(4)}|${Number(n.durationBeat || 0.5).toFixed(4)}`)));
+    const stepCount = Math.max(1, uniqueSteps.length || 1);
+    return { measure: bar.measure, meter: bar.meter, chordRaw: bar.chordRaw, chordDisplay: bar.chordDisplay, beats: meterInfo.beats, beatType: meterInfo.beatType, stepCount, notes: (bar.notes || []).map((n,i)=>({ string: n.string, fret: n.fret, playFret: Number(n.fret || 0) + activeCapo, stepIndex: Number.isFinite(+n.index) ? +n.index : i, startBeat: Number.isFinite(+n.startBeat) ? +n.startBeat : 0, durationBeat: Number.isFinite(+n.durationBeat) ? +n.durationBeat : 0.5, simultaneous: !!n.simultaneous })) };
   });
 }
 
@@ -1519,8 +1535,9 @@ function rebuildAutoTabTrack(){
     if (Math.abs(ratio - 4) < 1e-6) return 'whole'; if (Math.abs(ratio - 2) < 1e-6) return 'half'; if (Math.abs(ratio - 1) < 1e-6) return 'quarter'; if (Math.abs(ratio - 0.5) < 1e-6) return 'eighth'; if (Math.abs(ratio - 0.25) < 1e-6) return '16th'; return ratio >= 1 ? 'quarter' : 'eighth';
   }
   function createTextEl(doc, name, text) { const el = doc.createElement(name); el.textContent = String(text); return el; }
-  function createNoteEl(doc, n, durationUnits, divisions, beamState) {
+  function createNoteEl(doc, n, durationUnits, divisions, beamState, asChord) {
     const note = doc.createElement('note');
+    if (asChord) note.appendChild(doc.createElement('chord'));
     const playFret = Number.isFinite(Number(n.playFret)) ? Number(n.playFret) : Number(n.fret || 0);
     const midi = OPEN_STRING_MIDI[n.string] + playFret;
     const pitch = midiToPitch(midi);
@@ -1537,6 +1554,14 @@ function rebuildAutoTabTrack(){
     const notations = doc.createElement('notations'); const technical = doc.createElement('technical');
     technical.appendChild(createTextEl(doc, 'string', n.string)); technical.appendChild(createTextEl(doc, 'fret', playFret));
     notations.appendChild(technical); note.appendChild(notations);
+    return note;
+  }
+  function createRestEl(doc, durationUnits, divisions) {
+    const note = doc.createElement('note');
+    note.appendChild(doc.createElement('rest'));
+    note.appendChild(createTextEl(doc, 'duration', durationUnits));
+    note.appendChild(createTextEl(doc, 'voice', 1));
+    note.appendChild(createTextEl(doc, 'type', noteTypeFromDuration(durationUnits, divisions)));
     return note;
   }
   function rewriteXmlTabTrack(xmlText) {
@@ -1556,11 +1581,31 @@ function rebuildAutoTabTrack(){
       while (measureEl.firstChild) measureEl.removeChild(measureEl.firstChild);
       keep.forEach(node => measureEl.appendChild(cloneXmlNode(xmlDoc, node)));
       if (!autoBar || !Array.isArray(autoBar.notes) || !autoBar.notes.length) continue;
-      const durationUnits = Math.max(1, Math.round((autoBar.notes[0].durationBeat || 0.5) * divisions));
-      const beamable = autoBar.notes.length > 1 && noteTypeFromDuration(durationUnits, divisions) === 'eighth';
-      autoBar.notes.forEach((n, idx) => {
-        let beamState = null; if (beamable) { if (idx === 0) beamState = 'begin'; else if (idx === autoBar.notes.length - 1) beamState = 'end'; else beamState = 'continue'; }
-        measureEl.appendChild(createNoteEl(xmlDoc, n, durationUnits, divisions, beamState));
+      const groups = [];
+      const noteGroups = {};
+      (autoBar.notes || []).forEach((n) => {
+        const key = `${Number(n.startBeat || 0).toFixed(4)}|${Number(n.durationBeat || 0.5).toFixed(4)}`;
+        if (!noteGroups[key]) {
+          noteGroups[key] = { startBeat: Number(n.startBeat || 0), durationBeat: Number(n.durationBeat || 0.5), notes: [] };
+          groups.push(noteGroups[key]);
+        }
+        noteGroups[key].notes.push(n);
+      });
+      groups.sort((a,b)=>a.startBeat-b.startBeat);
+      let currentBeat = 0;
+      const beamableAll = groups.every((g)=> noteTypeFromDuration(Math.max(1, Math.round((g.durationBeat || 0.5) * divisions)), divisions) === 'eighth');
+      groups.forEach((g, idx) => {
+        if (g.startBeat > currentBeat + 1e-6) {
+          const restUnits = Math.max(1, Math.round((g.startBeat - currentBeat) * divisions));
+          measureEl.appendChild(createRestEl(xmlDoc, restUnits, divisions));
+        }
+        const durationUnits = Math.max(1, Math.round((g.durationBeat || 0.5) * divisions));
+        let beamState = null;
+        if (beamableAll && groups.length > 1) { if (idx === 0) beamState = 'begin'; else if (idx === groups.length - 1) beamState = 'end'; else beamState = 'continue'; }
+        (g.notes || []).forEach((n, chordIdx) => {
+          measureEl.appendChild(createNoteEl(xmlDoc, n, durationUnits, divisions, beamState, chordIdx > 0));
+        });
+        currentBeat = Math.max(currentBeat, g.startBeat + g.durationBeat);
       });
     }
     return new XMLSerializer().serializeToString(xmlDoc);
