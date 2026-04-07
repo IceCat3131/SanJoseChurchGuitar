@@ -9,6 +9,21 @@
   <script src="assets/alphatab/alphaTab.js"></script>
   <!-- 简繁转换库：opencc-js（浏览器 UMD 完整版） -->
   <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
+
+  <style>
+    .title-nav-row{display:flex;align-items:center;justify-content:center;gap:12px;padding:6px 12px 2px;}
+    .title-nav-center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;flex:1;}
+    .big-title-line{font-size:20px;font-weight:700;line-height:1.25;text-align:center;word-break:break-word;}
+    .sub-title-line{font-size:18px;line-height:1.25;text-align:center;word-break:break-word;margin-top:4px;opacity:.95;}
+    .title-nav-row .core-btn{flex:0 0 auto;}
+    .score-top-toolbar{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:8px 0 10px;}
+    .score-top-toolbar .core-btn,.score-top-toolbar .core-btn-capo{flex:0 0 auto;}
+    .content-card{background:transparent !important;box-shadow:none !important;border:none !important;padding:0 !important;}
+    #score-view.score-wrap{background:transparent !important;box-shadow:none !important;border:none !important;}
+    #alphaTab.at-viewport{background:transparent !important;}
+    .core-ui-title-wrap{display:none !important;}
+    .core-ui-toolbar .moved-to-score,.core-ui-toolbar .moved-to-title{display:none !important;}
+  </style>
 </head>
 <body>
 <div class="page">
@@ -17,15 +32,7 @@
     <div class="core-ui card" id="core-ui">
       <div class="core-ui-toolbar">
         <button class="core-btn core-btn-icon" id="ui-home" aria-label="首页">⌂</button>
-        <button class="core-btn core-btn-pill" id="ui-speed">95</button>
-        <button class="core-btn core-btn-pill" id="ui-key">--</button>
-        <div class="core-btn core-btn-pill core-btn-capo" id="ui-capo">CP0</div>
-        <button class="core-btn core-btn-pill" id="ui-mode">吉</button>
-        <button class="core-btn core-btn-icon" id="ui-prev" aria-label="上一首">⏮</button>
-        <button class="core-btn core-btn-play" id="ui-play" aria-label="播放">▶</button>
-        <button class="core-btn core-btn-icon" id="ui-next" aria-label="下一首">⏭</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-text">字</button>
-        <button class="core-btn core-btn-pill core-btn-mini" id="ui-track">轨</button>
         <button class="core-btn core-btn-pill core-btn-mini" id="ui-staff">谱</button>
         <button class="core-btn core-btn-icon" id="ui-lang" aria-label="语言">🌐</button>
         <button class="core-btn core-btn-icon" id="ui-search" aria-label="搜索">⌕</button>
@@ -34,9 +41,13 @@
         <input class="core-ui-progress" id="ui-progress" type="range" min="0" max="1000" value="0" />
         <div class="core-ui-time" id="ui-time">00:00 / 00:00</div>
       </div>
-      <div class="core-ui-title-wrap">
-        <div class="core-ui-title-main" id="ui-title-main">诗歌</div>
-        <div class="core-ui-title-sub" id="ui-title-sub"></div>
+      <div class="title-nav-row">
+        <button class="core-btn core-btn-icon moved-to-title" id="ui-prev" aria-label="上一首">⏮</button>
+        <div class="title-nav-center">
+          <div class="big-title-line" id="ui-title-big">诗歌</div>
+          <div class="sub-title-line" id="ui-title-main"></div>
+        </div>
+        <button class="core-btn core-btn-icon moved-to-title" id="ui-next" aria-label="下一首">⏭</button>
       </div>
       <div class="core-panel-layer" id="core-panel-layer" hidden>
         <div class="core-panel" id="panel-speed" hidden>
@@ -113,6 +124,14 @@
 
     <!-- 第 4 部分：内容 -->
     <div class="content-card">
+      <div class="score-top-toolbar">
+        <button class="core-btn core-btn-pill moved-to-score" id="ui-speed">95</button>
+        <button class="core-btn core-btn-pill moved-to-score" id="ui-key">--</button>
+        <div class="core-btn core-btn-pill core-btn-capo moved-to-score" id="ui-capo">CP0</div>
+        <button class="core-btn core-btn-pill moved-to-score" id="ui-mode">吉</button>
+        <button class="core-btn core-btn-play moved-to-score" id="ui-play" aria-label="播放">▶</button>
+        <button class="core-btn core-btn-pill core-btn-mini moved-to-score" id="ui-track">轨</button>
+      </div>
       <div id="score-view" class="score-wrap" aria-hidden="false">
         <div id="alphaTab" class="at-viewport"></div>
       </div>
@@ -2168,15 +2187,15 @@ function pad4(num) {
   }
 
   function updateTitle(song) {
-    const coreTitleEl = document.getElementById("ui-title-main");
-    const nextTitle = (song && song.title)
-      ? song.title
-      : `${BOOKS[state.currentBook].label} 第 ${state.currentNo} 首`;
+    const bigTitleEl = document.getElementById("ui-title-big");
+    const subTitleEl = document.getElementById("ui-title-main");
+    const fallbackTitle = `${BOOKS[state.currentBook].label} 第 ${state.currentNo} 首`;
+    const bigTitle = (song && song.big_title) ? song.big_title : ((song && song.title) ? song.title : fallbackTitle);
+    const subTitle = (song && song.title && song.big_title) ? song.title : ((song && song.title && !song.big_title) ? '' : '');
 
-    if (coreTitleEl) coreTitleEl.textContent = nextTitle;
-    document.title = (song && song.title)
-      ? song.title + " - 召会诗歌吉他谱"
-      : nextTitle;
+    if (bigTitleEl) bigTitleEl.textContent = bigTitle;
+    if (subTitleEl) subTitleEl.textContent = subTitle;
+    document.title = bigTitle + (subTitle ? ` - ${subTitle}` : '') + " - 召会诗歌吉他谱";
   }
 
   function setMode(mode) {
