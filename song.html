@@ -786,6 +786,8 @@ function remapTimelineTimesIfNeeded() {
       const c = parseInt(auto.currentScheme?.capo, 10);
       if (Number.isFinite(c)) return Math.max(0, Math.min(11, c));
     }
+    const cached = parseInt(window.__autoTabDisplayCapo, 10);
+    if (Number.isFinite(cached)) return Math.max(0, Math.min(11, cached));
     return getEffectiveCapo();
   }
 
@@ -1524,7 +1526,7 @@ function rebuildAutoTabTrack(){
       if (window.__lastRenderedAutoXml) {
         window.__lastRenderedAutoXml = null;
         __autoTabRewriteInProgress = true;
-        try { loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText); } finally { setTimeout(() => { __autoTabRewriteInProgress = false; if (__autoTabRewritePending) { __autoTabRewritePending = false; applyCurrentPatternToOriginalTab(); } }, 80); }
+        try { loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText); } finally { setTimeout(() => { try { scheduleTabCapoOverlay(140); } catch (e) {} __autoTabRewriteInProgress = false; if (__autoTabRewritePending) { __autoTabRewritePending = false; applyCurrentPatternToOriginalTab(); } }, 120); }
       }
       return;
     }
@@ -1534,7 +1536,7 @@ function rebuildAutoTabTrack(){
     if (window.__lastRenderedAutoXml === xmlText) return;
     window.__lastRenderedAutoXml = xmlText;
     __autoTabRewriteInProgress = true;
-    try { loadXmlTextIntoAlphaTab(window.__atApi, xmlText); } finally { setTimeout(() => { __autoTabRewriteInProgress = false; if (__autoTabRewritePending) { __autoTabRewritePending = false; applyCurrentPatternToOriginalTab(); } }, 80); }
+    try { loadXmlTextIntoAlphaTab(window.__atApi, xmlText); } finally { setTimeout(() => { try { scheduleTabCapoOverlay(140); } catch (e) {} __autoTabRewriteInProgress = false; if (__autoTabRewritePending) { __autoTabRewritePending = false; applyCurrentPatternToOriginalTab(); } }, 120); }
   }
   window.applyCurrentPatternToOriginalTab = applyCurrentPatternToOriginalTab;
 })();
