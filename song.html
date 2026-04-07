@@ -367,7 +367,10 @@ function remapTimelineTimesIfNeeded() {
     try {
       const scheme = (typeof window.getCurrentSchemeResult === 'function') ? window.getCurrentSchemeResult() : null;
       if (trackUsesTab(track)) {
-        if (scheme && scheme.mode === 'auto') return base;
+        // 自动伴奏模式下，TAB 轨的品位/音高已经在重写后的 XML 中确定。
+        // UI 转调只用于“重新求方案/和弦”，不能再对 TAB 轨二次转调，
+        // 否则会出现：转调 +1，TAB 数字整体 +1、音高也整体 +1 的双重问题。
+        if (scheme && scheme.mode === 'auto') return 0;
         return base;
       }
     } catch (e) {}
