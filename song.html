@@ -1417,55 +1417,54 @@ function getMappedChordTimeline() {
   });
 }
 
+function findChordAtMeasureBeat(measureNo, beat, chords, previousChord) {
+  const mNo = Number(measureNo) || 0;
+  const atBeat = Number.isFinite(+beat) ? +beat : 0;
+  let chosen = previousChord || null;
+  (chords || []).forEach((c) => {
+    const cm = Number(c.measure) || 0;
+    const cb = Number.isFinite(+c.beat) ? +c.beat : 0;
+    if (cm < mNo || (cm === mNo && cb <= atBeat + 1e-6)) chosen = c;
+  });
+  return chosen;
+}
+
 function rebuildAutoAccompanimentSong() {
   remapTimelineTimesIfNeeded();
   const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
   const chords = getMappedChordTimeline();
 
-  function pickChordForMeasure(measureObj, previousChord) {
-    if (!measureObj) return previousChord || null;
-    const measureNo = Number(measureObj.measure) || 0;
-    const sameMeasure = chords.filter((c) => Number(c.measure) === measureNo);
-    if (sameMeasure.length) {
-      sameMeasure.sort((a, b) => {
-        const at = Number.isFinite(+a.tickInMeasure) ? +a.tickInMeasure : 0;
-        const bt = Number.isFinite(+b.tickInMeasure) ? +b.tickInMeasure : 0;
-        return at - bt;
-      });
-      return sameMeasure[0];
-    }
-    let carry = previousChord || null;
-    for (let i = 0; i < chords.length; i++) {
-      const c = chords[i];
-      if ((Number(c.measure) || 0) <= measureNo) carry = c;
-      else break;
-    }
-    return carry || (chords.length ? chords[0] : null);
-  }
-
   let lastChordObj = null;
   window.__autoAccompanimentSong = measures.map((measureObj) => {
-    const chordObj = pickChordForMeasure(measureObj, lastChordObj);
-    if (chordObj) lastChordObj = chordObj;
-    if (!measureObj || !chordObj) return null;
-    const resolved = getAutoShapeForChord(chordObj.chordDisplay, chordObj.chordRaw);
-    if (!resolved || !resolved.shape) return { meter: measureObj.meter, measure: measureObj.measure, chordRaw: chordObj.chordRaw, chordDisplay: chordObj.chordDisplay, notes: [] };
-    const shape = resolved.shape;
-    const bassString = getBassStringFromShape(shape);
-    const pattern = getAutoPatternForMeter(measureObj.meter, bassString);
+    if (!measureObj) return null;
+    const measureNo = Number(measureObj.measure) || 0;
+    const initialChord = findChordAtMeasureBeat(measureNo, 0, chords, lastChordObj);
+    if (initialChord) lastChordObj = initialChord;
+    if (!initialChord) return null;
+    const initialResolved = getAutoShapeForChord(initialChord.chordDisplay, initialChord.chordRaw);
+    const initialShape = initialResolved && initialResolved.shape ? initialResolved.shape.slice() : null;
+    const initialBass = getBassStringFromShape(initialShape);
+    const pattern = getAutoPatternForMeter(measureObj.meter, initialBass);
     const notes = [];
     pattern.forEach((evt, idx) => {
-      const strings = expandAutoPatternEventToStrings(evt, bassString, shape);
       const startBeat = Number.isFinite(+evt.beat) ? +evt.beat : idx * 0.5;
       const durationBeat = Number.isFinite(+evt.dur) ? +evt.dur : 0.5;
+      const chordObj = findChordAtMeasureBeat(measureNo, startBeat, chords, lastChordObj) || lastChordObj;
+      if (chordObj) lastChordObj = chordObj;
+      if (!chordObj) return;
+      const resolved = getAutoShapeForChord(chordObj.chordDisplay, chordObj.chordRaw);
+      if (!resolved || !resolved.shape) return;
+      const shape = resolved.shape;
+      const bassString = getBassStringFromShape(shape);
+      const strings = expandAutoPatternEventToStrings(evt, bassString, shape);
       strings.forEach((stringNum, chordPos) => {
         if (!Number.isFinite(stringNum) || stringNum < 1 || stringNum > 6) return;
         const fret = shape[6 - stringNum];
         if (fret === 'x' || fret === 'X' || fret == null) return;
-        notes.push({ index: idx, chordPos, string: stringNum, fret: Number(fret), label: `${stringNum}弦${fret}`, startBeat, durationBeat, role: evt.role || 'mid1', accent: !!evt.accent, simultaneous: strings.length > 1, dotted: !!evt.dotted, tuplet: !!evt.tuplet });
+        notes.push({ index: idx, chordPos, string: stringNum, fret: Number(fret), label: `${stringNum}弦${fret}`, startBeat, durationBeat, role: evt.role || 'mid1', accent: !!evt.accent, simultaneous: strings.length > 1, dotted: !!evt.dotted, tuplet: !!evt.tuplet, chordRaw: chordObj.chordRaw, chordDisplay: chordObj.chordDisplay });
       });
     });
-    return { meter: measureObj.meter, measure: measureObj.measure, chordRaw: chordObj.chordRaw, chordDisplay: chordObj.chordDisplay, pattern: pattern.slice(), notes, bassString, shape: shape.slice() };
+    return { meter: measureObj.meter, measure: measureObj.measure, chordRaw: initialChord.chordRaw, chordDisplay: initialChord.chordDisplay, pattern: pattern.slice(), notes, bassString: initialBass, shape: initialShape || [] };
   }).filter(Boolean);
 }
 
@@ -1637,29 +1636,47 @@ function rebuildAutoTabTrack(){
         noteGroups[key].notes.push(n);
       });
       groups.sort((a,b)=>a.startBeat-b.startBeat);
+      function computeBeatBucket(startBeat, beatLen) {
+        const sb = Number(startBeat || 0);
+        const len = Number(beatLen || 1) || 1;
+        const epsilon = 0.02;
+        return Math.floor((sb + epsilon) / len);
+      }
       groups.forEach((g) => {
-        g.beatBucket = Math.floor((g.startBeat + 1e-6) / beatGroupLength);
+        g.beatBucket = computeBeatBucket(g.startBeat, beatGroupLength);
         g.beamType = noteTypeFromDuration(Math.max(1, Math.round((g.durationBeat || 0.5) * divisions)), divisions, g);
       });
-      // assign triplet groups and beam groups per beat bucket
+      // assign triplet groups and beam groups with smarter continuity
       const bucketMap = new Map();
       groups.forEach((g) => {
-        const key = `${g.beatBucket}|${g.tuplet ? 'T' : 'N'}|${g.beamType}`;
+        const key = `${g.beatBucket}|${g.tuplet ? 'T' : 'N'}`;
         if (!bucketMap.has(key)) bucketMap.set(key, []);
         bucketMap.get(key).push(g);
       });
       for (const arr of bucketMap.values()) {
         arr.sort((a,b)=>a.startBeat-b.startBeat);
-        const beamable = arr.every((g)=>['eighth','16th','32nd'].includes(g.beamType));
-        arr.forEach((g, idx) => {
-          g.beamState = null;
-          if (beamable && arr.length > 1) g.beamState = idx === 0 ? 'begin' : (idx === arr.length - 1 ? 'end' : 'continue');
-          if (g.tuplet) {
-            g.tupletInfo = { kind: idx === 0 ? 'start' : (idx === arr.length - 1 ? 'stop' : 'mid') };
-          } else {
-            g.tupletInfo = null;
-          }
+        let cluster = [];
+        const flush = () => {
+          if (!cluster.length) return;
+          const beamable = cluster.every((g)=>['eighth','16th','32nd'].includes(g.beamType)) && cluster.length > 1;
+          cluster.forEach((g, idx) => {
+            g.beamState = beamable ? (idx === 0 ? 'begin' : (idx === cluster.length - 1 ? 'end' : 'continue')) : null;
+            if (g.tuplet) g.tupletInfo = { kind: idx === 0 ? 'start' : (idx === cluster.length - 1 ? 'stop' : 'mid') };
+            else g.tupletInfo = null;
+          });
+          cluster = [];
+        };
+        arr.forEach((g) => {
+          if (!cluster.length) { cluster.push(g); return; }
+          const prev = cluster[cluster.length - 1];
+          const contiguous = Math.abs((prev.startBeat + prev.durationBeat) - g.startBeat) < 0.02;
+          const sameTuplet = !!prev.tuplet === !!g.tuplet;
+          const sameBeamClass = prev.beamType === g.beamType || (['16th','32nd'].includes(prev.beamType) && ['16th','32nd'].includes(g.beamType));
+          const breakForDotted = !!prev.dotted || !!g.dotted;
+          if (!contiguous || !sameTuplet || !sameBeamClass || breakForDotted) flush();
+          cluster.push(g);
         });
+        flush();
       }
       let currentBeat = 0;
       groups.forEach((g) => {
