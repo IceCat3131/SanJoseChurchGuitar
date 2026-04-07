@@ -133,6 +133,7 @@ window.__autoAccompanimentSong = [];
 window.__autoAccompanimentTabTrack = [];
 window.__originalXmlText = null;
 window.__lastRenderedAutoXml = null;
+window.__autoTabDisplaySequence = [];
 
 function decodeBase64ToText(b64) {
   const binary = atob(b64);
@@ -809,20 +810,16 @@ function remapTimelineTimesIfNeeded() {
     return getEffectiveCapo() + getUserTranspose();
   }
 
-  function getDisplayedFretForCapo(note) {
+  function getDisplayedFretForCapo(note, autoSeqIndex) {
+    const auto = window.__AUTO13;
+    if (auto && auto.mode === 'auto') {
+      const seq = Array.isArray(window.__autoTabDisplaySequence) ? window.__autoTabDisplaySequence : [];
+      const v = seq[autoSeqIndex];
+      if (Number.isFinite(v)) return Math.max(0, v);
+    }
     if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
     const shifted = note.fret + getTabDisplayShift();
     return Math.max(0, shifted);
-  }
-
-  function getAutoDisplayFretByMeasureIndex(measureIndex, noteIndex) {
-    const bars = Array.isArray(window.__autoAccompanimentTabTrack) ? window.__autoAccompanimentTabTrack : [];
-    const bar = bars[measureIndex] || null;
-    if (!bar || !Array.isArray(bar.notes)) return null;
-    const note = bar.notes[noteIndex] || null;
-    if (!note) return null;
-    const n = Number(note.fret);
-    return Number.isFinite(n) && n >= 0 ? n : null;
   }
 
   function renderTabCapoOverlay() {
@@ -837,27 +834,24 @@ function remapTimelineTimesIfNeeded() {
     const isAuto = !!(scheme && scheme.mode === 'auto');
     if ((!offset && !isAuto) || !lookup || !Array.isArray(lookup.staffSystems)) return;
 
-    let autoMeasureIndex = -1;
+    let autoSeqIndex = 0;
     for (const system of lookup.staffSystems) {
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];
       for (const masterBar of masterBars) {
         const barBoundsList = Array.isArray(masterBar?.bars) ? masterBar.bars : [];
         for (const barBounds of barBoundsList) {
           if (!isTabBarBounds(barBounds)) continue;
-          if (isAuto) autoMeasureIndex += 1;
           const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
-          let autoNoteIndex = 0;
           for (const beatBounds of beats) {
             const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
             for (const noteBounds of notes) {
               const note = noteBounds?.note;
-              const displayFret = isAuto
-                ? getAutoDisplayFretByMeasureIndex(autoMeasureIndex, autoNoteIndex++)
-                : getDisplayedFretForCapo(note);
+              const displayFret = getDisplayedFretForCapo(note, autoSeqIndex);
+              autoSeqIndex += 1;
               const box = noteBounds?.noteHeadBounds || noteBounds;
               if (displayFret === null || !box) continue;
-              const bw = box.w ?? box.width ?? 18;
-              const bh = box.h ?? box.height ?? 18;
+              const bw = box.w ?? box.width ?? 16;
+              const bh = box.h ?? box.height ?? 16;
               const bx = box.x ?? 0;
               const by = box.y ?? 0;
 
@@ -865,22 +859,21 @@ function remapTimelineTimesIfNeeded() {
               el.className = 'tab-capo-overlay-note';
               el.textContent = String(displayFret);
               el.style.position = 'absolute';
-              el.style.left = `${bx - 1}px`;
-              el.style.top = `${by - 1}px`;
-              el.style.width = `${bw + 2}px`;
-              el.style.height = `${bh + 2}px`;
+              el.style.left = `${bx}px`;
+              el.style.top = `${by}px`;
+              el.style.width = `${bw}px`;
+              el.style.height = `${bh}px`;
               el.style.display = 'flex';
               el.style.alignItems = 'center';
               el.style.justifyContent = 'center';
               el.style.background = '#fff';
               el.style.color = '#111';
               el.style.fontWeight = '800';
-              el.style.fontSize = `${Math.max(14, Math.round(bh * 1.1))}px`;
-              el.style.border = '1px solid #fff';
+              el.style.fontSize = `${Math.max(14, Math.round(bh * 1.05))}px`;
+              el.style.border = '1px solid transparent';
               el.style.lineHeight = '1';
               el.style.borderRadius = '2px';
               el.style.boxSizing = 'border-box';
-              el.style.zIndex = '30';
               root.appendChild(el);
             }
           }
@@ -1511,6 +1504,7 @@ function rebuildAutoTabTrack(){
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
     const part = findTabPartNode(xmlDoc);
+    window.__autoTabDisplaySequence = [];
     if (!part) return xmlText;
     const bars = Array.isArray(window.__autoAccompanimentTabTrack) ? window.__autoAccompanimentTabTrack : [];
     const measures = Array.from(part.querySelectorAll(':scope > measure'));
@@ -1528,6 +1522,7 @@ function rebuildAutoTabTrack(){
       const beamable = autoBar.notes.length > 1 && noteTypeFromDuration(durationUnits, divisions) === 'eighth';
       autoBar.notes.forEach((n, idx) => {
         let beamState = null; if (beamable) { if (idx === 0) beamState = 'begin'; else if (idx === autoBar.notes.length - 1) beamState = 'end'; else beamState = 'continue'; }
+        window.__autoTabDisplaySequence.push(Number.isFinite(Number(n.fret)) ? Number(n.fret) : null);
         measureEl.appendChild(createNoteEl(xmlDoc, n, durationUnits, divisions, beamState));
       });
     }
@@ -1553,6 +1548,8 @@ function rebuildAutoTabTrack(){
     if (!scheme || scheme.mode !== 'auto') {
       if (window.__lastRenderedAutoXml) {
         window.__lastRenderedAutoXml = null;
+        window.__autoTabDisplaySequence = [];
+window.__autoTabDisplaySequence = [];
         __autoTabRewriteInProgress = true;
         try { loadXmlTextIntoAlphaTab(window.__atApi, window.__originalXmlText); } finally { setTimeout(() => { try { scheduleTabCapoOverlay(140); } catch (e) {} __autoTabRewriteInProgress = false; if (__autoTabRewritePending) { __autoTabRewritePending = false; applyCurrentPatternToOriginalTab(); } }, 120); }
       }
