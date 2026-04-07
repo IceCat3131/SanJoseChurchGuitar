@@ -815,6 +815,16 @@ function remapTimelineTimesIfNeeded() {
     return Math.max(0, shifted);
   }
 
+  function getAutoDisplayFretByMeasureIndex(measureIndex, noteIndex) {
+    const bars = Array.isArray(window.__autoAccompanimentTabTrack) ? window.__autoAccompanimentTabTrack : [];
+    const bar = bars[measureIndex] || null;
+    if (!bar || !Array.isArray(bar.notes)) return null;
+    const note = bar.notes[noteIndex] || null;
+    if (!note) return null;
+    const n = Number(note.fret);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+
   function renderTabCapoOverlay() {
     const api = window.__atApi;
     const root = ensureTabCapoOverlayRoot();
@@ -827,22 +837,27 @@ function remapTimelineTimesIfNeeded() {
     const isAuto = !!(scheme && scheme.mode === 'auto');
     if ((!offset && !isAuto) || !lookup || !Array.isArray(lookup.staffSystems)) return;
 
+    let autoMeasureIndex = -1;
     for (const system of lookup.staffSystems) {
       const masterBars = Array.isArray(system?.bars) ? system.bars : [];
       for (const masterBar of masterBars) {
         const barBoundsList = Array.isArray(masterBar?.bars) ? masterBar.bars : [];
         for (const barBounds of barBoundsList) {
           if (!isTabBarBounds(barBounds)) continue;
+          if (isAuto) autoMeasureIndex += 1;
           const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
+          let autoNoteIndex = 0;
           for (const beatBounds of beats) {
             const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
             for (const noteBounds of notes) {
               const note = noteBounds?.note;
-              const displayFret = getDisplayedFretForCapo(note);
+              const displayFret = isAuto
+                ? getAutoDisplayFretByMeasureIndex(autoMeasureIndex, autoNoteIndex++)
+                : getDisplayedFretForCapo(note);
               const box = noteBounds?.noteHeadBounds || noteBounds;
               if (displayFret === null || !box) continue;
-              const bw = box.w ?? box.width ?? 16;
-              const bh = box.h ?? box.height ?? 16;
+              const bw = box.w ?? box.width ?? 18;
+              const bh = box.h ?? box.height ?? 18;
               const bx = box.x ?? 0;
               const by = box.y ?? 0;
 
@@ -850,21 +865,22 @@ function remapTimelineTimesIfNeeded() {
               el.className = 'tab-capo-overlay-note';
               el.textContent = String(displayFret);
               el.style.position = 'absolute';
-              el.style.left = `${bx}px`;
-              el.style.top = `${by}px`;
-              el.style.width = `${bw}px`;
-              el.style.height = `${bh}px`;
+              el.style.left = `${bx - 1}px`;
+              el.style.top = `${by - 1}px`;
+              el.style.width = `${bw + 2}px`;
+              el.style.height = `${bh + 2}px`;
               el.style.display = 'flex';
               el.style.alignItems = 'center';
               el.style.justifyContent = 'center';
               el.style.background = '#fff';
               el.style.color = '#111';
               el.style.fontWeight = '800';
-              el.style.fontSize = `${Math.max(14, Math.round(bh * 1.05))}px`;
-              el.style.border = '1px solid transparent';
+              el.style.fontSize = `${Math.max(14, Math.round(bh * 1.1))}px`;
+              el.style.border = '1px solid #fff';
               el.style.lineHeight = '1';
               el.style.borderRadius = '2px';
               el.style.boxSizing = 'border-box';
+              el.style.zIndex = '30';
               root.appendChild(el);
             }
           }
