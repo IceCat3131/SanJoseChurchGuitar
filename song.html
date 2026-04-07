@@ -1462,7 +1462,7 @@ function rebuildAutoAccompanimentSong() {
         if (!Number.isFinite(stringNum) || stringNum < 1 || stringNum > 6) return;
         const fret = shape[6 - stringNum];
         if (fret === 'x' || fret === 'X' || fret == null) return;
-        notes.push({ index: idx, chordPos, string: stringNum, fret: Number(fret), label: `${stringNum}弦${fret}`, startBeat, durationBeat, role: evt.role || 'mid1', accent: !!evt.accent, simultaneous: strings.length > 1 });
+        notes.push({ index: idx, chordPos, string: stringNum, fret: Number(fret), label: `${stringNum}弦${fret}`, startBeat, durationBeat, role: evt.role || 'mid1', accent: !!evt.accent, simultaneous: strings.length > 1, dotted: !!evt.dotted, tuplet: !!evt.tuplet });
       });
     });
     return { meter: measureObj.meter, measure: measureObj.measure, chordRaw: chordObj.chordRaw, chordDisplay: chordObj.chordDisplay, pattern: pattern.slice(), notes, bassString, shape: shape.slice() };
@@ -1530,12 +1530,38 @@ function rebuildAutoTabTrack(){
   function getMeasureChildrenToKeep(measureEl) {
     return Array.from(measureEl.children).filter((child) => !['note','backup','forward'].includes(child.nodeName));
   }
-  function noteTypeFromDuration(durationUnits, divisions) {
+  function noteTypeFromDuration(durationUnits, divisions, meta) {
     const quarterUnits = Number(divisions) || 1; const ratio = durationUnits / quarterUnits;
-    if (Math.abs(ratio - 4) < 1e-6) return 'whole'; if (Math.abs(ratio - 2) < 1e-6) return 'half'; if (Math.abs(ratio - 1) < 1e-6) return 'quarter'; if (Math.abs(ratio - 0.5) < 1e-6) return 'eighth'; if (Math.abs(ratio - 0.25) < 1e-6) return '16th'; return ratio >= 1 ? 'quarter' : 'eighth';
+    if (meta && meta.tuplet) {
+      if (Math.abs(ratio - (1/3)) < 0.05 || ratio <= 0.5) return 'eighth';
+    }
+    if (Math.abs(ratio - 4) < 1e-6) return 'whole';
+    if (Math.abs(ratio - 3) < 0.05) return 'half';
+    if (Math.abs(ratio - 2) < 1e-6) return 'half';
+    if (Math.abs(ratio - 1.5) < 0.05) return 'quarter';
+    if (Math.abs(ratio - 1) < 1e-6) return 'quarter';
+    if (Math.abs(ratio - 0.75) < 0.05) return 'eighth';
+    if (Math.abs(ratio - 0.5) < 1e-6) return 'eighth';
+    if (Math.abs(ratio - 0.375) < 0.05) return '16th';
+    if (Math.abs(ratio - 0.25) < 1e-6) return '16th';
+    if (Math.abs(ratio - 0.125) < 0.05) return '32nd';
+    return ratio >= 1 ? 'quarter' : 'eighth';
   }
   function createTextEl(doc, name, text) { const el = doc.createElement(name); el.textContent = String(text); return el; }
-  function createNoteEl(doc, n, durationUnits, divisions, beamState, asChord) {
+  function appendTupletData(doc, note, notations, tupletInfo) {
+    if (!tupletInfo) return;
+    const tm = doc.createElement('time-modification');
+    tm.appendChild(createTextEl(doc, 'actual-notes', 3));
+    tm.appendChild(createTextEl(doc, 'normal-notes', 2));
+    note.appendChild(tm);
+    if (tupletInfo.kind === 'start' || tupletInfo.kind === 'stop') {
+      const tuplet = doc.createElement('tuplet');
+      tuplet.setAttribute('type', tupletInfo.kind === 'start' ? 'start' : 'stop');
+      if (tupletInfo.kind === 'start') tuplet.setAttribute('bracket', 'yes');
+      notations.appendChild(tuplet);
+    }
+  }
+  function createNoteEl(doc, n, durationUnits, divisions, beamState, asChord, meta) {
     const note = doc.createElement('note');
     if (asChord) note.appendChild(doc.createElement('chord'));
     const playFret = Number.isFinite(Number(n.playFret)) ? Number(n.playFret) : Number(n.fret || 0);
@@ -1548,21 +1574,32 @@ function rebuildAutoTabTrack(){
     note.appendChild(pitchEl);
     note.appendChild(createTextEl(doc, 'duration', durationUnits));
     note.appendChild(createTextEl(doc, 'voice', 1));
-    note.appendChild(createTextEl(doc, 'type', noteTypeFromDuration(durationUnits, divisions)));
+    note.appendChild(createTextEl(doc, 'type', noteTypeFromDuration(durationUnits, divisions, meta)));
+    if (meta && meta.dotted) note.appendChild(doc.createElement('dot'));
     note.appendChild(createTextEl(doc, 'stem', 'down'));
-    if (beamState) { const beam = doc.createElement('beam'); beam.setAttribute('number', '1'); beam.textContent = beamState; note.appendChild(beam); }
+    if (beamState) {
+      const beam = doc.createElement('beam'); beam.setAttribute('number', '1'); beam.textContent = beamState; note.appendChild(beam);
+    }
     const notations = doc.createElement('notations'); const technical = doc.createElement('technical');
     technical.appendChild(createTextEl(doc, 'string', n.string)); technical.appendChild(createTextEl(doc, 'fret', playFret));
+    appendTupletData(doc, note, notations, meta && meta.tupletInfo ? meta.tupletInfo : null);
     notations.appendChild(technical); note.appendChild(notations);
     return note;
   }
-  function createRestEl(doc, durationUnits, divisions) {
+  function createRestEl(doc, durationUnits, divisions, meta) {
     const note = doc.createElement('note');
     note.appendChild(doc.createElement('rest'));
     note.appendChild(createTextEl(doc, 'duration', durationUnits));
     note.appendChild(createTextEl(doc, 'voice', 1));
-    note.appendChild(createTextEl(doc, 'type', noteTypeFromDuration(durationUnits, divisions)));
+    note.appendChild(createTextEl(doc, 'type', noteTypeFromDuration(durationUnits, divisions, meta)));
+    if (meta && meta.dotted) note.appendChild(doc.createElement('dot'));
     return note;
+  }
+  function getBeatGroupLength(beats, beatType) {
+    const b = Number(beats) || 4;
+    const t = Number(beatType) || 4;
+    if (t === 8 && (b === 6 || b === 9 || b === 12)) return 1.5;
+    return 1;
   }
   function rewriteXmlTabTrack(xmlText) {
     const parser = new DOMParser();
@@ -1571,42 +1608,76 @@ function rebuildAutoTabTrack(){
     if (!part) return xmlText;
     const bars = Array.isArray(window.__autoAccompanimentTabTrack) ? window.__autoAccompanimentTabTrack : [];
     const measures = Array.from(part.querySelectorAll(':scope > measure'));
-    let divisions = 2;
+    let divisions = 48;
     for (const measureEl of measures) {
       const divEl = measureEl.querySelector(':scope > attributes > divisions');
-      if (divEl) { const d = parseInt(divEl.textContent || '2', 10); if (Number.isFinite(d) && d > 0) divisions = d; }
+      if (divEl) divEl.textContent = String(divisions);
+      else {
+        let attrs = measureEl.querySelector(':scope > attributes');
+        if (!attrs) { attrs = xmlDoc.createElement('attributes'); measureEl.insertBefore(attrs, measureEl.firstChild); }
+        attrs.appendChild(createTextEl(xmlDoc, 'divisions', divisions));
+      }
       const barNo = parseInt(measureEl.getAttribute('number') || '0', 10);
       const autoBar = bars.find(b => Number(b.measure) === barNo);
       const keep = getMeasureChildrenToKeep(measureEl);
       while (measureEl.firstChild) measureEl.removeChild(measureEl.firstChild);
       keep.forEach(node => measureEl.appendChild(cloneXmlNode(xmlDoc, node)));
       if (!autoBar || !Array.isArray(autoBar.notes) || !autoBar.notes.length) continue;
+      const beats = Number(autoBar.beats) || 4;
+      const beatType = Number(autoBar.beatType) || 4;
+      const beatGroupLength = getBeatGroupLength(beats, beatType);
       const groups = [];
       const noteGroups = {};
       (autoBar.notes || []).forEach((n) => {
-        const key = `${Number(n.startBeat || 0).toFixed(4)}|${Number(n.durationBeat || 0.5).toFixed(4)}`;
+        const key = `${Number(n.startBeat || 0).toFixed(4)}|${Number(n.durationBeat || 0.5).toFixed(4)}|${n.tuplet ? 1 : 0}|${n.dotted ? 1 : 0}`;
         if (!noteGroups[key]) {
-          noteGroups[key] = { startBeat: Number(n.startBeat || 0), durationBeat: Number(n.durationBeat || 0.5), notes: [] };
+          noteGroups[key] = { startBeat: Number(n.startBeat || 0), durationBeat: Number(n.durationBeat || 0.5), notes: [], dotted: !!n.dotted, tuplet: !!n.tuplet };
           groups.push(noteGroups[key]);
         }
         noteGroups[key].notes.push(n);
       });
       groups.sort((a,b)=>a.startBeat-b.startBeat);
+      groups.forEach((g) => {
+        g.beatBucket = Math.floor((g.startBeat + 1e-6) / beatGroupLength);
+        g.beamType = noteTypeFromDuration(Math.max(1, Math.round((g.durationBeat || 0.5) * divisions)), divisions, g);
+      });
+      // assign triplet groups and beam groups per beat bucket
+      const bucketMap = new Map();
+      groups.forEach((g) => {
+        const key = `${g.beatBucket}|${g.tuplet ? 'T' : 'N'}|${g.beamType}`;
+        if (!bucketMap.has(key)) bucketMap.set(key, []);
+        bucketMap.get(key).push(g);
+      });
+      for (const arr of bucketMap.values()) {
+        arr.sort((a,b)=>a.startBeat-b.startBeat);
+        const beamable = arr.every((g)=>['eighth','16th','32nd'].includes(g.beamType));
+        arr.forEach((g, idx) => {
+          g.beamState = null;
+          if (beamable && arr.length > 1) g.beamState = idx === 0 ? 'begin' : (idx === arr.length - 1 ? 'end' : 'continue');
+          if (g.tuplet) {
+            g.tupletInfo = { kind: idx === 0 ? 'start' : (idx === arr.length - 1 ? 'stop' : 'mid') };
+          } else {
+            g.tupletInfo = null;
+          }
+        });
+      }
       let currentBeat = 0;
-      const beamableAll = groups.every((g)=> noteTypeFromDuration(Math.max(1, Math.round((g.durationBeat || 0.5) * divisions)), divisions) === 'eighth');
-      groups.forEach((g, idx) => {
+      groups.forEach((g) => {
         if (g.startBeat > currentBeat + 1e-6) {
           const restUnits = Math.max(1, Math.round((g.startBeat - currentBeat) * divisions));
           measureEl.appendChild(createRestEl(xmlDoc, restUnits, divisions));
         }
         const durationUnits = Math.max(1, Math.round((g.durationBeat || 0.5) * divisions));
-        let beamState = null;
-        if (beamableAll && groups.length > 1) { if (idx === 0) beamState = 'begin'; else if (idx === groups.length - 1) beamState = 'end'; else beamState = 'continue'; }
         (g.notes || []).forEach((n, chordIdx) => {
-          measureEl.appendChild(createNoteEl(xmlDoc, n, durationUnits, divisions, beamState, chordIdx > 0));
+          measureEl.appendChild(createNoteEl(xmlDoc, n, durationUnits, divisions, g.beamState, chordIdx > 0, { dotted: g.dotted, tuplet: g.tuplet, tupletInfo: g.tupletInfo }));
         });
         currentBeat = Math.max(currentBeat, g.startBeat + g.durationBeat);
       });
+      const barLength = beats * (4 / beatType);
+      if (currentBeat < barLength - 1e-6) {
+        const restUnits = Math.max(1, Math.round((barLength - currentBeat) * divisions));
+        measureEl.appendChild(createRestEl(xmlDoc, restUnits, divisions));
+      }
     }
     return new XMLSerializer().serializeToString(xmlDoc);
   }
