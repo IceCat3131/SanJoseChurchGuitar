@@ -938,6 +938,38 @@ function remapTimelineTimesIfNeeded() {
     return bytes;
   }
 
+  function stripSourceLayoutBreaks(xmlText) {
+    if (!xmlText || !/^\s*</.test(xmlText)) return xmlText;
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+      const prints = Array.from(xmlDoc.getElementsByTagName('print'));
+      prints.forEach((node) => {
+        try {
+          node.removeAttribute('new-system');
+          node.removeAttribute('new-page');
+          if (!node.attributes || node.attributes.length === 0) {
+            const hasChildren = Array.from(node.childNodes || []).some((n) => n.nodeType === 1 || String(n.textContent || '').trim());
+            if (!hasChildren && node.parentNode) node.parentNode.removeChild(node);
+          }
+        } catch (e) {}
+      });
+      const supports = Array.from(xmlDoc.getElementsByTagName('supports'));
+      supports.forEach((node) => {
+        try {
+          const attr = (node.getAttribute('attribute') || '').toLowerCase();
+          if (attr === 'new-system' || attr === 'new-page') {
+            if (node.parentNode) node.parentNode.removeChild(node);
+          }
+        } catch (e) {}
+      });
+      return new XMLSerializer().serializeToString(xmlDoc);
+    } catch (e) {
+      console.warn('stripSourceLayoutBreaks failed', e);
+      return xmlText;
+    }
+  }
+
   async function loadGtzIntoAlphaTab(api, gtzUrl) {
     try { api.stop(); } catch(e) {}
     setPlayerUI({ current: 0, total: 0, playing: false });
@@ -968,9 +1000,10 @@ function remapTimelineTimesIfNeeded() {
     try {
       const xmlText = decodeBase64ToText(scoreB64);
       if (/^\s*</.test(xmlText)) {
-        window.__originalXmlText = xmlText;
-        window.__originalScoreB64 = scoreB64;
-        const parsed = buildMusicTimelineFromXML(xmlText);
+        const normalizedXmlText = stripSourceLayoutBreaks(xmlText);
+        window.__originalXmlText = normalizedXmlText;
+        window.__originalScoreB64 = btoa(unescape(encodeURIComponent(normalizedXmlText)));
+        const parsed = buildMusicTimelineFromXML(normalizedXmlText);
         window.__musicTimelineRaw = parsed;
         window.__chordTimelineRaw = parsed.chords.slice();
         window.__measureTimelineRaw = parsed.measures.slice();
@@ -983,7 +1016,7 @@ function remapTimelineTimesIfNeeded() {
       window.__measureTimelineRaw = [];
     }
 
-    const bytes = base64ToUint8Array(scoreB64);
+    const bytes = window.__originalXmlText ? encodeTextToUint8Array(window.__originalXmlText) : base64ToUint8Array(scoreB64);
     api.load(bytes);
 
     setPlayerStatus('谱面已加载');
