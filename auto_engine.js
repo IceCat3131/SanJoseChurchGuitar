@@ -1,6 +1,6 @@
 
 (function(){
-  const BUILD = '14.4.2.19';
+  const BUILD = '14.4.2.20';
   const AUTO = {
     mode: 'original',
     schemeIndex: 0,
@@ -281,7 +281,15 @@
 
   function getCurrentPatternResult(){
     const p = getCurrentPattern();
-    return p ? { id: p.id, name: p.name, type: p.type, steps: Array.isArray(p.steps) ? p.steps.slice() : [] } : null;
+    return p ? {
+      id: p.id,
+      name: p.name,
+      type: p.type,
+      time_signature: p.time_signature || null,
+      subdivision: Number.isFinite(+p.subdivision) ? +p.subdivision : null,
+      steps: Array.isArray(p.steps) ? p.steps.slice() : [],
+      events: Array.isArray(p.events) ? p.events.map((e)=>({ ...e })) : []
+    } : null;
   }
 
   function getAutoDisplayedChordForOriginal(originalChord){
