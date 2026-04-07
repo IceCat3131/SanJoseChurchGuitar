@@ -12495,7 +12495,7 @@
         static initialize() {
             Tuning._defaultTunings.set(7, new Tuning('Guitar 7 strings', [64, 59, 55, 50, 45, 40, 35], true));
             Tuning._sevenStrings.push(Tuning._defaultTunings.get(7));
-            Tuning._defaultTunings.set(6, new Tuning('G', [64, 59, 55, 50, 45, 40], true));
+            Tuning._defaultTunings.set(6, new Tuning('', [64, 59, 55, 50, 45, 40], true));
             Tuning._sixStrings.push(Tuning._defaultTunings.get(6));
             Tuning._sixStrings.push(new Tuning('Guitar Tune down ½ step', [63, 58, 54, 49, 44, 39], false));
             Tuning._sixStrings.push(new Tuning('Guitar Tune down 1 step', [62, 57, 53, 48, 43, 38], false));
