@@ -1355,13 +1355,32 @@ function rebuildAutoAccompanimentSong() {
   remapTimelineTimesIfNeeded();
   const measures = Array.isArray(window.__measureTimelineRaw) ? window.__measureTimelineRaw : [];
   const chords = getMappedChordTimeline();
-  window.__autoAccompanimentSong = measures.map((measureObj) => {
-    let chordObj = null;
+
+  function pickChordForMeasure(measureObj, previousChord) {
+    if (!measureObj) return previousChord || null;
+    const measureNo = Number(measureObj.measure) || 0;
+    const sameMeasure = chords.filter((c) => Number(c.measure) === measureNo);
+    if (sameMeasure.length) {
+      sameMeasure.sort((a, b) => {
+        const at = Number.isFinite(+a.tickInMeasure) ? +a.tickInMeasure : 0;
+        const bt = Number.isFinite(+b.tickInMeasure) ? +b.tickInMeasure : 0;
+        return at - bt;
+      });
+      return sameMeasure[0];
+    }
+    let carry = previousChord || null;
     for (let i = 0; i < chords.length; i++) {
       const c = chords[i];
-      if ((c.timeMs || 0) <= (measureObj.startMs || 0)) chordObj = c; else break;
+      if ((Number(c.measure) || 0) <= measureNo) carry = c;
+      else break;
     }
-    if (!chordObj && chords.length) chordObj = chords[0];
+    return carry || (chords.length ? chords[0] : null);
+  }
+
+  let lastChordObj = null;
+  window.__autoAccompanimentSong = measures.map((measureObj) => {
+    const chordObj = pickChordForMeasure(measureObj, lastChordObj);
+    if (chordObj) lastChordObj = chordObj;
     if (!measureObj || !chordObj) return null;
     const resolved = getAutoShapeForChord(chordObj.chordDisplay, chordObj.chordRaw);
     if (!resolved || !resolved.shape) return { meter: measureObj.meter, measure: measureObj.measure, chordRaw: chordObj.chordRaw, chordDisplay: chordObj.chordDisplay, notes: [] };
