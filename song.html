@@ -582,31 +582,30 @@ function remapTimelineTimesIfNeeded() {
   }
 
   
-// ===== iPad Audio Fix (proper) =====
-let __alphaInitialized = false;
-function ensureAlphaTabInit() {
-  if (__alphaInitialized) return;
-  __alphaInitialized = true;
-  try {
-    if (typeof renderScore === 'function') {
-      renderScore();
-      console.log('[Fix] renderScore triggered by user gesture');
+  let __audioPrimeTried = false;
+  async function primeAlphaTabAudio() {
+    if (__audioPrimeTried) return;
+    __audioPrimeTried = true;
+    try {
+      const api = window.__atApi;
+      if (!api) return;
+      // 只在用户点击播放时做一次最小激活，避免改动谱面初始化链路
+      if (typeof api.play === 'function') {
+        api.play();
+        setTimeout(() => {
+          try { if (typeof api.stop === 'function') api.stop(); } catch (e) {}
+        }, 0);
+      }
+    } catch (e) {
+      console.warn('primeAlphaTabAudio failed', e);
     }
-  } catch(e) {
-    console.warn('[Fix] renderScore failed', e);
   }
-}
 
 function togglePlayPause() {
-  try {
-    ensureAlphaTabInit(); // ⭐关键：用户触发初始化
-    if (window.__atApi) {
-      window.__atApi.playPause();
-    }
-  } catch (e) {
-    console.warn('togglePlayPause failed', e);
-  }
-} catch (e) {
+    try {
+      primeAlphaTabAudio();
+      if (window.__atApi) window.__atApi.playPause();
+    } catch (e) {
       console.warn('togglePlayPause failed', e);
     }
   }
