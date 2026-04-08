@@ -581,30 +581,25 @@ function remapTimelineTimesIfNeeded() {
     await tryGoTo(1);
   }
 
-  
-  let __audioPrimeTried = false;
-  async function primeAlphaTabAudio() {
-    if (__audioPrimeTried) return;
-    __audioPrimeTried = true;
+  function togglePlayPause() {
     try {
       const api = window.__atApi;
-      if (!api) return;
-      // 只在用户点击播放时做一次最小激活，避免改动谱面初始化链路
-      if (typeof api.play === 'function') {
-        api.play();
-        setTimeout(() => {
-          try { if (typeof api.stop === 'function') api.stop(); } catch (e) {}
-        }, 0);
+      if (api && api.player && !api.player.audioContext) {
+        // iPad: 重新在用户手势中 load 一次，强制创建 AudioContext
+        try {
+          const b64 = window.__originalScoreB64;
+          if (b64) {
+            const binary = atob(b64);
+            const len = binary.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+            api.load(bytes);
+            setTimeout(() => { try { api.play(); } catch(e){} }, 0);
+            return;
+          }
+        } catch(e) { console.warn('reload for audio failed', e); }
       }
-    } catch (e) {
-      console.warn('primeAlphaTabAudio failed', e);
-    }
-  }
-
-function togglePlayPause() {
-    try {
-      primeAlphaTabAudio();
-      if (window.__atApi) window.__atApi.playPause();
+      if (api) api.playPause();
     } catch (e) {
       console.warn('togglePlayPause failed', e);
     }
