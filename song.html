@@ -581,8 +581,32 @@ function remapTimelineTimesIfNeeded() {
     await tryGoTo(1);
   }
 
+  
+
+  function unlockAudioContextSafe() {
+    try {
+      const api = window.__atApi;
+      if (!api || !api.player) return;
+      const ctx = api.player.audioContext;
+      if (ctx && ctx.state !== 'running') {
+        Promise.resolve(ctx.resume()).then(() => {
+          try { console.log('[Audio] AudioContext resumed'); } catch (e) {}
+        }).catch(e => {
+          console.warn('[Audio] resume failed', e);
+        });
+      }
+    } catch (e) {
+      console.warn('[Audio] unlock error', e);
+    }
+  }
+
+  ['touchstart', 'touchend', 'click'].forEach((evt) => {
+    document.addEventListener(evt, unlockAudioContextSafe, { once: true, passive: true });
+  });
+
   function togglePlayPause() {
     try {
+      unlockAudioContextSafe();
       if (window.__atApi) window.__atApi.playPause();
     } catch (e) {
       console.warn('togglePlayPause failed', e);
