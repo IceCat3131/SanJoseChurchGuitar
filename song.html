@@ -29,6 +29,19 @@
     html,body,.page,.page-inner{background:#fff !important;}
     .core-ui-title-wrap{display:none !important;}
     .core-ui-toolbar .moved-to-title{display:none !important;}
+
+    .diag-panel{position:fixed;right:10px;bottom:10px;z-index:99999;width:min(92vw,420px);background:rgba(20,20,20,.92);color:#f5f5f5;border-radius:12px;padding:10px 12px;font:12px/1.45 Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.28);}
+    .diag-panel[hidden]{display:none !important;}
+    .diag-title{display:flex;align-items:center;justify-content:space-between;font-weight:700;margin-bottom:6px;gap:8px;}
+    .diag-grid{display:grid;grid-template-columns:92px 1fr;gap:4px 8px;word-break:break-all;}
+    .diag-label{opacity:.75;}
+    .diag-ok{color:#7CFC98;}
+    .diag-bad{color:#ff9b9b;}
+    .diag-warn{color:#ffd27f;}
+    .diag-log{margin-top:8px;max-height:120px;overflow:auto;background:rgba(255,255,255,.06);border-radius:8px;padding:6px;white-space:pre-wrap;}
+    .diag-actions{display:flex;gap:6px;align-items:center;}
+    .diag-btn{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;border-radius:8px;padding:2px 8px;font-size:12px;}
+
   </style>
 </head>
 <body>
@@ -152,6 +165,109 @@
 </div>
 
 <script>
+window.__diagAudio = { logs: [], fetches: [], lastError: '', lastAction: 'init', soundFont: '', page: 'loading' };
+function diagNow(){ try { return new Date().toLocaleTimeString(); } catch(e){ return ''; } }
+function diagPush(msg){
+  try {
+    const s = `[${diagNow()}] ${msg}`;
+    window.__diagAudio.logs.push(s);
+    if (window.__diagAudio.logs.length > 30) window.__diagAudio.logs.shift();
+    const el = document.getElementById('diag-log');
+    if (el) el.textContent = window.__diagAudio.logs.join('\n');
+  } catch(e){}
+}
+function diagSet(id, value, cls){
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value == null ? '-' : String(value);
+  el.className = cls || '';
+}
+function diagUpdate(reason){
+  try {
+    const api = window.__atApi;
+    const player = api && api.player ? api.player : null;
+    const ctx = player && player.audioContext ? player.audioContext : null;
+    const state = ctx ? ctx.state : 'no-audio-context';
+    const pb = window.__playbackState || { current:0,total:0,playing:false };
+    const lastFetch = (window.__diagAudio.fetches || []).slice(-1)[0] || null;
+    diagSet('diag-page', `${window.__diagAudio.page}${reason ? ' / ' + reason : ''}`);
+    diagSet('diag-audioctx', state, state === 'running' ? 'diag-ok' : (state === 'suspended' ? 'diag-warn' : 'diag-bad'));
+    let playerText = 'api=' + (!!api) + ' player=' + (!!player) + ' playing=' + (!!pb.playing);
+    diagSet('diag-player', playerText, pb.playing ? 'diag-ok' : '');
+    diagSet('diag-time', `${pb.current||0} / ${pb.total||0}`);
+    diagSet('diag-sf', window.__diagAudio.soundFont || '-');
+    diagSet('diag-net', lastFetch ? `${lastFetch.status} ${lastFetch.url}` : '-');
+    diagSet('diag-action', window.__diagAudio.lastAction || '-');
+    diagSet('diag-error', window.__diagAudio.lastError || '-');
+  } catch(e){}
+}
+(function(){
+  const origFetch = window.fetch ? window.fetch.bind(window) : null;
+  if (origFetch) {
+    window.fetch = async function(...args){
+      const input = args[0];
+      const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+      try {
+        const res = await origFetch(...args);
+        if (/sonivox\.sf2|\.sf2($|\?)/i.test(url)) {
+          window.__diagAudio.fetches.push({ url, status: res.status, ok: res.ok });
+          diagPush(`SoundFont fetch: ${res.status} ${url}`);
+          diagUpdate('fetch');
+        }
+        return res;
+      } catch (e) {
+        if (/sonivox\.sf2|\.sf2($|\?)/i.test(url)) {
+          window.__diagAudio.fetches.push({ url, status: 'ERR', ok: false });
+          window.__diagAudio.lastError = 'SoundFont fetch failed: ' + (e && e.message ? e.message : e);
+          diagPush(window.__diagAudio.lastError);
+          diagUpdate('fetch-error');
+        }
+        throw e;
+      }
+    };
+  }
+  const oldErr = console.error ? console.error.bind(console) : null;
+  if (oldErr) {
+    console.error = function(...args){
+      try {
+        const joined = args.map(x => (x && x.message) ? x.message : String(x)).join(' | ');
+        if (/audio|soundfont|alphatab|player|synth|load|fetch/i.test(joined)) {
+          window.__diagAudio.lastError = joined;
+          diagPush('console.error: ' + joined);
+          diagUpdate('console-error');
+        }
+      } catch(e){}
+      return oldErr(...args);
+    };
+  }
+})();
+function diagInitPanel(){
+  const hideBtn = document.getElementById('diag-hide');
+  const copyBtn = document.getElementById('diag-copy');
+  hideBtn && hideBtn.addEventListener('click', ()=>{ const p=document.getElementById('diag-panel'); if(p) p.hidden = true; });
+  copyBtn && copyBtn.addEventListener('click', async ()=>{
+    const lines = [
+      'page=' + (document.getElementById('diag-page')?.textContent||''),
+      'audioctx=' + (document.getElementById('diag-audioctx')?.textContent||''),
+      'player=' + (document.getElementById('diag-player')?.textContent||''),
+      'time=' + (document.getElementById('diag-time')?.textContent||''),
+      'soundfont=' + (document.getElementById('diag-sf')?.textContent||''),
+      'network=' + (document.getElementById('diag-net')?.textContent||''),
+      'action=' + (document.getElementById('diag-action')?.textContent||''),
+      'error=' + (document.getElementById('diag-error')?.textContent||''),
+      'logs:',
+      (document.getElementById('diag-log')?.textContent||'')
+    ].join('\n');
+    try { await navigator.clipboard.writeText(lines); diagPush('诊断已复制'); } catch(e){ diagPush('复制失败'); }
+  });
+  ['touchstart','touchend','click','pointerup'].forEach(evt => {
+    document.addEventListener(evt, () => { window.__diagAudio.lastAction = 'user-' + evt; diagUpdate(evt); }, { passive: true });
+  });
+  setInterval(() => diagUpdate('poll'), 1000);
+  window.__diagAudio.page = 'dom-ready';
+  diagPush('诊断面板已启动');
+  diagUpdate('init');
+}
 window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
 window.__chordTimelineRaw = [];
 window.__measureTimelineRaw = [];
@@ -581,78 +697,25 @@ function remapTimelineTimesIfNeeded() {
     await tryGoTo(1);
   }
 
-  async function resumeAlphaTabAudioContextSafe() {
-    try {
-      const api = window.__atApi;
-      const player = api && api.player ? api.player : null;
-      const contexts = [
-        player && player.audioContext,
-        player && player._audioContext,
-        player && player.output && player.output.audioContext,
-        player && player.output && player.output._audioContext,
-        player && player.synth && player.synth.audioContext,
-        player && player.synth && player.synth._audioContext
-      ].filter(Boolean);
-
-      let resumed = false;
-      for (const ctx of contexts) {
-        if (!ctx || typeof ctx.resume !== 'function') continue;
-        if (ctx.state !== 'running') {
-          try { await ctx.resume(); } catch (e) { console.warn('[Audio] resume failed', e); }
-        }
-        try {
-          if (typeof ctx.createBuffer === 'function' && typeof ctx.createBufferSource === 'function') {
-            const buffer = ctx.createBuffer(1, 1, Math.max(22050, ctx.sampleRate || 44100));
-            const source = ctx.createBufferSource();
-            source.buffer = buffer;
-            source.connect(ctx.destination);
-            if (typeof source.start === 'function') source.start(0);
-            if (typeof source.disconnect === 'function') {
-              setTimeout(() => {
-                try { source.disconnect(); } catch (e) {}
-              }, 0);
-            }
-          }
-        } catch (e) {
-          console.warn('[Audio] warmup failed', e);
-        }
-        resumed = resumed || ctx.state === 'running';
-      }
-      if (resumed) {
-        window.__audioUnlocked = true;
-        console.log('[Audio] AudioContext resumed');
-      }
-      return resumed;
-    } catch (e) {
-      console.warn('[Audio] unlock error', e);
-      return false;
-    }
-  }
-
-  function installAudioUnlockHandlers() {
-    if (window.__audioUnlockHandlersInstalled) return;
-    window.__audioUnlockHandlersInstalled = true;
-    const handler = async () => {
-      const ok = await resumeAlphaTabAudioContextSafe();
-      if (!ok) return;
-      ['touchend', 'pointerup', 'click', 'keydown'].forEach((evt) => {
-        document.removeEventListener(evt, handler, true);
-      });
-    };
-    ['touchend', 'pointerup', 'click', 'keydown'].forEach((evt) => {
-      document.addEventListener(evt, handler, true);
-    });
-  }
-
   async function togglePlayPause() {
     try {
-      await resumeAlphaTabAudioContextSafe();
-      if (window.__atApi) {
-        window.__atApi.playPause();
-        setTimeout(() => { resumeAlphaTabAudioContextSafe(); }, 0);
-        setTimeout(() => { resumeAlphaTabAudioContextSafe(); }, 120);
+      window.__diagAudio.lastAction = 'tap-play';
+      const api = window.__atApi;
+      const ctx = api?.player?.audioContext;
+      if (ctx && ctx.state !== 'running') {
+        try {
+          await ctx.resume();
+          diagPush('AudioContext.resume() -> ' + ctx.state);
+        } catch (resumeErr) {
+          window.__diagAudio.lastError = 'resume failed: ' + (resumeErr && resumeErr.message ? resumeErr.message : resumeErr);
+          diagPush(window.__diagAudio.lastError);
+        }
       }
+      if (api) api.playPause();
+      diagUpdate('toggle-play');
     } catch (e) {
+      window.__diagAudio.lastError = 'togglePlayPause failed: ' + (e && e.message ? e.message : e);
+      diagPush(window.__diagAudio.lastError);
       console.warn('togglePlayPause failed', e);
     }
   }
@@ -1060,6 +1123,8 @@ function remapTimelineTimesIfNeeded() {
 
     const bytes = base64ToUint8Array(scoreB64);
     api.load(bytes);
+    diagPush('GTZ已加载: ' + gtzUrl);
+    diagUpdate('gtz-loaded');
 
     setPlayerStatus('谱面已加载');
     return gtz;
@@ -1337,6 +1402,9 @@ function remapTimelineTimesIfNeeded() {
       const playing = (args.state === alphaTab.synth.PlayerState.Playing);
       __playbackState.playing = playing;
       if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
+      window.__diagAudio.lastAction = 'player-state:' + String(args.state);
+      diagPush('playerStateChanged=' + String(args.state));
+      diagUpdate('player-state');
     });
 
     let previousSec = -1;
@@ -1355,6 +1423,7 @@ function remapTimelineTimesIfNeeded() {
       }
       if (timeEl) timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
       try { remapTimelineTimesIfNeeded(); } catch (e) {}
+      diagUpdate('position');
     });
 
     if (progressEl) {
@@ -2163,8 +2232,10 @@ function pad4(num) {
         }
       };
 
+      window.__diagAudio.soundFont = settings.player && settings.player.soundFont ? settings.player.soundFont : '';
+      diagPush('创建 alphaTab，soundFont=' + (window.__diagAudio.soundFont || '-'));
       window.__atApi = new alphaTab.AlphaTabApi(atEl, settings);
-      installAudioUnlockHandlers();
+      diagUpdate('api-created');
 
       // 轨道开关按钮（只影响多轨显示）
       setupTracksButton();
@@ -2176,6 +2247,8 @@ function pad4(num) {
 
       // 载入谱面后：还原歌词字号/行距/缩放/多轨
       window.__atApi.scoreLoaded.on((e) => {
+        diagPush('scoreLoaded');
+        diagUpdate('scoreLoaded');
         __currentScore = e.score || window.__atApi.score;
         const st = window.__gtzState || {};
         if (!__trackSelectionTouched) {
@@ -2216,6 +2289,8 @@ function pad4(num) {
       });
 
       window.__atApi.renderFinished.on(() => {
+        diagPush('renderFinished');
+        diagUpdate('renderFinished');
         scheduleTabCapoOverlay(40);
         scheduleChordRewrite(40);
         scheduleChordRewrite(180);
@@ -2379,6 +2454,7 @@ function pad4(num) {
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
+    diagInitPanel();
     parseQuery();
     applyViewerPrefsToLyricsPage();
     await loadAndRenderCurrentSong();
@@ -2524,10 +2600,6 @@ function pad4(num) {
     $('ui-home')?.addEventListener('click', goHome);
     $('ui-prev')?.addEventListener('click', ()=>{ goPrevSong(); });
     $('ui-play')?.addEventListener('click', togglePlayPause);
-    $('ui-play')?.addEventListener('touchend', (e) => {
-      try { e.preventDefault(); } catch (err) {}
-      togglePlayPause();
-    }, { passive: false });
     $('ui-next')?.addEventListener('click', ()=>{ goNextSong(); });
     $('ui-speed')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-speed'); });
     $('ui-key')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-key'); });
@@ -2783,5 +2855,27 @@ function pad4(num) {
 <script src="scheme_engine.js"></script>
 <script src="rhythm_engine.js"></script>
 <script src="auto_engine.js"></script>
+
+<div class="diag-panel" id="diag-panel">
+  <div class="diag-title">
+    <span>音频诊断</span>
+    <div class="diag-actions">
+      <button type="button" class="diag-btn" id="diag-copy">复制</button>
+      <button type="button" class="diag-btn" id="diag-hide">隐藏</button>
+    </div>
+  </div>
+  <div class="diag-grid">
+    <div class="diag-label">页面</div><div id="diag-page">ready</div>
+    <div class="diag-label">AudioCtx</div><div id="diag-audioctx">-</div>
+    <div class="diag-label">播放器</div><div id="diag-player">-</div>
+    <div class="diag-label">时间</div><div id="diag-time">-</div>
+    <div class="diag-label">SoundFont</div><div id="diag-sf">-</div>
+    <div class="diag-label">网络</div><div id="diag-net">-</div>
+    <div class="diag-label">最后动作</div><div id="diag-action">-</div>
+    <div class="diag-label">最后错误</div><div id="diag-error">-</div>
+  </div>
+  <div class="diag-log" id="diag-log"></div>
+</div>
+
 </body>
 </html>
