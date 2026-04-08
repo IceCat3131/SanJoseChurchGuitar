@@ -287,8 +287,33 @@
     await tryGoTo(1);
   }
 
-  function togglePlayPause() {
+
+  async function unlockAlphaTabAudio() {
+    const api = window.__atApi;
+    if (!api || window.__alphaTabAudioUnlocked) return;
     try {
+      if (!api.isReadyForPlayback) return;
+      api.play();
+      await new Promise(resolve => setTimeout(resolve, 0));
+      api.pause();
+      window.__alphaTabAudioUnlocked = true;
+    } catch (e) {
+      console.warn('unlockAlphaTabAudio failed', e);
+    }
+  }
+
+  function installAudioUnlockHandlers() {
+    if (window.__alphaTabAudioUnlockHandlersInstalled) return;
+    window.__alphaTabAudioUnlockHandlersInstalled = true;
+    const handler = () => { unlockAlphaTabAudio(); };
+    ['pointerdown', 'touchstart', 'keydown'].forEach((eventName) => {
+      document.addEventListener(eventName, handler, { passive: true });
+    });
+  }
+
+  async function togglePlayPause() {
+    try {
+      await unlockAlphaTabAudio();
       if (window.__atApi) window.__atApi.playPause();
     } catch (e) {
       console.warn('togglePlayPause failed', e);
@@ -1048,13 +1073,14 @@ function pad4(num) {
         player: {
           enablePlayer: true,
           // alphaTab 官方教程示例音源（SoundFont2）
-          soundFont: 'https://cdn.jsdelivr.net/npm/@coderline/alphatab@latest/dist/soundfont/sonivox.sf2',
+          soundFont: './assets/soundfont/FSS-SteelStringGuitar-small.sf2',
           // 播放时滚动这个元素
           scrollElement: container
         }
       };
 
       window.__atApi = new alphaTab.AlphaTabApi(atEl, settings);
+      installAudioUnlockHandlers();
 
       // 轨道开关按钮（只影响多轨显示）
       setupTracksButton();

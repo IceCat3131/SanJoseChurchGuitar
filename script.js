@@ -944,13 +944,14 @@ function pad4(num) {
         player: {
           enablePlayer: true,
           // alphaTab 官方教程示例音源（SoundFont2）
-          soundFont: 'https://cdn.jsdelivr.net/npm/@coderline/alphatab@latest/dist/soundfont/sonivox.sf2',
+          soundFont: './assets/soundfont/FSS-SteelStringGuitar-small.sf2',
           // 播放时滚动这个元素
           scrollElement: container
         }
       };
 
       window.__atApi = new alphaTab.AlphaTabApi(atEl, settings);
+      installAudioUnlockHandlers();
 
       // 轨道开关按钮（只影响多轨显示）
       setupTracksButton();
