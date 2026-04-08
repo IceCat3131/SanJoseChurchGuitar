@@ -138,7 +138,7 @@
         <button class="core-btn core-btn-pill moved-to-score" id="ui-key">--</button>
         <div class="core-btn core-btn-pill core-btn-capo moved-to-score" id="ui-capo">CP0</div>
         <div class="score-toolbar-spacer" aria-hidden="true"></div>
-        <div class="score-song-code" id="ui-song-code">C_1</div>
+        <div class="score-song-code" id="ui-song-code">C_1&nbsp;&nbsp;V_DIAG_1</div>
       </div>
       <div id="score-view" class="score-wrap" aria-hidden="false">
         <div id="alphaTab" class="at-viewport"></div>
@@ -581,49 +581,13 @@ function remapTimelineTimesIfNeeded() {
     await tryGoTo(1);
   }
 
-  
   function togglePlayPause() {
     try {
-      let api = window.__atApi;
-      if (!api) return;
-
-      const ctx = api.player && api.player.audioContext;
-
-      // iPad: 如果没有 AudioContext，则重建播放器（用户手势中）
-      if (!ctx) {
-        const atEl = document.getElementById('alphaTab');
-        if (!atEl) return;
-
-        try { api.destroy(); } catch(e){}
-
-        const settings = {
-          core: { includeNoteBounds: true },
-          display: { scale: 1.0 },
-          player: {
-            enablePlayer: true,
-            soundFont: "assets/soundfont/sonivox.sf2",
-            scrollElement: document.getElementById("score-view")
-          }
-        };
-
-        const newApi = new alphaTab.AlphaTabApi(atEl, settings);
-        window.__atApi = newApi;
-
-        if (window.__lastGtzUrl) {
-          loadGtzIntoAlphaTab(newApi, window.__lastGtzUrl).then(()=>{
-            setTimeout(()=>{ try{ newApi.play(); }catch(e){} },50);
-          });
-        }
-        return;
-      }
-
-      api.playPause();
-
+      if (window.__atApi) window.__atApi.playPause();
     } catch (e) {
       console.warn('togglePlayPause failed', e);
     }
   }
-
 
   function setPlaybackSpeedPercent(value) {
     viewerPrefs.playbackSpeedPercent = Math.min(150, Math.max(50, parseInt(value, 10) || 100));
@@ -2123,7 +2087,7 @@ function pad4(num) {
           scale: 1.0
         },
         player: {
-          enablePlayer: false,
+          enablePlayer: true,
           // alphaTab 官方教程示例音源（SoundFont2）
           soundFont: 'https://cdn.jsdelivr.net/npm/@coderline/alphatab@latest/dist/soundfont/sonivox.sf2',
           // 播放时滚动这个元素
@@ -2197,10 +2161,8 @@ function pad4(num) {
     const oldFallback = document.getElementById('score-fallback-image');
     if (oldFallback) oldFallback.remove();
 
-    window.__lastGtzUrl = null;
     const gtzPrefix = BOOKS[bookKey].gtzPrefix || BOOKS[bookKey].svgPrefix;
-    const gtzUrl = `${gtzPrefix}${pad4(no)}_cn_g.gtz`;
-    window.__lastGtzUrl = gtzUrl; // 如 assets/c/c0001_cn_g.gtz
+    const gtzUrl = `${gtzPrefix}${pad4(no)}_cn_g.gtz`; // 如 assets/c/c0001_cn_g.gtz
 
     loadGtzIntoAlphaTab(window.__atApi, gtzUrl).catch(err => {
       console.error("加载 gtz 失败:", err);
@@ -2748,5 +2710,37 @@ function pad4(num) {
 <script src="scheme_engine.js"></script>
 <script src="rhythm_engine.js"></script>
 <script src="auto_engine.js"></script>
+
+<div id="diag-panel" style="position:fixed;right:10px;bottom:10px;z-index:99999;width:320px;background:#111;color:#fff;font:12px monospace;padding:10px;border-radius:10px;">
+<b>诊断面板 V_DIAG_1</b><br>
+<div id="diag-body">init...</div>
+<button onclick="navigator.clipboard.writeText(document.getElementById('diag-body').innerText)">复制</button>
+</div>
+
+<script>
+(function(){
+ const log=[];
+ function upd(){
+   try{
+     const api=window.__atApi;
+     const ctx=api&&api.player?api.player.audioContext:null;
+     const state=ctx?ctx.state:"no-audio-context";
+     document.getElementById('diag-body').innerHTML=
+       "AudioCtx: "+state+"<br>"+
+       "api: "+!!api+"<br>"+
+       "player: "+!!(api&&api.player)+"<br>"+
+       "playing: "+!!(api&&api.player&&api.player.isPlaying)+"<br>"+
+       "logs:<br>"+log.join("<br>");
+   }catch(e){}
+ }
+ function push(s){log.push(s); if(log.length>10)log.shift(); upd();}
+
+ window.addEventListener('click',()=>push("click"),true);
+ window.addEventListener('error',e=>push("err:"+e.message));
+ window.addEventListener('unhandledrejection',e=>push("rej"));
+
+ setInterval(upd,1000);
+})();
+</script>
 </body>
 </html>
