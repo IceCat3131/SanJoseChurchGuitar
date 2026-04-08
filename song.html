@@ -160,40 +160,41 @@ function decodeBase64ToText(b64) {
   return new TextDecoder().decode(bytes);
 }
 
-
-function stripSystemAndPageBreaksFromXml(xmlText) {
-  const src = String(xmlText || '');
-  if (!src.trim()) return src;
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(src, 'application/xml');
-  if (xmlDoc.querySelector('parsererror')) return src;
-
-  xmlDoc.querySelectorAll('print').forEach((el) => {
-    try {
-      if (el.hasAttribute('new-system')) el.removeAttribute('new-system');
-      if (el.hasAttribute('new-page')) el.removeAttribute('new-page');
-      const hasChildren = el.children && el.children.length > 0;
-      const hasAttrs = el.attributes && el.attributes.length > 0;
-      if (!hasChildren && !hasAttrs) el.remove();
-    } catch (e) {}
-  });
-
-  xmlDoc.querySelectorAll('supports').forEach((el) => {
-    try {
-      const element = String(el.getAttribute('element') || '').trim();
-      const attr = String(el.getAttribute('attribute') || '').trim();
-      if (element === 'print' && (attr === 'new-system' || attr === 'new-page')) {
-        el.remove();
-      }
-    } catch (e) {}
-  });
-
-  xmlDoc.querySelectorAll('system-layout, page-layout').forEach((el) => {
-    try { el.remove(); } catch (e) {}
-  });
-
-  return new XMLSerializer().serializeToString(xmlDoc);
+function encodeTextToBase64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
 }
+
+function cleanMusicXmlForTrueReflow(xmlText) {
+  try {
+    let cleaned = String(xmlText || '');
+    cleaned = cleaned.replace(/<supports\b[^>]*element="print"[^>]*attribute="new-system"[^>]*\/?>/gi, '');
+    cleaned = cleaned.replace(/<supports\b[^>]*element="print"[^>]*attribute="new-page"[^>]*\/?>/gi, '');
+    cleaned = cleaned.replace(/<print>([\s\S]*?)<\/print>/gi, (m, inner) => {
+      let next = inner;
+      next = next.replace(/<system-layout>[\s\S]*?<\/system-layout>/gi, '');
+      next = next.replace(/<page-layout>[\s\S]*?<\/page-layout>/gi, '');
+      next = next.replace(/\snew-system="yes"/gi, '');
+      next = next.replace(/\snew-page="yes"/gi, '');
+      next = next.trim();
+      return next ? `<print>${next}</print>` : '';
+    });
+    cleaned = cleaned.replace(/(<measure\b[^>]*?)\swidth="[^"]*"/gi, '$1');
+    cleaned = cleaned.replace(/<system-layout>[\s\S]*?<\/system-layout>/gi, '');
+    cleaned = cleaned.replace(/<page-layout>[\s\S]*?<\/page-layout>/gi, '');
+    cleaned = cleaned.replace(/<print\s*\/>/gi, '');
+    return cleaned;
+  } catch (e) {
+    console.warn('cleanMusicXmlForTrueReflow failed', e);
+    return xmlText;
+  }
+}
+
 
 function mapHarmonyKindToSuffix(kindEl) {
   if (!kindEl) return '';
@@ -1001,21 +1002,14 @@ function remapTimelineTimesIfNeeded() {
     updateMetaRow(window.__gtzMeta || null);
 
     try {
-      const xmlTextRaw = decodeBase64ToText(scoreB64);
-      if (/^\s*</.test(xmlTextRaw)) {
-        const xmlText = stripSystemAndPageBreaksFromXml(xmlTextRaw);
+      const xmlText = decodeBase64ToText(scoreB64);
+      if (/^\s*</.test(xmlText)) {
         window.__originalXmlText = xmlText;
-        window.__originalScoreB64 = btoa(String.fromCharCode(...encodeTextToUint8Array(xmlText)));
+        window.__originalScoreB64 = scoreB64;
         const parsed = buildMusicTimelineFromXML(xmlText);
         window.__musicTimelineRaw = parsed;
         window.__chordTimelineRaw = parsed.chords.slice();
         window.__measureTimelineRaw = parsed.measures.slice();
-        const bytes = encodeTextToUint8Array(xmlText);
-        api.load(bytes);
-      } else {
-        window.__originalXmlText = null;
-        const bytes = base64ToUint8Array(scoreB64);
-        api.load(bytes);
       }
     } catch (e) {
       console.warn('GTZ时间轴解析失败:', e);
@@ -1023,9 +1017,20 @@ function remapTimelineTimesIfNeeded() {
       window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
       window.__chordTimelineRaw = [];
       window.__measureTimelineRaw = [];
-      const bytes = base64ToUint8Array(scoreB64);
-      api.load(bytes);
     }
+
+    let xmlForLoad = null;
+    try {
+      const xmlText = decodeBase64ToText(scoreB64);
+      if (/^\s*</.test(xmlText)) {
+        xmlForLoad = cleanMusicXmlForTrueReflow(xmlText);
+      }
+    } catch (e) {
+      xmlForLoad = null;
+    }
+
+    const bytes = xmlForLoad ? base64ToUint8Array(encodeTextToBase64(xmlForLoad)) : base64ToUint8Array(scoreB64);
+    api.load(bytes);
 
     setPlayerStatus('谱面已加载');
     return gtz;
