@@ -581,33 +581,77 @@ function remapTimelineTimesIfNeeded() {
     await tryGoTo(1);
   }
 
-  
-
-  function unlockAudioContextSafe() {
+  async function resumeAlphaTabAudioContextSafe() {
     try {
       const api = window.__atApi;
-      if (!api || !api.player) return;
-      const ctx = api.player.audioContext;
-      if (ctx && ctx.state !== 'running') {
-        Promise.resolve(ctx.resume()).then(() => {
-          try { console.log('[Audio] AudioContext resumed'); } catch (e) {}
-        }).catch(e => {
-          console.warn('[Audio] resume failed', e);
-        });
+      const player = api && api.player ? api.player : null;
+      const contexts = [
+        player && player.audioContext,
+        player && player._audioContext,
+        player && player.output && player.output.audioContext,
+        player && player.output && player.output._audioContext,
+        player && player.synth && player.synth.audioContext,
+        player && player.synth && player.synth._audioContext
+      ].filter(Boolean);
+
+      let resumed = false;
+      for (const ctx of contexts) {
+        if (!ctx || typeof ctx.resume !== 'function') continue;
+        if (ctx.state !== 'running') {
+          try { await ctx.resume(); } catch (e) { console.warn('[Audio] resume failed', e); }
+        }
+        try {
+          if (typeof ctx.createBuffer === 'function' && typeof ctx.createBufferSource === 'function') {
+            const buffer = ctx.createBuffer(1, 1, Math.max(22050, ctx.sampleRate || 44100));
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(ctx.destination);
+            if (typeof source.start === 'function') source.start(0);
+            if (typeof source.disconnect === 'function') {
+              setTimeout(() => {
+                try { source.disconnect(); } catch (e) {}
+              }, 0);
+            }
+          }
+        } catch (e) {
+          console.warn('[Audio] warmup failed', e);
+        }
+        resumed = resumed || ctx.state === 'running';
       }
+      if (resumed) {
+        window.__audioUnlocked = true;
+        console.log('[Audio] AudioContext resumed');
+      }
+      return resumed;
     } catch (e) {
       console.warn('[Audio] unlock error', e);
+      return false;
     }
   }
 
-  ['touchstart', 'touchend', 'click'].forEach((evt) => {
-    document.addEventListener(evt, unlockAudioContextSafe, { once: true, passive: true });
-  });
+  function installAudioUnlockHandlers() {
+    if (window.__audioUnlockHandlersInstalled) return;
+    window.__audioUnlockHandlersInstalled = true;
+    const handler = async () => {
+      const ok = await resumeAlphaTabAudioContextSafe();
+      if (!ok) return;
+      ['touchend', 'pointerup', 'click', 'keydown'].forEach((evt) => {
+        document.removeEventListener(evt, handler, true);
+      });
+    };
+    ['touchend', 'pointerup', 'click', 'keydown'].forEach((evt) => {
+      document.addEventListener(evt, handler, true);
+    });
+  }
 
-  function togglePlayPause() {
+  async function togglePlayPause() {
     try {
-      unlockAudioContextSafe();
-      if (window.__atApi) window.__atApi.playPause();
+      await resumeAlphaTabAudioContextSafe();
+      if (window.__atApi) {
+        window.__atApi.playPause();
+        setTimeout(() => { resumeAlphaTabAudioContextSafe(); }, 0);
+        setTimeout(() => { resumeAlphaTabAudioContextSafe(); }, 120);
+      }
     } catch (e) {
       console.warn('togglePlayPause failed', e);
     }
@@ -2120,6 +2164,7 @@ function pad4(num) {
       };
 
       window.__atApi = new alphaTab.AlphaTabApi(atEl, settings);
+      installAudioUnlockHandlers();
 
       // 轨道开关按钮（只影响多轨显示）
       setupTracksButton();
@@ -2479,6 +2524,10 @@ function pad4(num) {
     $('ui-home')?.addEventListener('click', goHome);
     $('ui-prev')?.addEventListener('click', ()=>{ goPrevSong(); });
     $('ui-play')?.addEventListener('click', togglePlayPause);
+    $('ui-play')?.addEventListener('touchend', (e) => {
+      try { e.preventDefault(); } catch (err) {}
+      togglePlayPause();
+    }, { passive: false });
     $('ui-next')?.addEventListener('click', ()=>{ goNextSong(); });
     $('ui-speed')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-speed'); });
     $('ui-key')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-key'); });
