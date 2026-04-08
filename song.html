@@ -160,6 +160,41 @@ function decodeBase64ToText(b64) {
   return new TextDecoder().decode(bytes);
 }
 
+
+function stripSystemAndPageBreaksFromXml(xmlText) {
+  const src = String(xmlText || '');
+  if (!src.trim()) return src;
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(src, 'application/xml');
+  if (xmlDoc.querySelector('parsererror')) return src;
+
+  xmlDoc.querySelectorAll('print').forEach((el) => {
+    try {
+      if (el.hasAttribute('new-system')) el.removeAttribute('new-system');
+      if (el.hasAttribute('new-page')) el.removeAttribute('new-page');
+      const hasChildren = el.children && el.children.length > 0;
+      const hasAttrs = el.attributes && el.attributes.length > 0;
+      if (!hasChildren && !hasAttrs) el.remove();
+    } catch (e) {}
+  });
+
+  xmlDoc.querySelectorAll('supports').forEach((el) => {
+    try {
+      const element = String(el.getAttribute('element') || '').trim();
+      const attr = String(el.getAttribute('attribute') || '').trim();
+      if (element === 'print' && (attr === 'new-system' || attr === 'new-page')) {
+        el.remove();
+      }
+    } catch (e) {}
+  });
+
+  xmlDoc.querySelectorAll('system-layout, page-layout').forEach((el) => {
+    try { el.remove(); } catch (e) {}
+  });
+
+  return new XMLSerializer().serializeToString(xmlDoc);
+}
+
 function mapHarmonyKindToSuffix(kindEl) {
   if (!kindEl) return '';
   const textAttr = String(kindEl.getAttribute('text') || '').trim();
@@ -938,38 +973,6 @@ function remapTimelineTimesIfNeeded() {
     return bytes;
   }
 
-  function stripSourceLayoutBreaks(xmlText) {
-    if (!xmlText || !/^\s*</.test(xmlText)) return xmlText;
-    try {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
-      const prints = Array.from(xmlDoc.getElementsByTagName('print'));
-      prints.forEach((node) => {
-        try {
-          node.removeAttribute('new-system');
-          node.removeAttribute('new-page');
-          if (!node.attributes || node.attributes.length === 0) {
-            const hasChildren = Array.from(node.childNodes || []).some((n) => n.nodeType === 1 || String(n.textContent || '').trim());
-            if (!hasChildren && node.parentNode) node.parentNode.removeChild(node);
-          }
-        } catch (e) {}
-      });
-      const supports = Array.from(xmlDoc.getElementsByTagName('supports'));
-      supports.forEach((node) => {
-        try {
-          const attr = (node.getAttribute('attribute') || '').toLowerCase();
-          if (attr === 'new-system' || attr === 'new-page') {
-            if (node.parentNode) node.parentNode.removeChild(node);
-          }
-        } catch (e) {}
-      });
-      return new XMLSerializer().serializeToString(xmlDoc);
-    } catch (e) {
-      console.warn('stripSourceLayoutBreaks failed', e);
-      return xmlText;
-    }
-  }
-
   async function loadGtzIntoAlphaTab(api, gtzUrl) {
     try { api.stop(); } catch(e) {}
     setPlayerUI({ current: 0, total: 0, playing: false });
@@ -998,15 +1001,21 @@ function remapTimelineTimesIfNeeded() {
     updateMetaRow(window.__gtzMeta || null);
 
     try {
-      const xmlText = decodeBase64ToText(scoreB64);
-      if (/^\s*</.test(xmlText)) {
-        const normalizedXmlText = stripSourceLayoutBreaks(xmlText);
-        window.__originalXmlText = normalizedXmlText;
-        window.__originalScoreB64 = btoa(unescape(encodeURIComponent(normalizedXmlText)));
-        const parsed = buildMusicTimelineFromXML(normalizedXmlText);
+      const xmlTextRaw = decodeBase64ToText(scoreB64);
+      if (/^\s*</.test(xmlTextRaw)) {
+        const xmlText = stripSystemAndPageBreaksFromXml(xmlTextRaw);
+        window.__originalXmlText = xmlText;
+        window.__originalScoreB64 = btoa(String.fromCharCode(...encodeTextToUint8Array(xmlText)));
+        const parsed = buildMusicTimelineFromXML(xmlText);
         window.__musicTimelineRaw = parsed;
         window.__chordTimelineRaw = parsed.chords.slice();
         window.__measureTimelineRaw = parsed.measures.slice();
+        const bytes = encodeTextToUint8Array(xmlText);
+        api.load(bytes);
+      } else {
+        window.__originalXmlText = null;
+        const bytes = base64ToUint8Array(scoreB64);
+        api.load(bytes);
       }
     } catch (e) {
       console.warn('GTZ时间轴解析失败:', e);
@@ -1014,10 +1023,9 @@ function remapTimelineTimesIfNeeded() {
       window.__musicTimelineRaw = { chords: [], measures: [], totalTicks: 0, timeSignatures: [] };
       window.__chordTimelineRaw = [];
       window.__measureTimelineRaw = [];
+      const bytes = base64ToUint8Array(scoreB64);
+      api.load(bytes);
     }
-
-    const bytes = base64ToUint8Array(scoreB64);
-    api.load(bytes);
 
     setPlayerStatus('谱面已加载');
     return gtz;
