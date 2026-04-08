@@ -138,7 +138,7 @@
         <button class="core-btn core-btn-pill moved-to-score" id="ui-key">--</button>
         <div class="core-btn core-btn-pill core-btn-capo moved-to-score" id="ui-capo">CP0</div>
         <div class="score-toolbar-spacer" aria-hidden="true"></div>
-        <div class="score-song-code" id="ui-song-code">C_1&nbsp;&nbsp;V_DIAG_1</div>
+        <div class="score-song-code" id="ui-song-code">C_1&nbsp;&nbsp;V_DIAG_2</div>
       </div>
       <div id="score-view" class="score-wrap" aria-hidden="false">
         <div id="alphaTab" class="at-viewport"></div>
@@ -581,8 +581,214 @@ function remapTimelineTimesIfNeeded() {
     await tryGoTo(1);
   }
 
+
+  window.__diagEvents = window.__diagEvents || [];
+  window.__diagInfo = window.__diagInfo || {
+    version: 'V_DIAG_2',
+    audioCtx: 'unknown',
+    apiExists: false,
+    playerExists: false,
+    playing: false,
+    playerState: '-',
+    soundFontUrl: '-',
+    soundFontProgress: '-',
+    soundFontResult: '-',
+    midiResult: '-',
+    playerReady: false,
+    position: '-',
+    errors: []
+  };
+
+  function diagPush(msg) {
+    try {
+      const arr = window.__diagEvents || (window.__diagEvents = []);
+      const ts = new Date().toLocaleTimeString();
+      arr.push('[' + ts + '] ' + msg);
+      if (arr.length > 12) arr.shift();
+      renderDiagPanel();
+    } catch (e) {}
+  }
+
+  function renderDiagPanel() {
+    try {
+      const info = window.__diagInfo || {};
+      const body = document.getElementById('diag-body');
+      if (!body) return;
+      const logs = (window.__diagEvents || []).join('<br>');
+      body.innerHTML =
+        'AudioCtx: ' + (info.audioCtx || '-') + '<br>' +
+        'api: ' + (!!info.apiExists) + '<br>' +
+        'player: ' + (!!info.playerExists) + '<br>' +
+        'playing: ' + (!!info.playing) + '<br>' +
+        'playerState: ' + (info.playerState || '-') + '<br>' +
+        'playerReady: ' + (!!info.playerReady) + '<br>' +
+        'SoundFont: ' + (info.soundFontUrl || '-') + '<br>' +
+        'SF进度: ' + (info.soundFontProgress || '-') + '<br>' +
+        'SF结果: ' + (info.soundFontResult || '-') + '<br>' +
+        'MIDI结果: ' + (info.midiResult || '-') + '<br>' +
+        'position: ' + (info.position || '-') + '<br>' +
+        'errors: ' + ((info.errors || []).join(' | ') || '-') + '<br>' +
+        'logs:<br>' + logs;
+    } catch (e) {}
+  }
+
+  function updateDiagSnapshot(api) {
+    try {
+      const info = window.__diagInfo || (window.__diagInfo = {});
+      info.apiExists = !!api;
+      info.playerExists = !!(api && api.player);
+      info.playing = !!(api && api.player && api.player.isPlaying);
+      const ctx = api && api.player ? api.player.audioContext : null;
+      info.audioCtx = ctx ? (ctx.state || 'present') : 'no-audio-context';
+      renderDiagPanel();
+    } catch (e) {}
+  }
+
+  function installDiagPanelUi() {
+    try {
+      if (window.__diagPanelUiInstalled) return;
+      window.__diagPanelUiInstalled = true;
+      document.getElementById('diag-copy')?.addEventListener('click', async function() {
+        const text = document.getElementById('diag-body')?.innerText || '';
+        try { await navigator.clipboard.writeText(text); diagPush('已复制诊断内容'); } catch (e) { diagPush('复制失败'); }
+      });
+      document.getElementById('diag-hide')?.addEventListener('click', function() {
+        const p = document.getElementById('diag-panel');
+        if (p) p.style.display = 'none';
+      });
+      window.addEventListener('error', function(e) {
+        try {
+          const info = window.__diagInfo || (window.__diagInfo = {});
+          info.errors = info.errors || [];
+          info.errors.push(String(e.message || 'window error'));
+          if (info.errors.length > 4) info.errors.shift();
+          diagPush('window.error: ' + String(e.message || 'unknown'));
+        } catch (err) {}
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        try {
+          const info = window.__diagInfo || (window.__diagInfo = {});
+          info.errors = info.errors || [];
+          info.errors.push(String((e.reason && e.reason.message) || e.reason || 'promise rejection'));
+          if (info.errors.length > 4) info.errors.shift();
+          diagPush('promise.reject');
+        } catch (err) {}
+      });
+      setInterval(function() { updateDiagSnapshot(window.__atApi); }, 800);
+      renderDiagPanel();
+    } catch (e) {}
+  }
+
+  function attachAlphaTabDiagnostics(api, settings) {
+    try {
+      if (!api || api.__diagAttached) { updateDiagSnapshot(api); return; }
+      api.__diagAttached = true;
+      const info = window.__diagInfo || (window.__diagInfo = {});
+      info.soundFontUrl = settings && settings.player ? String(settings.player.soundFont || '-') : '-';
+      diagPush('attach diagnostics');
+      updateDiagSnapshot(api);
+
+      if (api.scoreLoaded && api.scoreLoaded.on) {
+        api.scoreLoaded.on(function() {
+          diagPush('scoreLoaded');
+          updateDiagSnapshot(api);
+        });
+      }
+      if (api.renderFinished && api.renderFinished.on) {
+        api.renderFinished.on(function() {
+          diagPush('renderFinished');
+          updateDiagSnapshot(api);
+        });
+      }
+      if (api.soundFontLoad && api.soundFontLoad.on) {
+        api.soundFontLoad.on(function(e) {
+          info.soundFontProgress = (e && (e.loaded + '/' + e.total)) || 'progress';
+          diagPush('soundFontLoad ' + info.soundFontProgress);
+        });
+      }
+      if (api.playerReady && api.playerReady.on) {
+        api.playerReady.on(function() {
+          info.playerReady = true;
+          diagPush('playerReady');
+          updateDiagSnapshot(api);
+        });
+      }
+      if (api.midiLoad && api.midiLoad.on) {
+        api.midiLoad.on(function() {
+          diagPush('midiLoad');
+        });
+      }
+      if (api.midiLoaded && api.midiLoaded.on) {
+        api.midiLoaded.on(function(e) {
+          info.midiResult = 'loaded endTime=' + (e && e.endTime != null ? e.endTime : '-');
+          diagPush('midiLoaded');
+        });
+      }
+      if (api.playerStateChanged && api.playerStateChanged.on) {
+        api.playerStateChanged.on(function(args) {
+          info.playerState = args && args.state != null ? String(args.state) : 'changed';
+          diagPush('playerStateChanged ' + info.playerState);
+          updateDiagSnapshot(api);
+        });
+      }
+      if (api.playerPositionChanged && api.playerPositionChanged.on) {
+        api.playerPositionChanged.on(function(args) {
+          info.position = args ? ((args.currentTime ?? '-') + '/' + (args.endTime ?? '-')) : 'changed';
+          updateDiagSnapshot(api);
+        });
+      } else if (api.player && api.player.positionChanged && api.player.positionChanged.on) {
+        api.player.positionChanged.on(function(args) {
+          info.position = args ? ((args.currentTime ?? '-') + '/' + (args.endTime ?? '-')) : 'changed';
+          updateDiagSnapshot(api);
+        });
+      }
+      if (api.error && api.error.on) {
+        api.error.on(function(err) {
+          info.errors = info.errors || [];
+          info.errors.push(String((err && err.message) || err || 'api.error'));
+          if (info.errors.length > 4) info.errors.shift();
+          diagPush('api.error');
+          renderDiagPanel();
+        });
+      }
+      if (api.player && api.player.soundFontLoaded && api.player.soundFontLoaded.on) {
+        api.player.soundFontLoaded.on(function() {
+          info.soundFontResult = 'loaded';
+          diagPush('player.soundFontLoaded');
+          renderDiagPanel();
+        });
+      }
+      if (api.player && api.player.soundFontLoadFailed && api.player.soundFontLoadFailed.on) {
+        api.player.soundFontLoadFailed.on(function(err) {
+          info.soundFontResult = 'failed';
+          info.errors = info.errors || [];
+          info.errors.push(String((err && err.message) || err || 'soundfont failed'));
+          if (info.errors.length > 4) info.errors.shift();
+          diagPush('player.soundFontLoadFailed');
+          renderDiagPanel();
+        });
+      }
+      if (api.player && api.player.midiLoadFailed && api.player.midiLoadFailed.on) {
+        api.player.midiLoadFailed.on(function(err) {
+          info.midiResult = 'failed';
+          info.errors = info.errors || [];
+          info.errors.push(String((err && err.message) || err || 'midi failed'));
+          if (info.errors.length > 4) info.errors.shift();
+          diagPush('player.midiLoadFailed');
+          renderDiagPanel();
+        });
+      }
+    } catch (e) {
+      diagPush('attach diagnostics failed');
+    }
+  }
+
+  installDiagPanelUi();
+
+
   function togglePlayPause() {
     try {
+      diagPush('click playPause');
       if (window.__atApi) window.__atApi.playPause();
     } catch (e) {
       console.warn('togglePlayPause failed', e);
@@ -2096,6 +2302,7 @@ function pad4(num) {
       };
 
       window.__atApi = new alphaTab.AlphaTabApi(atEl, settings);
+      attachAlphaTabDiagnostics(window.__atApi, settings);
 
       // 轨道开关按钮（只影响多轨显示）
       setupTracksButton();
@@ -2711,36 +2918,16 @@ function pad4(num) {
 <script src="rhythm_engine.js"></script>
 <script src="auto_engine.js"></script>
 
-<div id="diag-panel" style="position:fixed;right:10px;bottom:10px;z-index:99999;width:320px;background:#111;color:#fff;font:12px monospace;padding:10px;border-radius:10px;">
-<b>诊断面板 V_DIAG_1</b><br>
-<div id="diag-body">init...</div>
-<button onclick="navigator.clipboard.writeText(document.getElementById('diag-body').innerText)">复制</button>
+<div id="diag-panel" style="position:fixed;right:10px;bottom:10px;z-index:99999;width:min(92vw,380px);background:rgba(10,10,10,.92);color:#fff;font:12px/1.45 monospace;border-radius:10px;padding:10px;box-shadow:0 6px 20px rgba(0,0,0,.35);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <strong>诊断面板 V_DIAG_2</strong>
+    <div>
+      <button id="diag-copy" style="font:12px monospace;">复制</button>
+      <button id="diag-hide" style="font:12px monospace;">隐藏</button>
+    </div>
+  </div>
+  <div id="diag-body">初始化中...</div>
 </div>
 
-<script>
-(function(){
- const log=[];
- function upd(){
-   try{
-     const api=window.__atApi;
-     const ctx=api&&api.player?api.player.audioContext:null;
-     const state=ctx?ctx.state:"no-audio-context";
-     document.getElementById('diag-body').innerHTML=
-       "AudioCtx: "+state+"<br>"+
-       "api: "+!!api+"<br>"+
-       "player: "+!!(api&&api.player)+"<br>"+
-       "playing: "+!!(api&&api.player&&api.player.isPlaying)+"<br>"+
-       "logs:<br>"+log.join("<br>");
-   }catch(e){}
- }
- function push(s){log.push(s); if(log.length>10)log.shift(); upd();}
-
- window.addEventListener('click',()=>push("click"),true);
- window.addEventListener('error',e=>push("err:"+e.message));
- window.addEventListener('unhandledrejection',e=>push("rej"));
-
- setInterval(upd,1000);
-})();
-</script>
 </body>
 </html>
