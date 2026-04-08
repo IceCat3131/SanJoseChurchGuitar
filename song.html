@@ -582,24 +582,27 @@ function remapTimelineTimesIfNeeded() {
   }
 
   
-let __audioInitialized = false;
-function ensureAudioInitialized() {
-  if (__audioInitialized) return;
-  __audioInitialized = true;
+// ===== iPad Audio Fix (proper) =====
+let __alphaInitialized = false;
+function ensureAlphaTabInit() {
+  if (__alphaInitialized) return;
+  __alphaInitialized = true;
   try {
-    if (typeof initAlphaTab === 'function') {
-      initAlphaTab();
-      console.log('[AudioFix] initAlphaTab called by user gesture');
+    if (typeof renderScore === 'function') {
+      renderScore();
+      console.log('[Fix] renderScore triggered by user gesture');
     }
-  } catch (e) {
-    console.warn('[AudioFix] initAlphaTab failed', e);
+  } catch(e) {
+    console.warn('[Fix] renderScore failed', e);
   }
 }
 
 function togglePlayPause() {
   try {
-    ensureAudioInitialized();
-    if (window.__atApi) window.__atApi.playPause();
+    ensureAlphaTabInit(); // ⭐关键：用户触发初始化
+    if (window.__atApi) {
+      window.__atApi.playPause();
+    }
   } catch (e) {
     console.warn('togglePlayPause failed', e);
   }
