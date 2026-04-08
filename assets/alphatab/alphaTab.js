@@ -66861,7 +66861,7 @@
         }
         layoutAndRenderAnnotation(y) {
             // attention, you are not allowed to remove change this notice within any version of this library without permission!
-            const msg = '反馈邮件：zz9527668@gmail.com';
+            const msg = '问题反馈zz9527668@gmail.com';
             const resources = this.renderer.settings.display.resources;
             const size = 12;
             const fontFamilies = resources.elementFonts.has(exports.NotationElement.ScoreCopyright)
@@ -74224,8 +74224,15 @@
             else {
                 this._noteString = '';
             }
+            const shouldForceX = !!(n && n.beat && n.beat.voice && n.beat.voice.bar && n.beat.voice.bar.staff && n.beat.voice.bar.staff.showTablature);
+            if (shouldForceX && this._noteString) {
+                this._noteString = this._noteString.replace(/[0-9]+(?:\.[0-9]+)?/g, 'X');
+            }
             if (n.isTrill) {
                 this._trillNoteString = `(${(n.trillFret - n.beat.voice.bar.staff.transpositionPitch).toString()})`;
+                if (n.beat?.voice?.bar?.staff?.showTablature) {
+                    this._trillNoteString = this._trillNoteString.replace(/[0-9]+(?:\.[0-9]+)?/g, 'X');
+                }
             }
             else if (!ModelUtils.isAlmostEqualTo(n.harmonicValue, 0)) {
                 switch (n.harmonicType) {
