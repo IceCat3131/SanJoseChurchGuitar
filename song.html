@@ -1644,7 +1644,7 @@ function rebuildAutoTabTrack(){
       notations.appendChild(tuplet);
     }
   }
-  function createNoteEl(doc, n, durationUnits, divisions, beamState, asChord, meta) {
+  function createNoteEl(doc, n, durationUnits, divisions, beamStates, asChord, meta) {
     const note = doc.createElement('note');
     if (asChord) note.appendChild(doc.createElement('chord'));
     const playFret = Number.isFinite(Number(n.playFret)) ? Number(n.playFret) : Number(n.fret || 0);
@@ -1660,8 +1660,13 @@ function rebuildAutoTabTrack(){
     note.appendChild(createTextEl(doc, 'type', noteTypeFromDuration(durationUnits, divisions, meta)));
     if (meta && meta.dotted) note.appendChild(doc.createElement('dot'));
     note.appendChild(createTextEl(doc, 'stem', 'down'));
-    if (beamState) {
-      const beam = doc.createElement('beam'); beam.setAttribute('number', '1'); beam.textContent = beamState; note.appendChild(beam);
+    if (Array.isArray(beamStates) && beamStates.length) {
+      beamStates.forEach(({ number, state }) => {
+        const beam = doc.createElement('beam');
+        beam.setAttribute('number', String(number));
+        beam.textContent = state;
+        note.appendChild(beam);
+      });
     }
     const notations = doc.createElement('notations'); const technical = doc.createElement('technical');
     technical.appendChild(createTextEl(doc, 'string', n.string)); technical.appendChild(createTextEl(doc, 'fret', playFret));
@@ -1683,6 +1688,12 @@ function rebuildAutoTabTrack(){
     const t = Number(beatType) || 4;
     if (t === 8 && (b === 6 || b === 9 || b === 12)) return 1.5;
     return 1;
+  }
+  function getBeamLevel(beamType) {
+    if (beamType === 'eighth') return 1;
+    if (beamType === '16th') return 2;
+    if (beamType === '32nd') return 3;
+    return 0;
   }
   function rewriteXmlTabTrack(xmlText) {
     const parser = new DOMParser();
@@ -1729,6 +1740,8 @@ function rebuildAutoTabTrack(){
       groups.forEach((g) => {
         g.beatBucket = computeBeatBucket(g.startBeat, beatGroupLength);
         g.beamType = noteTypeFromDuration(Math.max(1, Math.round((g.durationBeat || 0.5) * divisions)), divisions, g);
+        g.beamLevel = getBeamLevel(g.beamType);
+        g.beamStates = [];
       });
       // assign triplet groups and beam groups with smarter continuity
       const bucketMap = new Map();
@@ -1742,12 +1755,22 @@ function rebuildAutoTabTrack(){
         let cluster = [];
         const flush = () => {
           if (!cluster.length) return;
-          const beamable = cluster.every((g)=>['eighth','16th','32nd'].includes(g.beamType)) && cluster.length > 1;
           cluster.forEach((g, idx) => {
-            g.beamState = beamable ? (idx === 0 ? 'begin' : (idx === cluster.length - 1 ? 'end' : 'continue')) : null;
+            g.beamStates = [];
             if (g.tuplet) g.tupletInfo = { kind: idx === 0 ? 'start' : (idx === cluster.length - 1 ? 'stop' : 'mid') };
             else g.tupletInfo = null;
           });
+          const maxBeamLevel = cluster.reduce((max, g) => Math.max(max, g.beamLevel || 0), 0);
+          for (let level = 1; level <= maxBeamLevel; level += 1) {
+            const levelNotes = cluster.filter((g) => (g.beamLevel || 0) >= level);
+            if (levelNotes.length < 2) continue;
+            levelNotes.forEach((g, idx) => {
+              g.beamStates.push({
+                number: level,
+                state: idx === 0 ? 'begin' : (idx === levelNotes.length - 1 ? 'end' : 'continue')
+              });
+            });
+          }
           cluster = [];
         };
         arr.forEach((g) => {
@@ -1755,9 +1778,8 @@ function rebuildAutoTabTrack(){
           const prev = cluster[cluster.length - 1];
           const contiguous = Math.abs((prev.startBeat + prev.durationBeat) - g.startBeat) < 0.02;
           const sameTuplet = !!prev.tuplet === !!g.tuplet;
-          const sameBeamClass = prev.beamType === g.beamType || (['16th','32nd'].includes(prev.beamType) && ['16th','32nd'].includes(g.beamType));
           const breakForDotted = !!prev.dotted || !!g.dotted;
-          if (!contiguous || !sameTuplet || !sameBeamClass || breakForDotted) flush();
+          if (!contiguous || !sameTuplet || breakForDotted) flush();
           cluster.push(g);
         });
         flush();
@@ -1770,7 +1792,7 @@ function rebuildAutoTabTrack(){
         }
         const durationUnits = Math.max(1, Math.round((g.durationBeat || 0.5) * divisions));
         (g.notes || []).forEach((n, chordIdx) => {
-          measureEl.appendChild(createNoteEl(xmlDoc, n, durationUnits, divisions, g.beamState, chordIdx > 0, { dotted: g.dotted, tuplet: g.tuplet, tupletInfo: g.tupletInfo }));
+          measureEl.appendChild(createNoteEl(xmlDoc, n, durationUnits, divisions, g.beamStates, chordIdx > 0, { dotted: g.dotted, tuplet: g.tuplet, tupletInfo: g.tupletInfo }));
         });
         currentBeat = Math.max(currentBeat, g.startBeat + g.durationBeat);
       });
