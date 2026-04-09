@@ -1,5 +1,5 @@
 
-
+/* 基本颜色与排版 */
 :root {
   --bg-page: #edf4fd;
   --bg-card: #ffffff;
@@ -36,7 +36,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-
+/* 页面统一外框：手机居中，平板/电脑也居中显示 */
 .page {
   min-height: 100vh;
   display: flex;
@@ -45,18 +45,18 @@ body {
 
 .page-inner {
   width: 100%;
-  max-width: 960px;           
+  max-width: 960px;           /* 电脑上不要太宽 */
   padding: 12px 16px 32px;
 }
 
-
+/* 顶部标题（首页用） */
 .page-title {
   font-size: 22px;
   font-weight: 700;
   margin: 8px 4px 16px;
 }
 
-
+/* 顶部栏（乐谱页：返回、标题、前后按钮） */
 .topbar {
   display: flex;
   align-items: center;
@@ -81,10 +81,10 @@ body {
   line-height: 1;
   cursor: pointer;
   color: var(--primary);
-   font-weight: 700;   
+   font-weight: 700;   /* ← 加粗箭头 */
 }
 .topbar-button .icon-home {
-  width: 22px;      
+  width: 22px;      /* ← 控制图标大小，可改成 20 / 24 */
   height: 22px;
   display: block;
 }
@@ -106,7 +106,7 @@ body {
   text-overflow: ellipsis;
 }
 
-
+/* 卡片容器：搜索框 & 列表 */
 .card {
   background: transparent;
   border-radius: 0;
@@ -115,9 +115,9 @@ body {
 }
 
 
-
+/* 搜索条（首页 & 乐谱页共用） */
 .search-bar {
-  position: relative;                 
+  position: relative;                 /* ⭐ 为绝对定位的放大镜提供参照 */
   display: flex;
   align-items: center;
   background: var(--bg-search);
@@ -139,7 +139,7 @@ body {
   background: transparent;
   padding: 0;
   margin: 0;
-  font-size: 22px;     
+  font-size: 22px;     /*大本小本字体大小更改*/
   font-weight: 600;
   cursor: pointer;
   color: var(--text-subtle);
@@ -168,21 +168,21 @@ flex: 1;
   border: none;
   background: transparent;
   font-size: 20px;
-  padding: 6px 40px 6px 4px;          
+  padding: 6px 40px 6px 4px;          /* ⭐ 右边 padding 预留出放大镜的空间 */
   outline: none;
-  text-align: left;                   
+  text-align: left;                   /* ⭐ 光标 & 文本从左边开始 */
   color: var(--text-main);
 }
 
 .search-input::placeholder {
-  text-align: left;                   
+  text-align: left;                   /* ⭐ 提示字也从左显示 */
   font-size: 20px;
   color: var(--text-subtle);
 }
 
 .search-icon-btn {
-  position: absolute;                 
-  right: 14px;                        
+  position: absolute;                 /* ⭐ 不再参与 flex 排布 */
+  right: 14px;                        /* 靠最右边一点点内缩 */
   top: 50%;
   transform: translateY(-50%);
   border: none;
@@ -197,7 +197,7 @@ flex: 1;
   height: 20px;
 }
 
-
+/* 首页：列表卡片 */
 .list-card {
   margin-top: 20px;
   background: var(--bg-card);
@@ -238,7 +238,7 @@ flex: 1;
   background: rgba(37, 99, 235, 0.05);
 }
 
-
+/* 底部声明 */
 .footer-text {
   margin-top: 14px;
   font-size: 12px;
@@ -246,7 +246,7 @@ flex: 1;
   text-align: center;
 }
 
-
+/* 乐谱页：控制条（+/- 吉他 歌词 简繁） */
 .controls-row {
   display: flex;
   align-items: center;
@@ -280,7 +280,7 @@ flex: 1;
   border-radius: 24px;
   overflow: hidden;
   background: var(--btn-gray);
-  margin-left: 26px;   
+  margin-left: 26px;   /* ← 往右移动 20px（你可以调成 10 / 15 / 30） */
 }
 
 .mode-btn {
@@ -309,7 +309,7 @@ flex: 1;
   color: var(--primary);
 }
 
-
+/* 乐谱 & 歌词显示区域 */
 .content-card {
   margin-top: 4px;
   background: var(--bg-card);
@@ -318,7 +318,7 @@ flex: 1;
   box-shadow: var(--shadow-soft);
 }
 
-
+/* SVG 乐谱：等比缩放、居中 */
 .score-wrap {
   width: 100%;
   overflow-x: auto;
@@ -327,7 +327,7 @@ flex: 1;
 .score-wrap img {
   max-width: 100%;
   height: auto;
-    transform: scale(1.08);   
+    transform: scale(1.08);   /* ← 放大 8%，你可以调成 1.05 / 1.10 / 1.15 */
   transform-origin: top center;
 }
 
@@ -338,7 +338,7 @@ flex: 1;
   margin: 0 auto;
 }
 
-
+/* 歌词排版 */
 .lyrics-root {
   font-size: var(--lyrics-font-size);
   line-height: 1.7;
@@ -365,12 +365,12 @@ flex: 1;
   margin: 0 0 4px;
 }
 
-
+/* 简繁按钮在歌词模式高亮一点（可选） */
 .script-toggle-btn.active {
   color: #b91c1c;
 }
 
-
+/* 响应式：平板/电脑上稍微放大一点字号 */
 @media (min-width: 768px) {
   .page-inner {
     padding: 24px 32px 40px;
@@ -395,9 +395,9 @@ flex: 1;
   }
 }
 
+/* ==== 搜索框最终稳定版本（覆盖上面的旧样式） ==== */
 
-
-
+/* 搜索条（首页 & 乐谱页） */
 .search-bar {
   display: flex;
   align-items: center;
@@ -408,7 +408,7 @@ flex: 1;
   box-shadow: var(--shadow-soft);
 }
 
-
+/* 中间输入区 */
 .search-input-wrap {
   flex: 1;
   display: flex;
@@ -417,7 +417,7 @@ flex: 1;
   min-width: 0;
 }
 
-
+/* 输入框本体（左对齐、宽度 5em） */
 .search-input {
   flex: 0 1 auto;
   width: 5em;
@@ -438,7 +438,7 @@ flex: 1;
   color: var(--text-subtle);
 }
 
-
+/* 放大镜按钮（永远靠最右） */
 .search-icon-btn {
   flex: 0 0 auto;
   border: none;
@@ -450,25 +450,25 @@ flex: 1;
 .search-icon {
   font-size: 20px;
 }
+/* === 首页列表左右文字颜色控制 === */
 
-
-
+/* 左边：大本 第N首 */
 .song-left {
-  color: #1f2937;      
+  color: #1f2937;      /* 深灰色，显得更突出 */
   font-size: 20px;
   font-weight: 600;
 }
 
-
+/* 右边：歌名 */
 .song-right {
-  color: #4b5563;      
+  color: #4b5563;      /* 中灰色，层次柔和 */
   font-size: 24px;
   font-weight: 500;
   text-align: right;
 }
 
 
-
+/* ===== 播放条 ===== */
 .player-bar{
   margin-top: 16px;
   padding: 10px 14px;
@@ -541,7 +541,7 @@ flex: 1;
   }
 }
 
-
+/* alphaTab 容器（替代 svg 图片） */
 #score-view{
   overflow: auto;
 }
@@ -551,7 +551,7 @@ flex: 1;
 }
 
 
-
+/* ===== 轨道开关面板（最小侵入） ===== */
 .tracks-panel.hidden { display: none; }
 .tracks-panel{
   position: fixed;
@@ -604,14 +604,14 @@ flex: 1;
 .track-item input{ width: 18px; height: 18px; }
 .track-item .track-name{ font-size: 14px; }
 
-
-
+/* ===== 播放光标（长竖线） ===== */
+/* alphaTab 内置 cursor 的 class/id 不同版本可能不同，尽量覆盖 */
 .at-cursor, .at-cursor-line, #at-cursor, #cursor, .cursor {
   stroke-width: 2 !important;
 }
 
 
-
+/* ==== viewer controls patch ==== */
 .meta-row, .adjust-row {
   display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px;
 }
@@ -629,7 +629,7 @@ flex: 1;
 @media (max-width: 640px) { .meta-row, .adjust-row { gap:8px; } .meta-pill, .adjust-group { width:auto; } .adjust-group-slider { flex-basis: 100%; } }
 
 
-
+/* ===== Safe UI integration v1 ===== */
 .core-ui{margin-bottom:12px; padding:12px 14px;}
 .core-ui-toolbar{display:grid; grid-template-columns:repeat(13,max-content); gap:8px; align-items:center; overflow-x:auto; scrollbar-width:none;}
 .core-ui-toolbar::-webkit-scrollbar{display:none;}
@@ -667,7 +667,7 @@ flex: 1;
 .core-search-input{width:100%; min-width:0; border:1px solid var(--border-soft); border-radius:12px; min-height:42px; padding:0 12px; font-size:16px;}
 .core-panel-note{font-size:13px; color:var(--text-subtle); line-height:1.5;}
 
-
+/* Keep original stable controls available but visually simplified */
 .search-bar{margin-top:0;}
 
 @media (min-width:768px){
@@ -685,11 +685,11 @@ flex: 1;
   .tracks-panel{right:8px !important; left:8px !important; top:auto !important; bottom:12px !important;}
 }
 
-
+/* v1-based menu behavior updates */
 .core-panel-actions-left{justify-content:flex-start;}
 .core-option-btn.active{background:var(--primary); color:#fff; border-color:transparent;}
 
-
+/* rewrite track panel */
 #tracks-panel { display:none !important; }
 
 .new-track-panel{
@@ -771,7 +771,7 @@ flex: 1;
   }
 }
 
-
+/* keep old UI hidden while using rewritten track menu */
 .topbar,
 .card .search-bar,
 .player-bar,
@@ -782,22 +782,22 @@ flex: 1;
 }
 
 
-
+/* ===== hide numbered key header and tuning label ===== */
 .at-numbered-key-header {
   display: none !important;
 }
 
 
 
+/* ===== safer hide rules for numbered key header and top tuning label ===== */
 
-
-
+/* hide numbered key header like 1=bA */
 .at-numbered-key-header {
   display: none !important;
 }
 
 
-
+/* 重写轨道二级菜单：不再依赖旧 tracks-panel */
 #tracks-panel{
   display:none !important;
 }
@@ -884,7 +884,7 @@ flex: 1;
 }
 
 
-
+/* ===== phase4 core panel beautify ===== */
 .core-panel-layer{
   margin-top:16px;
 }
@@ -1107,7 +1107,7 @@ flex: 1;
 }
 
 
-
+/* phase4 floating panels + search results */
 .core-panel-layer[hidden]{display:none !important;}
 .core-panel-layer{position:fixed; inset:0; margin-top:0; z-index:1200; pointer-events:auto; background:transparent; display:block !important;}
 .core-panel{position:absolute; left:50%; top:172px; transform:translateX(-50%); margin:0; width:min(560px, calc(100vw - 24px)); max-width:none;}
@@ -1122,7 +1122,7 @@ flex: 1;
 @media (max-width: 640px){ .core-panel{ top:132px; width:min(calc(100vw - 16px), 560px); } #panel-speed,#panel-key,#panel-mode,#panel-text,#panel-lang,#panel-search,#panel-staff{ top:132px; } .core-search-row{grid-template-columns:1fr;} }
 
 
-
+/* ==== V13_0a_auto_base auto framework ==== */
 
 .auto-toolbar-group{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .core-btn.core-btn-auto{min-width:44px}
@@ -1139,7 +1139,7 @@ flex: 1;
 .auto-scheme-summary{font-size:12px;color:#d8e0ff;margin-top:8px;line-height:1.5}
 
 
-
+/* V13_0b_auto_ui_merge */
 
 .auto-panel-hub{width:min(560px,calc(100vw - 24px));}
 .auto-hub-status{font-size:12px;color:#666;margin-bottom:8px;}
@@ -1164,7 +1164,7 @@ flex: 1;
   .auto-debug-grid{grid-template-columns:1fr;}
 }
 
-
+/* V13_0c_auto_ui_refine overrides */
 .auto-panel-hub{width:min(460px,calc(100vw - 24px)) !important;}
 .auto-hub-toprow{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:8px;}
 .auto-mini-btn{width:auto !important;min-width:0 !important;padding:7px 12px !important;flex:0 0 auto;}
@@ -1184,7 +1184,7 @@ flex: 1;
 
 
 
-
+/* V13_0h_auto_menu_layout2 */
 #panel-rhythm-hub .core-panel-head{
   display:none;
 }
@@ -1256,7 +1256,7 @@ flex: 1;
   }
 }
 
-
+/* V13_0i button spacing fix */
 .auto-hub-chord-row{
   gap:6px !important;
 }
@@ -1273,7 +1273,7 @@ flex: 1;
 }
 
 
-
+/* V13_0k_menu_size_tune */
 .auto-panel-hub{
   width:min(980px, calc(100vw - 22px)) !important;
 }
@@ -1316,7 +1316,7 @@ flex: 1;
 }
 
 
-
+/* V13_0l_rhythm_list_compact */
 .auto-panel-hub{
   width:min(920px, calc(100vw - 22px)) !important;
 }
