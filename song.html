@@ -2547,6 +2547,20 @@ function pad4(num) {
     $('ui-lang-simp')?.classList.toggle('active', state.script === 'simplified');
     $('ui-lang-trad')?.classList.toggle('active', state.script === 'traditional');
     $('ui-staff-lyrics')?.classList.toggle('active', state.mode === 'lyrics');
+    const staffBtn = $('ui-staff');
+    if (staffBtn) {
+      const img = staffBtn.querySelector('img');
+      const note = staffBtn.querySelector('.core-btn-note');
+      const mode = (state.mode === 'lyrics') ? 'lyrics' : ((function(){ try { return localStorage.getItem('staffMode') || 'five'; } catch(e) { return 'five'; } })());
+      if (img) {
+        img.src = mode === 'lyrics'
+          ? 'assets/ui_icons/lyrics.svg'
+          : (mode === 'jian' ? 'assets/ui_icons/jianpu.svg' : 'assets/ui_icons/staff-five.svg');
+      }
+      if (note) {
+        note.textContent = mode === 'lyrics' ? '歌词' : (mode === 'jian' ? '简谱' : '五线谱');
+      }
+    }
   }
 
   function initBindings(){
@@ -2617,12 +2631,21 @@ function pad4(num) {
 
     $('ui-staff-five')?.addEventListener('click', ()=>{
       try { localStorage.setItem('staffMode', 'five'); } catch(e) {}
+      setMode('score');
       if (typeof window.applyStaffMode === 'function') window.applyStaffMode();
+      closePanels();
       setTimeout(syncUI, 30);
     });
     $('ui-staff-jian')?.addEventListener('click', ()=>{
       try { localStorage.setItem('staffMode', 'jian'); } catch(e) {}
+      setMode('score');
       if (typeof window.applyStaffMode === 'function') window.applyStaffMode();
+      closePanels();
+      setTimeout(syncUI, 30);
+    });
+    $('ui-staff-lyrics')?.addEventListener('click', ()=>{
+      setMode('lyrics');
+      closePanels();
       setTimeout(syncUI, 30);
     });
 
