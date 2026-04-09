@@ -137,7 +137,12 @@
       $('ui-auto-toggle')?.remove();
       $('ui-auto-scheme')?.remove();
       if(!$('ui-rhythm')){
-
+        const rhythmBtn = document.createElement('button');
+        rhythmBtn.className = 'core-btn core-btn-pill core-btn-mini core-ui-iconbtn';
+        rhythmBtn.id = 'ui-rhythm';
+        rhythmBtn.title = '原谱 / 自动伴奏 / 方案 / 节奏';
+        const trackBtn = $('ui-track');
+        toolbar.insertBefore(rhythmBtn, trackBtn || null);
       }
     }
 
@@ -345,7 +350,11 @@
 
   function updateUi(){
     const inAuto = AUTO.mode === 'auto';
-    if($('ui-rhythm')){ const btn=$('ui-rhythm'); const img=btn.querySelector('img'); const note=$('ui-rhythm-note'); if(img) img.src = inAuto ? 'assets/ui_icons/auto-accompany.svg' : 'assets/ui_icons/original.svg'; if(note) note.textContent = inAuto ? '伴奏' : '原谱'; btn.setAttribute('aria-label', inAuto ? '自动伴奏' : '原谱'); }
+    if ($('ui-rhythm')) {
+      const icon = inAuto ? 'assets/ui_icons/auto.svg' : 'assets/ui_icons/original.svg';
+      const label = inAuto ? '自动伴奏' : '原谱';
+      $('ui-rhythm').innerHTML = `<img class="ui-icon" src="${icon}" alt=""><span class="ui-label">${label}</span>`;
+    }
     ['a','b','c'].forEach((k, idx)=>{
       const btn = $('ui-scheme-' + k);
       if(!btn) return;
