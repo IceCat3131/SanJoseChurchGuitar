@@ -1,0 +1,7 @@
+This package applies front-end protection intended to raise the reading barrier:
+- HTML comments removed
+- CSS comments removed
+- External JS files wrapped in encoded loader form
+- Inline JS in HTML wrapped in encoded loader form
+
+This is deterrence, not perfect protection.
