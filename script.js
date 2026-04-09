@@ -31,7 +31,7 @@
   };
 
   const DEFAULT_VIEWER_PREFS = {
-    scoreFontSizePx: 30,
+    scoreFontSizePx: 16,
     scoreSpacingFactor: 2.0,
     chordFontSizePx: 16,
     pureLyricsFontSize: 24,
