@@ -1,7800 +1,1875 @@
-
-(function(){
-  function makeEvent(beat, dur, role, stringHint, accent){
-    return { beat, dur, role, stringHint: stringHint == null ? null : Number(stringHint), accent: !!accent };
-  }
-
-  function convertLegacyPatternToTemplate(pattern, timeSig, type){
-    const meter = String(timeSig || '4/4');
-    const parts = meter.split('/');
-    const beats = parseInt(parts[0] || '4', 10) || 4;
-    const beatUnit = parseInt(parts[1] || '4', 10) || 4;
-    const raw = Array.isArray(pattern?.steps) ? pattern.steps.slice() : [];
-    if (!raw.length) return { ...(pattern||{}), time_signature: meter, subdivision: 8, events: [] };
-
-    const stepCount = raw.length;
-    const barBeats = beats * (4 / beatUnit);
-    const dur = +(barBeats / stepCount).toFixed(4);
-
-    const events = raw.map((step, idx) => {
-      let role = 'mid1';
-      const isDigit = /^\d+$/.test(String(step));
-      if (type === 'arpeggio') {
-        if (idx === 0 || String(step).toUpperCase() === 'R') role = 'bass';
-        else if (idx % 4 === 1) role = 'mid1';
-        else if (idx % 4 === 2) role = 'mid2';
-        else if (idx % 4 === 3) role = 'mid3';
-        else role = 'high';
-      } else {
-        role = 'strum';
-      }
-      return makeEvent(+(idx * dur).toFixed(4), dur, role, isDigit ? Number(step) : null, idx === 0);
-    });
-
-    return {
-      ...(pattern || {}),
-      time_signature: meter,
-      subdivision: 8,
-      events
-    };
-  }
-
-  const RHYTHM_LIBRARY = {
-    '4/4': [
-      convertLegacyPatternToTemplate({ id:'arp_53231323', name:'分解 53231323', type:'arpeggio', steps:['5','3','2','3','1','3','2','3'], difficulty:1 }, '4/4', 'arpeggio'),
-      convertLegacyPatternToTemplate({ id:'arp_53212323', name:'分解 53212323', type:'arpeggio', steps:['5','3','2','1','2','3','2','3'], difficulty:1 }, '4/4', 'arpeggio'),
-      convertLegacyPatternToTemplate({ id:'strum_basic_44', name:'扫弦 基础', type:'strum', steps:['↓','↓','↑','↑','↓','↑'], difficulty:1 }, '4/4', 'strum'),
-      convertLegacyPatternToTemplate({ id:'strum_pop_44', name:'扫弦 流行', type:'strum', steps:['↓','-','↓↑','-','↑↓↑'], difficulty:2 }, '4/4', 'strum')
-    ],
-    '3/4': [
-      convertLegacyPatternToTemplate({ id:'arp_531531', name:'分解 531531', type:'arpeggio', steps:['5','3','1','5','3','1'], difficulty:1 }, '3/4', 'arpeggio'),
-      convertLegacyPatternToTemplate({ id:'strum_waltz_34', name:'扫弦 华尔兹', type:'strum', steps:['↓','↓','↑'], difficulty:1 }, '3/4', 'strum')
-    ],
-    '2/4': [
-      convertLegacyPatternToTemplate({ id:'arp_5315', name:'分解 5315', type:'arpeggio', steps:['5','3','1','5'], difficulty:1 }, '2/4', 'arpeggio'),
-      convertLegacyPatternToTemplate({ id:'strum_basic_24', name:'扫弦 基础 2/4', type:'strum', steps:['↓','↑'], difficulty:1 }, '2/4', 'strum')
-    ],
-    '6/8': [
-      convertLegacyPatternToTemplate({ id:'arp_654321', name:'分解 654321', type:'arpeggio', steps:['6','5','4','3','2','1'], difficulty:1 }, '6/8', 'arpeggio'),
-      convertLegacyPatternToTemplate({ id:'strum_68', name:'扫弦 6/8', type:'strum', steps:['↓','↓↑','↓↑'], difficulty:1 }, '6/8', 'strum')
-    ]
-  };
-
-  const GP_IMPORTED_LIBRARY = {
-    '2/4': [
-  {
-    "id": "gp_24_01",
-    "name": "GP 2/4 #01",
-    "source": "guitar_pro",
-    "time_signature": "2/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          5,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_24_02",
-    "name": "GP 2/4 #02",
-    "source": "guitar_pro",
-    "time_signature": "2/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.25,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_24_03",
-    "name": "GP 2/4 #03",
-    "source": "guitar_pro",
-    "time_signature": "2/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.25,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_24_04",
-    "name": "GP 2/4 #04",
-    "source": "guitar_pro",
-    "time_signature": "2/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.25,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_24_05",
-    "name": "GP 2/4 #05",
-    "source": "guitar_pro",
-    "time_signature": "2/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_24_06",
-    "name": "GP 2/4 #06",
-    "source": "guitar_pro",
-    "time_signature": "2/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_24_07",
-    "name": "GP 2/4 #07",
-    "source": "guitar_pro",
-    "time_signature": "2/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.25,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_24_08",
-    "name": "GP 2/4 #08",
-    "source": "guitar_pro",
-    "time_signature": "2/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.25,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_24_09",
-    "name": "GP 2/4 #09",
-    "source": "guitar_pro",
-    "time_signature": "2/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_24_10",
-    "name": "GP 2/4 #10",
-    "source": "guitar_pro",
-    "time_signature": "2/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          5,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_24_11",
-    "name": "GP 2/4 #11",
-    "source": "guitar_pro",
-    "time_signature": "2/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_24_12",
-    "name": "GP 2/4 #12",
-    "source": "guitar_pro",
-    "time_signature": "2/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.3333,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 0.3333,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 0.6667,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 1.3333,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 1.6667,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": true
-      }
-    ]
-  },
-  {
-    "id": "gp_24_13",
-    "name": "GP 2/4 #13",
-    "source": "guitar_pro",
-    "time_signature": "2/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  }
-],
-    '3/4': [
-  {
-    "id": "gp_34_01",
-    "name": "GP 3/4 #01",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_02",
-    "name": "GP 3/4 #02",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 1.0,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 1.0,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 1.0,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_03",
-    "name": "GP 3/4 #03",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_04",
-    "name": "GP 3/4 #04",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_05",
-    "name": "GP 3/4 #05",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          6
-        ],
-        "stringHint": 6,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_06",
-    "name": "GP 3/4 #06",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_07",
-    "name": "GP 3/4 #07",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 1.0,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 1.0,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 1.0,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_08",
-    "name": "GP 3/4 #08",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_09",
-    "name": "GP 3/4 #09",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_10",
-    "name": "GP 3/4 #10",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_11",
-    "name": "GP 3/4 #11",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_12",
-    "name": "GP 3/4 #12",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_13",
-    "name": "GP 3/4 #13",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_14",
-    "name": "GP 3/4 #14",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_15",
-    "name": "GP 3/4 #15",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_16",
-    "name": "GP 3/4 #16",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_17",
-    "name": "GP 3/4 #17",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_18",
-    "name": "GP 3/4 #18",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 1.0,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.75,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": true,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.75,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": true,
-        "tuplet": false
-      },
-      {
-        "beat": 2.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_19",
-    "name": "GP 3/4 #19",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.75,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": true,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_20",
-    "name": "GP 3/4 #20",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_21",
-    "name": "GP 3/4 #21",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_22",
-    "name": "GP 3/4 #22",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.75,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": true,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.75,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": true,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.75,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": true,
-        "tuplet": false
-      },
-      {
-        "beat": 2.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_23",
-    "name": "GP 3/4 #23",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_24",
-    "name": "GP 3/4 #24",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_25",
-    "name": "GP 3/4 #25",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 1.0,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_26",
-    "name": "GP 3/4 #26",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_27",
-    "name": "GP 3/4 #27",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.75,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": true,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.75,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": true,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.75,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": true,
-        "tuplet": false
-      },
-      {
-        "beat": 2.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_28",
-    "name": "GP 3/4 #28",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_29",
-    "name": "GP 3/4 #29",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_30",
-    "name": "GP 3/4 #30",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_31",
-    "name": "GP 3/4 #31",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.75,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": true,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_32",
-    "name": "GP 3/4 #32",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_33",
-    "name": "GP 3/4 #33",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 1.0,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_34",
-    "name": "GP 3/4 #34",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 1.0,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_35",
-    "name": "GP 3/4 #35",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_34_36",
-    "name": "GP 3/4 #36",
-    "source": "guitar_pro",
-    "time_signature": "3/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  }
-],
-    '4/4': [
-  {
-    "id": "gp_44_01",
-    "name": "GP 4/4 #01",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 1.0,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 1.0,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_02",
-    "name": "GP 4/4 #02",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          6
-        ],
-        "stringHint": 6,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          6
-        ],
-        "stringHint": 6,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_03",
-    "name": "GP 4/4 #03",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_04",
-    "name": "GP 4/4 #04",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_05",
-    "name": "GP 4/4 #05",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 1.0,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 1.0,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_06",
-    "name": "GP 4/4 #06",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          5,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_07",
-    "name": "GP 4/4 #07",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_08",
-    "name": "GP 4/4 #08",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 1.0,
-        "role": "strum",
-        "stringHints": [
-          5,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 1.0,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_09",
-    "name": "GP 4/4 #09",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_10",
-    "name": "GP 4/4 #10",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_11",
-    "name": "GP 4/4 #11",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_12",
-    "name": "GP 4/4 #12",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          6
-        ],
-        "stringHint": 6,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_13",
-    "name": "GP 4/4 #13",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_14",
-    "name": "GP 4/4 #14",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_15",
-    "name": "GP 4/4 #15",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          6
-        ],
-        "stringHint": 6,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_16",
-    "name": "GP 4/4 #16",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.3333,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 0.3333,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 0.6667,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 1.3333,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 1.6667,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 2.3333,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 2.6667,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 3.3333,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": true
-      },
-      {
-        "beat": 3.6667,
-        "dur": 0.3333,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": true
-      }
-    ]
-  },
-  {
-    "id": "gp_44_17",
-    "name": "GP 4/4 #17",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.75,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": true,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.75,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": true,
-        "tuplet": false
-      },
-      {
-        "beat": 2.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_18",
-    "name": "GP 4/4 #18",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_19",
-    "name": "GP 4/4 #19",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_20",
-    "name": "GP 4/4 #20",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 1.0,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 1.0,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 1.0,
-        "role": "strum",
-        "stringHints": [
-          3,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_21",
-    "name": "GP 4/4 #21",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_22",
-    "name": "GP 4/4 #22",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          5,
-          2
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_23",
-    "name": "GP 4/4 #23",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_24",
-    "name": "GP 4/4 #24",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_25",
-    "name": "GP 4/4 #25",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_26",
-    "name": "GP 4/4 #26",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 1.0,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_27",
-    "name": "GP 4/4 #27",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_28",
-    "name": "GP 4/4 #28",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "strum",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.75,
-        "role": "strum",
-        "stringHints": [
-          5,
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": true,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.25,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "strum",
-        "stringHints": [
-          2,
-          1
-        ],
-        "stringHint": null,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_29",
-    "name": "GP 4/4 #29",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_30",
-    "name": "GP 4/4 #30",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_31",
-    "name": "GP 4/4 #31",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          4
-        ],
-        "stringHint": 4,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.5,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  },
-  {
-    "id": "gp_44_32",
-    "name": "GP 4/4 #32",
-    "source": "guitar_pro",
-    "time_signature": "4/4",
-    "subdivision": 16,
-    "feel": "arpeggio",
-    "events": [
-      {
-        "beat": 0.0,
-        "dur": 0.5,
-        "role": "bass",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 0.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 1.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 2.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.0,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          5
-        ],
-        "stringHint": 5,
-        "accent": true,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.25,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          1
-        ],
-        "stringHint": 1,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.5,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          3
-        ],
-        "stringHint": 3,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      },
-      {
-        "beat": 3.75,
-        "dur": 0.25,
-        "role": "mid1",
-        "stringHints": [
-          2
-        ],
-        "stringHint": 2,
-        "accent": false,
-        "dotted": false,
-        "tuplet": false
-      }
-    ]
-  }
-]
-  };
-
-  Object.keys(GP_IMPORTED_LIBRARY).forEach((meter) => {
-    const extra = Array.isArray(GP_IMPORTED_LIBRARY[meter]) ? GP_IMPORTED_LIBRARY[meter] : [];
-    if (!RHYTHM_LIBRARY[meter]) RHYTHM_LIBRARY[meter] = [];
-    RHYTHM_LIBRARY[meter] = RHYTHM_LIBRARY[meter].concat(extra);
-  });
-
-  function normalizeMeter(meter){
-    const raw = String(meter || '4/4').trim();
-    if (RHYTHM_LIBRARY[raw]) return raw;
-    const remap = {
-      '3/2':'3/4',
-      '4/2':'4/4',
-      '6/4':'3/4',
-      '9/4':'3/4'
-    };
-    return remap[raw] || '4/4';
-  }
-
-  function getPatternsForMeter(meter){ return RHYTHM_LIBRARY[normalizeMeter(meter)] || RHYTHM_LIBRARY['4/4']; }
-  function getDefaultPattern(meter){ return getPatternsForMeter(meter)[0]; }
-
-  window.RhythmEngine = { RHYTHM_LIBRARY, normalizeMeter, convertLegacyPatternToTemplate, getPatternsForMeter, getDefaultPattern };
-})();
+(()=>{const _k=156;const _d=[150,180,250,233,242,255,232,245,243,242,180,181,231,150,188,188,250,233,242,255,232,245,243,242,188,241,253,247,249,217,234,249,242,232,180,254,249,253,232,176,188,248,233,238,176,188,238,243,240,249,176,188,239,232,238,245,242,251,212,245,242,232,176,188,253,255,255,249,242,232,181,231,150,188,188,188,188,238,249,232,
+233,238,242,188,231,188,254,249,253,232,176,188,248,233,238,176,188,238,243,240,249,176,188,239,232,238,245,242,251,212,245,242,232,166,188,239,232,238,245,242,251,212,245,242,232,188,161,161,188,242,233,240,240,188,163,188,242,233,240,240,188,166,188,210,233,241,254,249,238,180,239,232,238,245,242,251,212,245,242,232,
+181,176,188,253,255,255,249,242,232,166,188,189,189,253,255,255,249,242,232,188,225,167,150,188,188,225,150,150,188,188,250,233,242,255,232,245,243,242,188,255,243,242,234,249,238,232,208,249,251,253,255,229,204,253,232,232,249,238,242,200,243,200,249,241,236,240,253,232,249,180,236,253,232,232,249,238,242,176,188,232,
+245,241,249,207,245,251,176,188,232,229,236,249,181,231,150,188,188,188,188,255,243,242,239,232,188,241,249,232,249,238,188,161,188,207,232,238,245,242,251,180,232,245,241,249,207,245,251,188,224,224,188,187,168,179,168,187,181,167,150,188,188,188,188,255,243,242,239,232,188,236,253,238,232,239,188,161,188,241,249,232,
+249,238,178,239,236,240,245,232,180,187,179,187,181,167,150,188,188,188,188,255,243,242,239,232,188,254,249,253,232,239,188,161,188,236,253,238,239,249,213,242,232,180,236,253,238,232,239,199,172,193,188,224,224,188,187,168,187,176,188,173,172,181,188,224,224,188,168,167,150,188,188,188,188,255,243,242,239,232,188,254,
+249,253,232,201,242,245,232,188,161,188,236,253,238,239,249,213,242,232,180,236,253,238,232,239,199,173,193,188,224,224,188,187,168,187,176,188,173,172,181,188,224,224,188,168,167,150,188,188,188,188,255,243,242,239,232,188,238,253,235,188,161,188,221,238,238,253,229,178,245,239,221,238,238,253,229,180,236,253,232,232,
+249,238,242,163,178,239,232,249,236,239,181,188,163,188,236,253,232,232,249,238,242,178,239,232,249,236,239,178,239,240,245,255,249,180,181,188,166,188,199,193,167,150,188,188,188,188,245,250,188,180,189,238,253,235,178,240,249,242,251,232,244,181,188,238,249,232,233,238,242,188,231,188,178,178,178,180,236,253,232,232,
+249,238,242,224,224,231,225,181,176,188,232,245,241,249,195,239,245,251,242,253,232,233,238,249,166,188,241,249,232,249,238,176,188,239,233,254,248,245,234,245,239,245,243,242,166,188,164,176,188,249,234,249,242,232,239,166,188,199,193,188,225,167,150,150,188,188,188,188,255,243,242,239,232,188,239,232,249,236,223,243,
+233,242,232,188,161,188,238,253,235,178,240,249,242,251,232,244,167,150,188,188,188,188,255,243,242,239,232,188,254,253,238,222,249,253,232,239,188,161,188,254,249,253,232,239,188,182,188,180,168,188,179,188,254,249,253,232,201,242,245,232,181,167,150,188,188,188,188,255,243,242,239,232,188,248,233,238,188,161,188,183,
+180,254,253,238,222,249,253,232,239,188,179,188,239,232,249,236,223,243,233,242,232,181,178,232,243,218,245,228,249,248,180,168,181,167,150,150,188,188,188,188,255,243,242,239,232,188,249,234,249,242,232,239,188,161,188,238,253,235,178,241,253,236,180,180,239,232,249,236,176,188,245,248,228,181,188,161,162,188,231,150,
+188,188,188,188,188,188,240,249,232,188,238,243,240,249,188,161,188,187,241,245,248,173,187,167,150,188,188,188,188,188,188,255,243,242,239,232,188,245,239,216,245,251,245,232,188,161,188,179,194,192,248,183,184,179,178,232,249,239,232,180,207,232,238,245,242,251,180,239,232,249,236,181,181,167,150,188,188,188,188,188,
+188,245,250,188,180,232,229,236,249,188,161,161,161,188,187,253,238,236,249,251,251,245,243,187,181,188,231,150,188,188,188,188,188,188,188,188,245,250,188,180,245,248,228,188,161,161,161,188,172,188,224,224,188,207,232,238,245,242,251,180,239,232,249,236,181,178,232,243,201,236,236,249,238,223,253,239,249,180,181,188,
+161,161,161,188,187,206,187,181,188,238,243,240,249,188,161,188,187,254,253,239,239,187,167,150,188,188,188,188,188,188,188,188,249,240,239,249,188,245,250,188,180,245,248,228,188,185,188,168,188,161,161,161,188,173,181,188,238,243,240,249,188,161,188,187,241,245,248,173,187,167,150,188,188,188,188,188,188,188,188,249,
+240,239,249,188,245,250,188,180,245,248,228,188,185,188,168,188,161,161,161,188,174,181,188,238,243,240,249,188,161,188,187,241,245,248,174,187,167,150,188,188,188,188,188,188,188,188,249,240,239,249,188,245,250,188,180,245,248,228,188,185,188,168,188,161,161,161,188,175,181,188,238,243,240,249,188,161,188,187,241,245,
+248,175,187,167,150,188,188,188,188,188,188,188,188,249,240,239,249,188,238,243,240,249,188,161,188,187,244,245,251,244,187,167,150,188,188,188,188,188,188,225,188,249,240,239,249,188,231,150,188,188,188,188,188,188,188,188,238,243,240,249,188,161,188,187,239,232,238,233,241,187,167,150,188,188,188,188,188,188,225,150,
+188,188,188,188,188,188,238,249,232,233,238,242,188,241,253,247,249,217,234,249,242,232,180,183,180,245,248,228,188,182,188,248,233,238,181,178,232,243,218,245,228,249,248,180,168,181,176,188,248,233,238,176,188,238,243,240,249,176,188,245,239,216,245,251,245,232,188,163,188,210,233,241,254,249,238,180,239,232,249,236,
+181,188,166,188,242,233,240,240,176,188,245,248,228,188,161,161,161,188,172,181,167,150,188,188,188,188,225,181,167,150,150,188,188,188,188,238,249,232,233,238,242,188,231,150,188,188,188,188,188,188,178,178,178,180,236,253,232,232,249,238,242,188,224,224,188,231,225,181,176,150,188,188,188,188,188,188,232,245,241,249,
+195,239,245,251,242,253,232,233,238,249,166,188,241,249,232,249,238,176,150,188,188,188,188,188,188,239,233,254,248,245,234,245,239,245,243,242,166,188,164,176,150,188,188,188,188,188,188,249,234,249,242,232,239,150,188,188,188,188,225,167,150,188,188,225,150,150,188,188,255,243,242,239,232,188,206,212,197,200,212,209,
+195,208,213,222,206,221,206,197,188,161,188,231,150,188,188,188,188,187,168,179,168,187,166,188,199,150,188,188,188,188,188,188,255,243,242,234,249,238,232,208,249,251,253,255,229,204,253,232,232,249,238,242,200,243,200,249,241,236,240,253,232,249,180,231,188,245,248,166,187,253,238,236,195,169,175,174,175,173,175,174,
+175,187,176,188,242,253,241,249,166,187,21146,35199,188,169,175,174,175,173,175,174,175,187,176,188,232,229,236,249,166,187,253,238,236,249,251,251,245,243,187,176,188,239,232,249,236,239,166,199,187,169,187,176,187,175,187,176,187,174,187,176,187,175,187,176,187,173,187,176,187,175,187,176,187,174,187,176,187,175,187,193,
+176,188,248,245,250,250,245,255,233,240,232,229,166,173,188,225,176,188,187,168,179,168,187,176,188,187,253,238,236,249,251,251,245,243,187,181,176,150,188,188,188,188,188,188,255,243,242,234,249,238,232,208,249,251,253,255,229,204,253,232,232,249,238,242,200,243,200,249,241,236,240,253,232,249,180,231,188,245,248,166,
+187,253,238,236,195,169,175,174,173,174,175,174,175,187,176,188,242,253,241,249,166,187,21146,35199,188,169,175,174,173,174,175,174,175,187,176,188,232,229,236,249,166,187,253,238,236,249,251,251,245,243,187,176,188,239,232,249,236,239,166,199,187,169,187,176,187,175,187,176,187,174,187,176,187,173,187,176,187,174,187,176,
+187,175,187,176,187,174,187,176,187,175,187,193,176,188,248,245,250,250,245,255,233,240,232,229,166,173,188,225,176,188,187,168,179,168,187,176,188,187,253,238,236,249,251,251,245,243,187,181,176,150,188,188,188,188,188,188,255,243,242,234,249,238,232,208,249,251,253,255,229,204,253,232,232,249,238,242,200,243,200,249,
+241,236,240,253,232,249,180,231,188,245,248,166,187,239,232,238,233,241,195,254,253,239,245,255,195,168,168,187,176,188,242,253,241,249,166,187,25335,24506,188,22374,30940,187,176,188,232,229,236,249,166,187,239,232,238,233,241,187,176,188,239,232,249,236,239,166,199,187,8463,187,176,187,8463,187,176,187,8461,187,176,187,8461,187,
+176,187,8463,187,176,187,8461,187,193,176,188,248,245,250,250,245,255,233,240,232,229,166,173,188,225,176,188,187,168,179,168,187,176,188,187,239,232,238,233,241,187,181,176,150,188,188,188,188,188,188,255,243,242,234,249,238,232,208,249,251,253,255,229,204,253,232,232,249,238,242,200,243,200,249,241,236,240,253,232,249,
+180,231,188,245,248,166,187,239,232,238,233,241,195,236,243,236,195,168,168,187,176,188,242,253,241,249,166,187,25335,24506,188,28125,35024,187,176,188,232,229,236,249,166,187,239,232,238,233,241,187,176,188,239,232,249,236,239,166,199,187,8463,187,176,187,177,187,176,187,8463,8461,187,176,187,177,187,176,187,8461,8463,8461,187,193,
+176,188,248,245,250,250,245,255,233,240,232,229,166,174,188,225,176,188,187,168,179,168,187,176,188,187,239,232,238,233,241,187,181,150,188,188,188,188,193,176,150,188,188,188,188,187,175,179,168,187,166,188,199,150,188,188,188,188,188,188,255,243,242,234,249,238,232,208,249,251,253,255,229,204,253,232,232,249,238,242,
+200,243,200,249,241,236,240,253,232,249,180,231,188,245,248,166,187,253,238,236,195,169,175,173,169,175,173,187,176,188,242,253,241,249,166,187,21146,35199,188,169,175,173,169,175,173,187,176,188,232,229,236,249,166,187,253,238,236,249,251,251,245,243,187,176,188,239,232,249,236,239,166,199,187,169,187,176,187,175,187,176,
+187,173,187,176,187,169,187,176,187,175,187,176,187,173,187,193,176,188,248,245,250,250,245,255,233,240,232,229,166,173,188,225,176,188,187,175,179,168,187,176,188,187,253,238,236,249,251,251,245,243,187,181,176,150,188,188,188,188,188,188,255,243,242,234,249,238,232,208,249,251,253,255,229,204,253,232,232,249,238,242,
+200,243,200,249,241,236,240,253,232,249,180,231,188,245,248,166,187,239,232,238,233,241,195,235,253,240,232,230,195,175,168,187,176,188,242,253,241,249,166,187,25335,24506,188,21458,23688,20965,187,176,188,232,229,236,249,166,187,239,232,238,233,241,187,176,188,239,232,249,236,239,166,199,187,8463,187,176,187,8463,187,176,187,8461,
+187,193,176,188,248,245,250,250,245,255,233,240,232,229,166,173,188,225,176,188,187,175,179,168,187,176,188,187,239,232,238,233,241,187,181,150,188,188,188,188,193,176,150,188,188,188,188,187,174,179,168,187,166,188,199,150,188,188,188,188,188,188,255,243,242,234,249,238,232,208,249,251,253,255,229,204,253,232,232,249,
+238,242,200,243,200,249,241,236,240,253,232,249,180,231,188,245,248,166,187,253,238,236,195,169,175,173,169,187,176,188,242,253,241,249,166,187,21146,35199,188,169,175,173,169,187,176,188,232,229,236,249,166,187,253,238,236,249,251,251,245,243,187,176,188,239,232,249,236,239,166,199,187,169,187,176,187,175,187,176,187,173,
+187,176,187,169,187,193,176,188,248,245,250,250,245,255,233,240,232,229,166,173,188,225,176,188,187,174,179,168,187,176,188,187,253,238,236,249,251,251,245,243,187,181,176,150,188,188,188,188,188,188,255,243,242,234,249,238,232,208,249,251,253,255,229,204,253,232,232,249,238,242,200,243,200,249,241,236,240,253,232,249,
+180,231,188,245,248,166,187,239,232,238,233,241,195,254,253,239,245,255,195,174,168,187,176,188,242,253,241,249,166,187,25335,24506,188,22374,30940,188,174,179,168,187,176,188,232,229,236,249,166,187,239,232,238,233,241,187,176,188,239,232,249,236,239,166,199,187,8463,187,176,187,8461,187,193,176,188,248,245,250,250,245,255,233,
+240,232,229,166,173,188,225,176,188,187,174,179,168,187,176,188,187,239,232,238,233,241,187,181,150,188,188,188,188,193,176,150,188,188,188,188,187,170,179,164,187,166,188,199,150,188,188,188,188,188,188,255,243,242,234,249,238,232,208,249,251,253,255,229,204,253,232,232,249,238,242,200,243,200,249,241,236,240,253,232,
+249,180,231,188,245,248,166,187,253,238,236,195,170,169,168,175,174,173,187,176,188,242,253,241,249,166,187,21146,35199,188,170,169,168,175,174,173,187,176,188,232,229,236,249,166,187,253,238,236,249,251,251,245,243,187,176,188,239,232,249,236,239,166,199,187,170,187,176,187,169,187,176,187,168,187,176,187,175,187,176,187,
+174,187,176,187,173,187,193,176,188,248,245,250,250,245,255,233,240,232,229,166,173,188,225,176,188,187,170,179,164,187,176,188,187,253,238,236,249,251,251,245,243,187,181,176,150,188,188,188,188,188,188,255,243,242,234,249,238,232,208,249,251,253,255,229,204,253,232,232,249,238,242,200,243,200,249,241,236,240,253,232,
+249,180,231,188,245,248,166,187,239,232,238,233,241,195,170,164,187,176,188,242,253,241,249,166,187,25335,24506,188,170,179,164,187,176,188,232,229,236,249,166,187,239,232,238,233,241,187,176,188,239,232,249,236,239,166,199,187,8463,187,176,187,8463,8461,187,176,187,8463,8461,187,193,176,188,248,245,250,250,245,255,233,240,232,
+229,166,173,188,225,176,188,187,170,179,164,187,176,188,187,239,232,238,233,241,187,181,150,188,188,188,188,193,150,188,188,225,167,150,150,188,188,255,243,242,239,232,188,219,204,195,213,209,204,211,206,200,217,216,195,208,213,222,206,221,206,197,188,161,188,231,150,188,188,188,188,187,174,179,168,187,166,188,199,150,
+188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,174,168,195,172,173,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,174,179,168,188,191,172,173,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,
+188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,174,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,
+249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,
+190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,
+253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,
+190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,
+150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,
+188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,
+190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,
+188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,
+238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,
+232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,
+190,254,249,253,232,190,166,188,173,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,
+166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,
+188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,
+178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,
+188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,
+248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,174,168,195,172,174,190,176,150,
+188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,174,179,168,188,191,172,174,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,174,179,168,
+190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,
+188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,
+190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,
+188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,
+178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,
+188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,
+232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,
+188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,
+188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,
+249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,
+188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,
+188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,
+188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,
+238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,
+188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,
+190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,
+188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,
+188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,
+188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,
+188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,
+190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,
+231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,174,168,195,172,175,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,174,179,168,188,191,172,175,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,
+188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,174,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,
+234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,
+239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,
+188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,
+188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,
+242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,
+188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,
+176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,
+232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,
+188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,
+188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,
+188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,
+173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,
+250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,
+233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,
+193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,
+188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,
+188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,
+249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,174,168,195,172,168,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,174,179,168,188,191,172,168,190,
+176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,174,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,
+176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,
+248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,
+188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,
+188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,
+176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,
+236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,
+190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,
+239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,
+241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,
+188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,
+225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,
+255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,
+188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,
+242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,
+240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,
+254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,
+199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,
+169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,
+188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,
+248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,174,168,195,172,169,190,176,150,
+188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,174,179,168,188,191,172,169,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,174,179,168,
+190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,
+188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,
+166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,
+188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,
+169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,
+188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,
+190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,
+190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,
+188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,
+188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,
+150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,
+240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,
+190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,
+239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,174,168,195,172,170,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,174,179,168,188,191,172,170,190,176,150,188,188,188,188,190,239,
+243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,174,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,
+249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,
+169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,
+188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,
+236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,
+190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,
+239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,
+241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,
+188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,
+225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,
+255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,
+188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,
+242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,
+240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,
+254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,
+199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,
+169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,
+188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,
+248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,174,168,195,172,171,190,176,150,
+188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,174,179,168,188,191,172,171,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,174,179,168,
+190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,
+188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,
+190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,
+188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,
+178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,
+188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,
+232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,
+188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,
+188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,
+249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,
+188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,
+188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,
+250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,
+188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,
+176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,
+188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,
+188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,
+150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,174,168,195,172,164,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,174,179,168,188,191,172,164,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,
+236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,174,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,
+176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,
+249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,
+166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,
+188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,
+188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,
+188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,
+190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,
+188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,
+242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,
+150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,
+190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,
+188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,
+232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,
+188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,
+188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,
+239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,
+166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,174,168,195,172,165,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,
+174,179,168,188,191,172,165,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,174,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,
+245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,
+188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,
+188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,
+240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,
+166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,
+188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,
+232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,
+240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,
+188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,
+190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,
+188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,
+188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,
+232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,
+188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,
+176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,
+248,190,166,188,190,251,236,195,174,168,195,173,172,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,174,179,168,188,191,173,172,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,
+239,245,251,242,253,232,233,238,249,190,166,188,190,174,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,
+188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,
+176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,
+188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,
+188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,
+253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,
+231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,
+238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,
+250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,
+188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,
+166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,
+188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,
+174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,
+188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,
+249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,
+188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,
+188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,
+176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,
+172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,
+188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,
+188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,174,168,195,173,173,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,174,179,
+168,188,191,173,173,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,174,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,
+242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,
+188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,
+188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,
+249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,
+172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,
+190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,
+188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,
+251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,
+240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,
+245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,
+188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,
+150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,174,168,195,173,174,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,174,179,168,188,191,173,174,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,
+233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,174,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,
+249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,
+232,238,233,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,
+240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,
+188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,170,170,170,171,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,
+241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,
+188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,
+176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,
+188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,
+253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,
+188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,
+188,188,190,254,249,253,232,190,166,188,173,178,170,170,170,171,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,
+249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,
+248,190,166,188,190,251,236,195,174,168,195,173,175,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,174,179,168,188,191,173,175,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,
+239,245,251,242,253,232,233,238,249,190,166,188,190,174,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,
+188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,
+190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,
+188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,
+240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,
+188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,
+190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,
+231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,
+240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,150,193,176,150,188,188,188,188,187,175,179,168,187,166,188,199,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,172,173,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,
+175,179,168,188,191,172,173,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,
+245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,
+188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,
+188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,
+240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,
+166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,
+188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,
+250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,
+190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,
+150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,
+188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,
+255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,
+188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,
+249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,
+245,248,190,166,188,190,251,236,195,175,168,195,172,174,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,172,174,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,
+195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,
+188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,
+232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,
+188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,
+188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,
+174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,
+188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,
+249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,
+245,248,190,166,188,190,251,236,195,175,168,195,172,175,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,172,175,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,
+195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,
+188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,
+232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,
+188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,
+188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,
+188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,
+188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,
+233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,
+249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,
+188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,
+188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,
+188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,
+150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,
+253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,
+190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,172,168,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,
+175,179,168,188,191,172,168,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,
+245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,
+188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,
+188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,
+240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,
+166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,
+188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,
+250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,
+190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,
+150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,
+188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,
+255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,
+188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,
+249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,
+245,248,190,166,188,190,251,236,195,175,168,195,172,169,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,172,169,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,
+195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,
+188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,
+232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,
+188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,
+253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,
+231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,
+242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,170,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,170,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,
+233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,
+249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,
+150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,
+190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,
+188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,
+188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,
+174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,
+188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,
+239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,
+190,245,248,190,166,188,190,251,236,195,175,168,195,172,170,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,172,170,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,
+249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,
+166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,
+255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,
+188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,
+249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,
+253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,
+188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,
+248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,
+188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,
+188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,
+240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,
+166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,
+188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,
+188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,
+242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,
+250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,172,171,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,172,171,190,176,150,188,188,188,
+188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,
+188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,
+172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,
+188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,
+236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,
+238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,
+188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,
+250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,
+238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,
+188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,
+188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,
+166,188,190,251,236,195,175,168,195,172,164,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,172,164,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,
+251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,
+188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,
+188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,
+188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,
+188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,
+188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,
+172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,
+188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,
+150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,
+190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,
+188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,
+243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,
+188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,176,150,
+188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,
+188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,
+176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,
+188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,172,165,190,176,150,188,188,
+188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,172,165,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,
+150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,
+190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,
+199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,
+188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,
+150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,
+173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,
+188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,
+233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,
+188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,
+188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,
+190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,
+190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,
+188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,
+188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,
+190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,
+188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,173,172,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,173,172,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,
+238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,
+150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,
+166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,
+169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,
+188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,
+188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,
+253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,
+231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,
+242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,
+233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,
+249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,
+188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,
+188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,
+188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,
+150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,
+253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,
+190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,173,173,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,
+175,179,168,188,191,173,173,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,
+245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,
+188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,
+188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,
+240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,
+166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,
+188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,
+250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,
+190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,
+150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,
+188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,
+255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,
+188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,
+249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,
+245,248,190,166,188,190,251,236,195,175,168,195,173,174,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,173,174,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,
+195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,
+188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,
+188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,
+255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,
+188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,
+176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,
+232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,
+188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,
+243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,
+188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,
+188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,
+239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,
+188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,
+188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,
+190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,
+188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,
+251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,
+253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,173,175,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,173,175,190,176,150,188,188,188,188,
+190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,
+190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,
+172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,
+232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,
+188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,
+240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,
+245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,
+188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,
+150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,
+242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,
+188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,
+242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,
+188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,
+166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,
+188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,
+232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,173,168,
+190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,173,168,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,
+175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,
+188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,
+188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,
+188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,
+188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,
+232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,
+188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,
+188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,
+150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,
+169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,
+188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,
+233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,
+190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,
+249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,
+173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,
+188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,
+188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,173,169,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,173,169,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,
+232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,
+251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,
+238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,
+242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,
+150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,
+190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,
+188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,
+188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,
+190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,
+188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,
+190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,
+188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,
+174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,
+188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,
+248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,
+188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,
+188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,
+188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,173,170,190,176,150,188,188,188,188,190,242,253,241,249,190,166,
+188,190,219,204,188,175,179,168,188,191,173,170,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,
+248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,
+178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,
+188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,
+190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,
+190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,
+188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,
+188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,
+150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,
+249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,
+240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,
+188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,
+188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,
+188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,
+188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,
+188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,173,171,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,173,171,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,
+190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,
+242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,
+188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,
+188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,
+188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,
+188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,
+188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,
+188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,
+188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,
+249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,
+188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,
+188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,
+150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,
+169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,
+188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,
+236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,
+238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,
+242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,
+249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,173,164,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,173,164,190,176,150,188,188,188,188,190,239,243,
+233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,
+249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,
+176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,
+240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,
+238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,
+242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,
+188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,
+173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,
+188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,
+188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,
+242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,
+188,188,188,188,190,254,249,253,232,190,166,188,174,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,
+242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,
+150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,
+190,166,188,190,251,236,195,175,168,195,173,165,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,173,165,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,
+245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,
+150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,
+188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,
+249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,
+188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,
+176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,
+232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,
+188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,
+243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,
+188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,
+188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,
+239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,
+188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,
+188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,
+190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,
+188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,
+251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,
+253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,174,172,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,174,172,190,176,150,188,188,188,188,
+190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,
+190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,
+176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,
+240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,
+243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,
+150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,
+241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,
+250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,
+190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,
+150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,
+188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,
+255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,
+188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,
+249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,
+245,248,190,166,188,190,251,236,195,175,168,195,174,173,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,174,173,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,
+195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,
+188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,
+188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,
+255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,
+188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,
+176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,
+232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,
+188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,
+243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,
+188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,
+188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,
+240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,
+190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,
+188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,
+188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,
+166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,
+166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,
+173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,
+188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,174,174,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,174,174,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,
+166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,
+190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,171,169,176,150,188,188,188,188,188,
+188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,
+242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,
+240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,
+190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,
+150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,
+188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,232,233,
+236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,
+188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,
+240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,
+239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,232,238,233,249,176,150,188,188,
+188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,
+176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,
+236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,174,175,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,174,
+175,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,
+173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,
+188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,
+188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,
+188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,
+150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,
+240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,
+243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,
+188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,
+188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,
+188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,
+166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,
+188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,
+166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,
+188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,
+251,236,195,175,168,195,174,168,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,174,168,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,
+232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,
+188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,
+188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,
+188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,
+188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,
+188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,
+172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,
+188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,
+248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,
+193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,
+188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,
+188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,
+232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,
+249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,
+166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,
+188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,174,169,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,174,169,190,176,150,188,188,188,188,190,239,243,233,238,255,
+249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,
+166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,
+250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,
+190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,
+193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,
+188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,
+176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,
+188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,
+188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,
+150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,
+188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,
+249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,
+188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,
+242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,
+188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,174,170,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,174,170,190,176,150,188,188,188,188,190,239,243,233,238,
+255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,
+190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,
+188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,
+232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,
+249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,
+166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,
+188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,
+188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,
+188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,
+238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,
+250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,
+188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,
+188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,
+188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,
+176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,
+188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,174,171,190,176,150,188,188,
+188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,174,171,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,
+150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,
+190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,
+188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,
+188,188,188,190,248,243,232,232,249,248,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,
+176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,
+188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,
+190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,
+190,248,233,238,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,
+188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,232,238,233,249,176,150,188,188,
+188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,
+176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,
+236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,
+190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,
+150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,
+248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,
+188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,
+188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,174,164,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,174,164,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,
+245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,
+251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,
+190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,
+249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,
+248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,
+188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,
+150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,
+188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,
+255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,
+188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,
+176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,
+232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,
+188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,
+248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,
+188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,
+188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,
+239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,
+188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,
+188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,
+188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,174,165,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,
+168,188,191,174,165,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,
+242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,
+188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,
+188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,
+188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,
+169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,
+188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,
+233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,
+188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,
+251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,
+253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,
+241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,
+188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,
+176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,
+188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,
+240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,
+243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,
+188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,
+190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,175,172,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,
+175,179,168,188,191,175,172,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,
+245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,
+188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,
+188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,
+240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,
+166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,
+188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,
+250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,
+190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,
+150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,
+188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,
+255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,
+188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,
+249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,
+245,248,190,166,188,190,251,236,195,175,168,195,175,173,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,175,173,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,
+195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,
+188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,
+255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,
+188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,
+251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,
+239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,
+249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,
+188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,
+190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,
+188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,
+188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,
+253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,
+190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,
+188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,
+188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,175,174,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,175,174,190,176,150,188,188,
+188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,
+188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,
+166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,
+188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,
+188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,
+190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,
+188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,
+188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,
+188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,
+188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,
+253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,
+190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,
+199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,
+188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,
+150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,
+174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,
+188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,175,175,190,176,150,188,188,188,
+188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,175,175,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,
+188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,
+232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,
+188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,
+243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,
+188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,
+188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,
+188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,
+240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,
+188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,
+232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,
+188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,
+150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,
+190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,175,168,190,176,150,188,
+188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,175,168,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,
+176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,
+188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,
+188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,
+188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,
+176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,
+188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,
+188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,
+233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,
+188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,
+188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,
+190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,
+190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,
+188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,
+188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,175,169,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,175,169,190,176,150,188,188,188,188,190,239,243,233,238,255,249,
+190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,
+188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,
+188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,
+166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,
+166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,
+175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,
+188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,
+190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,
+231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,
+242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,
+240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,
+254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,
+150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,
+188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,
+188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,
+150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,
+250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,175,168,195,175,170,190,176,150,188,188,188,188,
+190,242,253,241,249,190,166,188,190,219,204,188,175,179,168,188,191,175,170,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,175,179,168,190,176,150,188,
+188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,
+249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,
+188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,
+190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,
+188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,
+188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,
+253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,
+190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,
+188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,
+188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,
+238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,
+166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,
+249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,
+166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,
+188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,
+188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,
+188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,
+238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,
+250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,150,193,176,150,188,188,188,
+188,187,168,179,168,187,166,188,199,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,172,173,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,172,173,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,
+232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,
+190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,
+249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,
+166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,
+188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,
+188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,
+190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,
+188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,
+173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,
+248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,
+188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,
+188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,
+188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,
+150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,
+188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,
+190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,
+188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,
+176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,
+232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,
+188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,172,174,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,172,174,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,
+188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,
+242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,
+188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,
+188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,
+250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,
+190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,170,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,170,176,
+150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,
+225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,
+236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,
+238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,
+242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,
+150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,
+241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,
+188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,
+188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,
+188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,170,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,190,166,188,170,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,
+166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,
+166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,
+188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,
+249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,172,175,190,176,150,188,188,188,188,190,242,253,241,
+249,190,166,188,190,219,204,188,168,179,168,188,191,172,175,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,
+239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,
+166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,
+188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,
+232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,
+188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,
+188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,
+176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,
+178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,
+188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,
+233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,
+190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,
+239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,
+248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,
+188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,
+188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,
+232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,
+188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,
+188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,
+188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,
+188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,
+232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,172,168,190,
+176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,172,168,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,
+179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,
+188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,
+188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,
+188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,
+176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,
+188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,
+248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,
+188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,
+232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,
+188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,
+188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,
+249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,
+172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,
+232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,
+188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,
+240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,
+232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,
+190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,
+190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,
+188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,
+188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,172,169,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,172,169,190,176,150,188,188,188,188,190,239,243,233,238,255,249,
+190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,
+188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,
+188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,
+242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,
+253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,
+239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,
+188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,
+150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,
+249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,
+240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,
+188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,
+188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,
+188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,
+188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,
+188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,172,170,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,172,170,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,
+190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,
+190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,
+166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,
+150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,
+173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,
+188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,
+188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,
+188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,
+249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,
+188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,
+176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,
+232,190,166,188,173,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,
+188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,
+188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,
+188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,
+175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,
+188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,
+248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,
+188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,
+188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,172,171,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,
+190,219,204,188,168,179,168,188,191,172,171,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,
+245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,
+188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,
+150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,
+253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,
+190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,
+188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,
+193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,
+188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,
+176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,
+236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,
+238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,
+188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,
+188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,
+188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,
+240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,
+243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,
+150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,172,164,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,172,164,190,176,150,188,188,188,188,190,239,243,233,
+238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,
+240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,
+188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,
+188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,
+150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,
+169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,
+188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,
+236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,
+238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,
+242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,
+249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,
+173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,
+188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,
+188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,
+190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,
+188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,
+188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,
+190,251,236,195,168,168,195,172,165,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,172,165,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,
+253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,
+188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,
+166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,
+188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,
+166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,
+188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,
+178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,
+188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,
+190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,
+190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,
+188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,
+188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,
+150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,
+249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,
+240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,
+188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,
+188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,
+188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,
+188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,
+188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,173,172,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,173,172,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,
+190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,
+242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,
+188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,
+188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,
+238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,
+250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,
+188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,
+188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,
+188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,
+176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,
+188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,
+248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,
+193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,
+188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,
+188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,
+232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,
+249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,
+166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,
+188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,
+188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,
+150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,173,173,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,173,173,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,
+236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,
+188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,
+190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,
+150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,
+225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,
+255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,
+150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,
+253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,
+190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,
+199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,
+188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,
+150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,
+188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,
+249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,
+188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,
+150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,
+190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,
+188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,
+188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,
+188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,
+166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,
+188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,
+190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,
+176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,
+188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,173,174,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,173,174,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,
+188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,
+253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,
+250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,
+188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,
+176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,
+188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,
+188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,
+188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,
+238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,
+232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,
+190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,
+199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,
+176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,
+188,170,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,170,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,
+188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,
+233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,
+188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,
+188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,
+190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,
+190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,
+188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,
+188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,173,175,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,173,175,190,176,150,188,188,188,188,190,239,243,233,238,255,249,
+190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,
+188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,
+188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,
+166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,
+166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,
+175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,
+188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,
+190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,
+231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,
+242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,
+240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,
+254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,
+150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,
+188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,
+188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,
+150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,
+250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,
+238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,
+188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,
+238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,
+166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,173,168,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,173,168,190,176,150,188,
+188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,
+188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,
+190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,
+188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,
+188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,
+188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,
+176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,
+188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,
+255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,
+150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,
+251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,
+249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,
+253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,
+188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,
+188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,171,169,176,
+150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,
+188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,
+248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,
+188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,
+188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,
+176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,
+236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,
+190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,
+239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,
+241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,
+188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,
+225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,173,169,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,173,169,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,
+251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,
+236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,
+188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,
+251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,
+240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,
+245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,
+188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,
+176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,
+188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,
+249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,
+188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,
+242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,
+150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,
+190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,
+188,188,188,188,188,188,188,170,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,170,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,
+232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,
+188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,
+188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,
+249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,
+172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,
+232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,
+188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,
+240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,173,170,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,173,170,190,176,150,188,188,188,188,190,
+239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,
+250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,
+178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,
+188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,
+188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,
+249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,170,170,170,171,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,
+188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,
+251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,
+238,233,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,
+188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,
+176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,
+225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,
+188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,176,150,188,188,188,
+188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,170,170,170,171,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,
+188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,
+255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,
+188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,
+242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,
+233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,
+253,232,190,166,188,174,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,
+190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,
+188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,
+178,170,170,170,171,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,
+188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,
+190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,
+188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,
+173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,
+250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,
+248,233,238,190,166,188,172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,
+188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,
+150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,170,170,170,171,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,
+172,178,175,175,175,175,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,232,233,236,240,249,232,190,166,188,232,238,233,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,173,171,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,
+179,168,188,191,173,171,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,
+243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,
+188,188,188,190,248,233,238,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,
+188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,232,238,233,249,176,
+150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,
+178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,
+190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,
+188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,
+173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,
+190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,
+190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,
+188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,
+188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,171,169,
+176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,
+249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,
+238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,
+242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,
+249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,
+233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,
+188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,
+188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,
+190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,173,164,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,173,164,190,176,150,
+188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,
+188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,
+238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,
+188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,
+238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,
+166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,
+166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,
+175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,
+188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,
+188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,
+253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,
+231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,
+242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,
+233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,
+249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,
+188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,
+188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,
+188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,
+150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,
+253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,
+190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,173,165,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,
+168,179,168,188,191,173,165,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,
+245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,
+188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,
+188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,
+176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,
+178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,
+188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,
+232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,
+188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,
+188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,
+188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,
+188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,
+232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,
+243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,
+150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,
+190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,
+188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,
+188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,
+190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,
+188,188,188,188,190,254,249,253,232,190,166,188,174,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,
+242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,
+150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,
+190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,
+188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,
+243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,174,169,176,150,188,188,
+188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,
+188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,
+253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,
+190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,
+188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,
+188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,
+249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,174,172,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,174,172,190,
+176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,
+176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,
+190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,
+188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,
+188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,
+232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,
+188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,
+188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,
+250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,
+188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,
+166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,
+150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,
+225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,
+188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,
+240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,174,173,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,174,173,
+190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,
+170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,
+190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,
+188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,
+188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,
+188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,
+249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,
+240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,
+188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,
+188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,
+188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,
+188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,
+188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,
+188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,
+188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,
+172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,
+188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,
+248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,
+193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,
+188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,174,174,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,
+219,204,188,168,179,168,188,191,174,174,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,
+234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,
+188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,
+176,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,
+188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,
+178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,
+188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,
+248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,
+188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,
+188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,
+188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,
+150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,
+240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,
+243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,
+188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,
+188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,
+188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,
+166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,
+188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,
+166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,
+188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,
+251,236,195,168,168,195,174,175,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,174,175,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,
+232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,
+188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,
+188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,
+188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,
+188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,
+188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,
+172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,
+188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,
+248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,
+193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,
+188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,
+188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,
+232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,
+249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,
+166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,
+188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,
+188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,
+188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,
+188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,
+188,188,190,254,249,253,232,190,166,188,175,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,
+188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,
+188,190,251,236,195,168,168,195,174,168,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,174,168,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,
+242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,
+188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,
+190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,
+188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,
+190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,
+188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,
+173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,
+188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,
+248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,
+188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,
+188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,
+188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,
+176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,
+240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,
+243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,
+150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,
+190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,
+188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,
+188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,
+150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,174,169,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,174,169,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,
+188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,
+249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,
+188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,
+188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,
+188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,
+188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,
+166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,
+188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,
+169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,
+188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,
+190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,
+190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,
+188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,
+188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,
+188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,
+249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,
+240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,
+188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,
+188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,
+193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,174,170,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,174,170,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,
+195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,
+190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,
+249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,
+166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,
+188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,
+188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,
+188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,
+238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,
+232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,
+190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,
+199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,
+176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,
+188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,
+188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,
+233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,
+188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,
+188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,
+190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,174,171,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,174,171,190,176,150,
+188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,
+188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,
+238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,
+188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,
+232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,
+190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,
+240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,
+188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,
+188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,
+188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,
+188,188,188,190,254,249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,
+188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,
+166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,
+188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,
+232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,174,169,176,150,188,188,188,
+188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,
+188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,
+240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,
+166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,
+188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,
+188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,
+232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,
+249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,
+166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,
+188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,
+188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,
+188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,
+190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,
+190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,
+231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,174,164,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,174,164,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,
+188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,190,249,234,249,242,
+232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,
+176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,176,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,
+188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,
+190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,
+188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,
+188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,
+188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,
+240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,
+243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,
+150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,
+173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,
+188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,
+188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,
+240,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,
+188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,
+150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,
+188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,
+188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,239,232,238,233,241,190,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,176,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,242,233,240,240,176,150,
+188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,
+176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,
+188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,
+249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,
+150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,174,165,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,174,165,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,
+150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,
+188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,
+253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,
+188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,
+150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,
+242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,
+188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,
+242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,
+188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,
+166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,
+188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,
+232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,
+188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,
+188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,
+176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,
+178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,
+188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,
+232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,
+188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,
+212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,
+239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,
+248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,
+188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,
+188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,175,172,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,175,172,190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,
+245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,
+251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,
+190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,
+249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,
+173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,
+188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,
+188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,
+232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,
+188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,
+239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,
+188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,
+188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,
+188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,
+249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,
+188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,
+188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,
+150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,
+169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,
+188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,
+236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,
+238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,
+242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,
+249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,175,173,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,175,173,190,176,150,188,188,188,188,190,239,243,
+233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,170,176,150,188,188,188,188,190,250,249,
+249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,
+176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,
+188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,
+240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,
+243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,
+232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,
+150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,
+190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,
+188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,
+188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,
+239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,
+188,188,188,190,254,249,253,232,190,166,188,174,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,
+190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,168,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,168,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,
+188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,
+178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,
+188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,
+248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,
+188,190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,
+188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,
+188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,169,176,
+150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,
+240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,176,150,188,188,231,150,188,188,188,188,190,245,248,190,166,188,190,251,236,195,168,168,195,175,174,190,176,150,188,188,188,188,190,242,253,241,249,190,166,188,190,219,204,188,168,179,168,188,191,175,174,
+190,176,150,188,188,188,188,190,239,243,233,238,255,249,190,166,188,190,251,233,245,232,253,238,195,236,238,243,190,176,150,188,188,188,188,190,232,245,241,249,195,239,245,251,242,253,232,233,238,249,190,166,188,190,168,179,168,190,176,150,188,188,188,188,190,239,233,254,248,245,234,245,239,245,243,242,190,166,188,173,
+170,176,150,188,188,188,188,190,250,249,249,240,190,166,188,190,253,238,236,249,251,251,245,243,190,176,150,188,188,188,188,190,249,234,249,242,232,239,190,166,188,199,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,172,176,150,188,188,188,188,188,188,188,188,
+190,248,233,238,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,254,253,239,239,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,
+188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,
+188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,
+150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,
+188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,
+240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,172,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,
+190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,
+245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,
+239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,
+245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,
+188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,
+150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,
+188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,
+255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,
+188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,173,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,
+251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,
+239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,
+249,253,232,190,166,188,173,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,
+199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,
+188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,172,
+176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,
+188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,
+166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,174,169,176,150,188,188,188,188,188,188,188,188,
+190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,
+188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,
+188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,
+169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,
+188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,
+233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,174,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,
+188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,
+251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,
+253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,172,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,
+190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,169,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,169,176,
+150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,232,238,233,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,
+225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,174,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,
+188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,173,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,173,176,150,188,188,188,188,188,188,188,188,190,
+253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,
+231,150,188,188,188,188,188,188,188,188,190,254,249,253,232,190,166,188,175,178,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,
+245,242,251,212,245,242,232,239,190,166,188,199,150,188,188,188,188,188,188,188,188,188,188,175,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,175,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,
+253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,176,150,188,188,188,188,188,188,231,150,188,188,188,188,188,188,188,188,
+190,254,249,253,232,190,166,188,175,178,171,169,176,150,188,188,188,188,188,188,188,188,190,248,233,238,190,166,188,172,178,174,169,176,150,188,188,188,188,188,188,188,188,190,238,243,240,249,190,166,188,190,241,245,248,173,190,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,239,190,
+166,188,199,150,188,188,188,188,188,188,188,188,188,188,174,150,188,188,188,188,188,188,188,188,193,176,150,188,188,188,188,188,188,188,188,190,239,232,238,245,242,251,212,245,242,232,190,166,188,174,176,150,188,188,188,188,188,188,188,188,190,253,255,255,249,242,232,190,166,188,250,253,240,239,249,176,150,188,188,188,
+188,188,188,188,188,190,248,243,232,232,249,248,190,166,188,250,253,240,239,249,176,150,188,188,188,188,188,188,188,188,190,232,233,236,240,249,232,190,166,188,250,253,240,239,249,150,188,188,188,188,188,188,225,150,188,188,188,188,193,150,188,188,225,150,193,150,188,188,225,167,150,150,188,188,211,254,246,249,255,232,
+178,247,249,229,239,180,219,204,195,213,209,204,211,206,200,217,216,195,208,213,222,206,221,206,197,181,178,250,243,238,217,253,255,244,180,180,241,249,232,249,238,181,188,161,162,188,231,150,188,188,188,188,255,243,242,239,232,188,249,228,232,238,253,188,161,188,221,238,238,253,229,178,245,239,221,238,238,253,229,180,
+219,204,195,213,209,204,211,206,200,217,216,195,208,213,222,206,221,206,197,199,241,249,232,249,238,193,181,188,163,188,219,204,195,213,209,204,211,206,200,217,216,195,208,213,222,206,221,206,197,199,241,249,232,249,238,193,188,166,188,199,193,167,150,188,188,188,188,245,250,188,180,189,206,212,197,200,212,209,195,208,
+213,222,206,221,206,197,199,241,249,232,249,238,193,181,188,206,212,197,200,212,209,195,208,213,222,206,221,206,197,199,241,249,232,249,238,193,188,161,188,199,193,167,150,188,188,188,188,206,212,197,200,212,209,195,208,213,222,206,221,206,197,199,241,249,232,249,238,193,188,161,188,206,212,197,200,212,209,195,208,213,
+222,206,221,206,197,199,241,249,232,249,238,193,178,255,243,242,255,253,232,180,249,228,232,238,253,181,167,150,188,188,225,181,167,150,150,188,188,250,233,242,255,232,245,243,242,188,242,243,238,241,253,240,245,230,249,209,249,232,249,238,180,241,249,232,249,238,181,231,150,188,188,188,188,255,243,242,239,232,188,238,
+253,235,188,161,188,207,232,238,245,242,251,180,241,249,232,249,238,188,224,224,188,187,168,179,168,187,181,178,232,238,245,241,180,181,167,150,188,188,188,188,245,250,188,180,206,212,197,200,212,209,195,208,213,222,206,221,206,197,199,238,253,235,193,181,188,238,249,232,233,238,242,188,238,253,235,167,150,188,188,188,
+188,255,243,242,239,232,188,238,249,241,253,236,188,161,188,231,150,188,188,188,188,188,188,187,175,179,174,187,166,187,175,179,168,187,176,150,188,188,188,188,188,188,187,168,179,174,187,166,187,168,179,168,187,176,150,188,188,188,188,188,188,187,170,179,168,187,166,187,175,179,168,187,176,150,188,188,188,188,188,188,
+187,165,179,168,187,166,187,175,179,168,187,150,188,188,188,188,225,167,150,188,188,188,188,238,249,232,233,238,242,188,238,249,241,253,236,199,238,253,235,193,188,224,224,188,187,168,179,168,187,167,150,188,188,225,150,150,188,188,250,233,242,255,232,245,243,242,188,251,249,232,204,253,232,232,249,238,242,239,218,243,
+238,209,249,232,249,238,180,241,249,232,249,238,181,231,188,238,249,232,233,238,242,188,206,212,197,200,212,209,195,208,213,222,206,221,206,197,199,242,243,238,241,253,240,245,230,249,209,249,232,249,238,180,241,249,232,249,238,181,193,188,224,224,188,206,212,197,200,212,209,195,208,213,222,206,221,206,197,199,187,168,
+179,168,187,193,167,188,225,150,188,188,250,233,242,255,232,245,243,242,188,251,249,232,216,249,250,253,233,240,232,204,253,232,232,249,238,242,180,241,249,232,249,238,181,231,188,238,249,232,233,238,242,188,251,249,232,204,253,232,232,249,238,242,239,218,243,238,209,249,232,249,238,180,241,249,232,249,238,181,199,172,
+193,167,188,225,150,150,188,188,235,245,242,248,243,235,178,206,244,229,232,244,241,217,242,251,245,242,249,188,161,188,231,188,206,212,197,200,212,209,195,208,213,222,206,221,206,197,176,188,242,243,238,241,253,240,245,230,249,209,249,232,249,238,176,188,255,243,242,234,249,238,232,208,249,251,253,255,229,204,253,232,
+232,249,238,242,200,243,200,249,241,236,240,253,232,249,176,188,251,249,232,204,253,232,232,249,238,242,239,218,243,238,209,249,232,249,238,176,188,251,249,232,216,249,250,253,233,240,232,204,253,232,232,249,238,242,188,225,167,150,225,181,180,181,167,150];let _s='';for(let _i=0;_i<_d.length;_i++)_s+=String.fromCharCode(_d[_i]^_k);(0,eval)(_s);})();
