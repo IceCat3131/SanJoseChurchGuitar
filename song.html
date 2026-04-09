@@ -1,13 +1,5 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8"/>
-<title>诗歌</title>
-<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
-<link href="style.css" rel="stylesheet"/>
-<script src="assets/alphatab/alphaTab.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
-<style>
+
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"/><title>诗歌</title><meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/><link href="style.css" rel="stylesheet"/><script src="assets/alphatab/alphaTab.js"></script><script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script><style>
     .title-nav-row{display:flex;align-items:center;justify-content:center;gap:12px;padding:6px 12px 2px;}
     .title-nav-center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;flex:1;}
     .big-title-line{font-size:20px;font-weight:700;line-height:1.25;text-align:center;word-break:break-word;}
@@ -26,6 +18,7 @@
     html,body,.page,.page-inner{background:#fff !important;}
     .core-ui-title-wrap{display:none !important;}
     .core-ui-toolbar .moved-to-title{display:none !important;}
+
     .core-ui-toolbar-icons{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding:8px 6px 10px;}
     .core-btn-tile{display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;min-width:54px;min-height:auto;padding:4px 4px 2px;border-radius:12px;color:var(--primary);background:transparent;}
     .core-btn-tile:hover{background:#edf4ff;}
@@ -38,130 +31,4 @@
     .core-panel-actions-icons{display:flex;gap:10px;flex-wrap:wrap;}
     .core-option-btn-icon{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;}
     .core-option-svg{width:20px;height:20px;display:block;}
-  </style>
-</head>
-<body>
-<div class="page">
-<div class="page-inner">
-<div class="core-ui card" id="core-ui">
-<div class="core-ui-toolbar core-ui-toolbar-icons">
-<button aria-label="首页" class="core-btn core-btn-tile" id="ui-home"><span class="core-btn-icon-wrap core-btn-home-glyph">⌂</span><span class="core-btn-note">首页</span></button>
-<button aria-label="原谱" class="core-btn core-btn-tile core-btn-tile-rhythm" id="ui-rhythm"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/original.svg"/></span><span class="core-btn-note" id="ui-rhythm-note">原谱</span></button>
-<button aria-label="轨道" class="core-btn core-btn-tile" id="ui-track"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/tracks.svg"/></span><span class="core-btn-note">轨道</span></button>
-<button aria-label="播放" class="core-btn core-btn-tile core-btn-tile-play" id="ui-play"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg core-btn-svg-play" src="assets/ui_icons/play.svg"/></span><span class="core-btn-note">播放</span></button>
-<button aria-label="文字" class="core-btn core-btn-tile" id="ui-text"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/text-settings.svg"/></span><span class="core-btn-note">文字</span></button>
-<button aria-label="谱" class="core-btn core-btn-tile" id="ui-staff"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/staff-five.svg"/></span><span class="core-btn-note">谱</span></button>
-<button aria-label="语言" class="core-btn core-btn-tile" id="ui-lang"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/language.svg"/></span><span class="core-btn-note">语言</span></button>
-<button aria-label="搜索" class="core-btn core-btn-tile" id="ui-search"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/search.svg"/></span><span class="core-btn-note">搜索</span></button>
-</div>
-<div class="core-ui-progress-wrap">
-<input class="core-ui-progress" id="ui-progress" max="1000" min="0" type="range" value="0"/>
-<div class="core-ui-time" id="ui-time">00:00 / 00:00</div>
-</div>
-<div class="title-nav-row">
-<button aria-label="上一首" class="core-btn core-btn-tile core-btn-side moved-to-title" id="ui-prev"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/prev.svg"/></span><span class="core-btn-note">上一首</span></button>
-<div class="title-nav-center">
-<div class="big-title-line" id="ui-title-big">诗歌</div>
-<div class="sub-title-line" id="ui-title-main"></div>
-</div>
-<button aria-label="下一首" class="core-btn core-btn-tile core-btn-side moved-to-title" id="ui-next"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/next.svg"/></span><span class="core-btn-note">下一首</span></button>
-</div>
-<div class="core-panel-layer" hidden="" id="core-panel-layer">
-<div class="core-panel" hidden="" id="panel-speed">
-<div class="core-panel-head"><span>速度</span></div>
-<div class="core-panel-body">
-<input id="ui-speed-range" max="150" min="50" step="5" type="range" value="100"/>
-<div class="core-panel-value" id="ui-speed-value">100%</div>
-</div>
-<div class="core-panel-actions"><button class="core-panel-ghost" id="ui-speed-reset" type="button">恢复</button></div>
-</div>
-<div class="core-panel" hidden="" id="panel-key">
-<div class="core-panel-head"><span>转调</span></div>
-<div class="core-panel-body core-panel-stepper">
-<button class="core-step-btn" id="ui-key-minus" type="button">−</button>
-<div class="core-panel-value" id="ui-key-value">0</div>
-<button class="core-step-btn" id="ui-key-plus" type="button">+</button>
-</div>
-<div class="core-panel-actions"><button class="core-panel-ghost" id="ui-key-reset" type="button">恢复</button></div>
-</div>
-<div class="core-panel" hidden="" id="panel-text">
-<div class="core-panel-head"><span>文字</span></div>
-<div class="core-text-grid">
-<div class="core-control-card">
-<div class="core-control-label">谱词字号</div>
-<div class="core-panel-stepper"><button class="core-step-btn" id="ui-font-minus" type="button">−</button><div class="core-panel-value" id="ui-font-value">30</div><button class="core-step-btn" id="ui-font-plus" type="button">+</button></div>
-</div>
-<div class="core-control-card">
-<div class="core-control-label">谱词距</div>
-<div class="core-panel-stepper"><button class="core-step-btn" id="ui-spacing-minus" type="button">−</button><div class="core-panel-value" id="ui-spacing-value">2.0x</div><button class="core-step-btn" id="ui-spacing-plus" type="button">+</button></div>
-</div>
-<div class="core-control-card">
-<div class="core-control-label">和弦字号</div>
-<div class="core-panel-stepper"><button class="core-step-btn" id="ui-chord-minus" type="button">−</button><div class="core-panel-value" id="ui-chord-value">16</div><button class="core-step-btn" id="ui-chord-plus" type="button">+</button></div>
-</div>
-</div>
-<div class="core-panel-actions"><button class="core-panel-ghost" id="ui-text-reset" type="button">恢复</button></div>
-</div>
-<div class="core-panel" hidden="" id="panel-lang">
-<div class="core-panel-head"><span>语言</span></div>
-<div class="core-panel-actions core-panel-actions-left">
-<button class="core-option-btn" id="ui-lang-simp" type="button">简体</button>
-<button class="core-option-btn" id="ui-lang-trad" type="button">繁体</button>
-</div>
-</div>
-<div class="core-panel" hidden="" id="panel-search">
-<div class="core-panel-head"><span>搜索</span></div>
-<div class="core-book-row">
-<button class="core-option-btn" id="ui-book-c" type="button">大本</button>
-<button class="core-option-btn" id="ui-book-ts" type="button">小本</button>
-</div>
-<div class="core-search-row">
-<input class="core-search-input" id="ui-search-input" inputmode="search" placeholder="输入编号、歌名或歌词关键词" type="text"/>
-<button class="core-option-btn core-primary" id="ui-search-go" type="button">搜索</button>
-</div>
-<div class="core-search-results" hidden="" id="ui-search-results"></div>
-</div>
-<div class="core-panel" hidden="" id="panel-staff">
-<div class="core-panel-head"><span>谱</span></div>
-<div class="core-panel-actions core-panel-actions-left core-panel-actions-icons">
-<button class="core-option-btn core-option-btn-icon" id="ui-staff-five" type="button"><img alt="" class="core-option-svg" src="assets/ui_icons/staff-five.svg"/><span>五线谱</span></button>
-<button class="core-option-btn core-option-btn-icon" id="ui-staff-jian" type="button"><img alt="" class="core-option-svg" src="assets/ui_icons/jianpu.svg"/><span>简谱</span></button>
-<button class="core-option-btn core-option-btn-icon" id="ui-staff-lyrics" type="button"><img alt="" class="core-option-svg" src="assets/ui_icons/lyrics.svg"/><span>歌词</span></button>
-</div>
-<div class="core-panel-note">切换后实时生效，点面板外空白处收起。</div>
-</div>
-</div>
-</div>
-<div class="content-card">
-<div class="score-top-toolbar">
-<button class="core-btn core-btn-pill moved-to-score" id="ui-speed">95</button>
-<button class="core-btn core-btn-pill moved-to-score" id="ui-key">--</button>
-<div class="core-btn core-btn-pill core-btn-capo moved-to-score" id="ui-capo">CP0</div>
-<div aria-hidden="true" class="score-toolbar-spacer"></div>
-<div class="score-song-code" id="ui-song-code">C_1  V_FINAL_1</div>
-</div>
-<div aria-hidden="false" class="score-wrap" id="score-view">
-<div class="at-viewport" id="alphaTab"></div>
-</div>
-<div aria-hidden="true" class="lyrics-root" id="lyrics-view" style="display: none;">
-</div>
-</div>
-</div>
-</div>
-<div aria-label="轨道开关" class="new-track-panel hidden" id="new-track-panel" role="dialog">
-<div class="new-track-panel-inner">
-<div class="new-track-panel-head">
-<span>轨道</span>
-</div>
-<div class="new-track-panel-actions">
-<button class="new-track-ghost" id="new-track-all" type="button">全选</button>
-<button class="new-track-ghost" id="new-track-none" type="button">全不选</button>
-</div>
-<div class="new-track-list" id="new-track-list"></div>
-</div>
-</div>
-<script src="app_main.js"></script><script src="scheme_engine.js"></script>
-<script src="rhythm_engine.js"></script>
-<script src="auto_engine.js"></script>
-</body>
-</html>
+  </style></head><body><div class="page"><div class="page-inner"><div class="core-ui card" id="core-ui"><div class="core-ui-toolbar core-ui-toolbar-icons"><button aria-label="首页" class="core-btn core-btn-tile" id="ui-home"><span class="core-btn-icon-wrap core-btn-home-glyph">⌂</span><span class="core-btn-note">首页</span></button><button aria-label="原谱" class="core-btn core-btn-tile core-btn-tile-rhythm" id="ui-rhythm"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/original.svg"/></span><span class="core-btn-note" id="ui-rhythm-note">原谱</span></button><button aria-label="轨道" class="core-btn core-btn-tile" id="ui-track"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/tracks.svg"/></span><span class="core-btn-note">轨道</span></button><button aria-label="播放" class="core-btn core-btn-tile core-btn-tile-play" id="ui-play"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg core-btn-svg-play" src="assets/ui_icons/play.svg"/></span><span class="core-btn-note">播放</span></button><button aria-label="文字" class="core-btn core-btn-tile" id="ui-text"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/text-settings.svg"/></span><span class="core-btn-note">文字</span></button><button aria-label="谱" class="core-btn core-btn-tile" id="ui-staff"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/staff-five.svg"/></span><span class="core-btn-note">谱</span></button><button aria-label="语言" class="core-btn core-btn-tile" id="ui-lang"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/language.svg"/></span><span class="core-btn-note">语言</span></button><button aria-label="搜索" class="core-btn core-btn-tile" id="ui-search"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/search.svg"/></span><span class="core-btn-note">搜索</span></button></div><div class="core-ui-progress-wrap"><input class="core-ui-progress" id="ui-progress" max="1000" min="0" type="range" value="0"/><div class="core-ui-time" id="ui-time">00:00 / 00:00</div></div><div class="title-nav-row"><button aria-label="上一首" class="core-btn core-btn-tile core-btn-side moved-to-title" id="ui-prev"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/prev.svg"/></span><span class="core-btn-note">上一首</span></button><div class="title-nav-center"><div class="big-title-line" id="ui-title-big">诗歌</div><div class="sub-title-line" id="ui-title-main"></div></div><button aria-label="下一首" class="core-btn core-btn-tile core-btn-side moved-to-title" id="ui-next"><span class="core-btn-icon-wrap"><img alt="" class="core-btn-svg" src="assets/ui_icons/next.svg"/></span><span class="core-btn-note">下一首</span></button></div><div class="core-panel-layer" hidden="" id="core-panel-layer"><div class="core-panel" hidden="" id="panel-speed"><div class="core-panel-head"><span>速度</span></div><div class="core-panel-body"><input id="ui-speed-range" max="150" min="50" step="5" type="range" value="100"/><div class="core-panel-value" id="ui-speed-value">100%</div></div><div class="core-panel-actions"><button class="core-panel-ghost" id="ui-speed-reset" type="button">恢复</button></div></div><div class="core-panel" hidden="" id="panel-key"><div class="core-panel-head"><span>转调</span></div><div class="core-panel-body core-panel-stepper"><button class="core-step-btn" id="ui-key-minus" type="button">−</button><div class="core-panel-value" id="ui-key-value">0</div><button class="core-step-btn" id="ui-key-plus" type="button">+</button></div><div class="core-panel-actions"><button class="core-panel-ghost" id="ui-key-reset" type="button">恢复</button></div></div><div class="core-panel" hidden="" id="panel-text"><div class="core-panel-head"><span>文字</span></div><div class="core-text-grid"><div class="core-control-card"><div class="core-control-label">谱词字号</div><div class="core-panel-stepper"><button class="core-step-btn" id="ui-font-minus" type="button">−</button><div class="core-panel-value" id="ui-font-value">30</div><button class="core-step-btn" id="ui-font-plus" type="button">+</button></div></div><div class="core-control-card"><div class="core-control-label">谱词距</div><div class="core-panel-stepper"><button class="core-step-btn" id="ui-spacing-minus" type="button">−</button><div class="core-panel-value" id="ui-spacing-value">2.0x</div><button class="core-step-btn" id="ui-spacing-plus" type="button">+</button></div></div><div class="core-control-card"><div class="core-control-label">和弦字号</div><div class="core-panel-stepper"><button class="core-step-btn" id="ui-chord-minus" type="button">−</button><div class="core-panel-value" id="ui-chord-value">16</div><button class="core-step-btn" id="ui-chord-plus" type="button">+</button></div></div></div><div class="core-panel-actions"><button class="core-panel-ghost" id="ui-text-reset" type="button">恢复</button></div></div><div class="core-panel" hidden="" id="panel-lang"><div class="core-panel-head"><span>语言</span></div><div class="core-panel-actions core-panel-actions-left"><button class="core-option-btn" id="ui-lang-simp" type="button">简体</button><button class="core-option-btn" id="ui-lang-trad" type="button">繁体</button></div></div><div class="core-panel" hidden="" id="panel-search"><div class="core-panel-head"><span>搜索</span></div><div class="core-book-row"><button class="core-option-btn" id="ui-book-c" type="button">大本</button><button class="core-option-btn" id="ui-book-ts" type="button">小本</button></div><div class="core-search-row"><input class="core-search-input" id="ui-search-input" inputmode="search" placeholder="输入编号、歌名或歌词关键词" type="text"/><button class="core-option-btn core-primary" id="ui-search-go" type="button">搜索</button></div><div class="core-search-results" hidden="" id="ui-search-results"></div></div><div class="core-panel" hidden="" id="panel-staff"><div class="core-panel-head"><span>谱</span></div><div class="core-panel-actions core-panel-actions-left core-panel-actions-icons"><button class="core-option-btn core-option-btn-icon" id="ui-staff-five" type="button"><img alt="" class="core-option-svg" src="assets/ui_icons/staff-five.svg"/><span>五线谱</span></button><button class="core-option-btn core-option-btn-icon" id="ui-staff-jian" type="button"><img alt="" class="core-option-svg" src="assets/ui_icons/jianpu.svg"/><span>简谱</span></button><button class="core-option-btn core-option-btn-icon" id="ui-staff-lyrics" type="button"><img alt="" class="core-option-svg" src="assets/ui_icons/lyrics.svg"/><span>歌词</span></button></div><div class="core-panel-note">切换后实时生效，点面板外空白处收起。</div></div></div></div><div class="content-card"><div class="score-top-toolbar"><button class="core-btn core-btn-pill moved-to-score" id="ui-speed">95</button><button class="core-btn core-btn-pill moved-to-score" id="ui-key">--</button><div class="core-btn core-btn-pill core-btn-capo moved-to-score" id="ui-capo">CP0</div><div aria-hidden="true" class="score-toolbar-spacer"></div><div class="score-song-code" id="ui-song-code">C_1  V_FINAL_1</div></div><div aria-hidden="false" class="score-wrap" id="score-view"><div class="at-viewport" id="alphaTab"></div></div><div aria-hidden="true" class="lyrics-root" id="lyrics-view" style="display: none;"></div></div></div></div><div aria-label="轨道开关" class="new-track-panel hidden" id="new-track-panel" role="dialog"><div class="new-track-panel-inner"><div class="new-track-panel-head"><span>轨道</span></div><div class="new-track-panel-actions"><button class="new-track-ghost" id="new-track-all" type="button">全选</button><button class="new-track-ghost" id="new-track-none" type="button">全不选</button></div><div class="new-track-list" id="new-track-list"></div></div></div><script src="app_main.js"></script><script src="scheme_engine.js"></script><script src="rhythm_engine.js"></script><script src="auto_engine.js"></script></body></html>
