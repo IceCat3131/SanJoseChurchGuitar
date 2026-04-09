@@ -6,7 +6,67 @@
   <title>诗歌</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="stylesheet" href="style.css" />
-  <script src="assets/alphatab/alphaTab.js"></script>
+  <script src="assets/alphatab/alphaTab.js">
+  try {
+    const __oldSetMode = window.setMode;
+    if (typeof __oldSetMode === 'function' && !window.__wrappedSetModeForStaffVisual) {
+      window.__wrappedSetModeForStaffVisual = true;
+      window.setMode = async function(mode) {
+        const r = await __oldSetMode.apply(this, arguments);
+        setTimeout(applyStaffButtonVisual, 0);
+        return r;
+      };
+    }
+  } catch(e) {}
+
+  try {
+    const __oldSetStaffMode = window.setStaffMode;
+    if (typeof __oldSetStaffMode === 'function' && !window.__wrappedSetStaffModeForStaffVisual) {
+      window.__wrappedSetStaffModeForStaffVisual = true;
+      window.setStaffMode = function(mode) {
+        const r = __oldSetStaffMode.apply(this, arguments);
+        setTimeout(applyStaffButtonVisual, 0);
+        return r;
+      };
+    }
+  } catch(e) {}
+
+  document.addEventListener('DOMContentLoaded', function() {
+    try {
+      const lyricsBtn = document.getElementById('ui-staff-lyrics');
+      if (lyricsBtn) {
+        lyricsBtn.addEventListener('click', function(ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (typeof setMode === 'function') setMode('lyrics');
+          try { closeAllPanels(); } catch(e) {}
+          setTimeout(applyStaffButtonVisual, 0);
+        });
+      }
+      const fiveBtn = document.getElementById('ui-staff-five');
+      if (fiveBtn) {
+        fiveBtn.addEventListener('click', function() {
+          try { if (typeof setMode === 'function') setMode('score'); } catch(e) {}
+          setTimeout(applyStaffButtonVisual, 0);
+        });
+      }
+      const jianBtn = document.getElementById('ui-staff-jian');
+      if (jianBtn) {
+        jianBtn.addEventListener('click', function() {
+          try { if (typeof setMode === 'function') setMode('score'); } catch(e) {}
+          setTimeout(applyStaffButtonVisual, 0);
+        });
+      }
+      applyStaffButtonVisual();
+
+      const playBtn = document.getElementById('ui-play');
+      if (playBtn && !playBtn.querySelector('img')) {
+        playBtn.innerHTML = '<img src="assets/ui_icons/play.svg" alt="" aria-hidden="true"><span>播放</span>';
+      }
+    } catch(e) {}
+  });
+
+</script>
   <!-- 简繁转换库：opencc-js（浏览器 UMD 完整版） -->
   <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
 
@@ -29,15 +89,19 @@
     html,body,.page,.page-inner{background:#fff !important;}
     .core-ui-title-wrap{display:none !important;}
     .core-ui-toolbar .moved-to-title{display:none !important;}
-  
-    .core-ui-iconbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:56px;padding:6px 4px !important;height:58px;}
-    .core-ui-iconbtn .ui-icon{width:24px;height:24px;display:block;object-fit:contain;}
-    #ui-play.core-ui-iconbtn .ui-icon{width:26px;height:26px;}
-    .core-ui-iconbtn .ui-label{font-size:10px;line-height:1;color:#666;display:block;white-space:nowrap;}
-    .title-nav-row .core-ui-iconbtn{min-width:52px;height:52px;}
-    .title-nav-row .core-ui-iconbtn .ui-icon{width:22px;height:22px;}
-    .title-nav-row .core-ui-iconbtn .ui-label{font-size:9px;}
 
+    .core-ui-toolbar-icons{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding:8px 6px 10px;}
+    .core-btn-tile{display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;min-width:54px;min-height:auto;padding:4px 4px 2px;border-radius:12px;color:var(--primary);background:transparent;}
+    .core-btn-tile:hover{background:#edf4ff;}
+    .core-btn-icon-wrap{width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex:0 0 24px;}
+    .core-btn-svg{width:24px;height:24px;display:block;}
+    .core-btn-svg-play{width:26px;height:26px;}
+    .core-btn-note{font-size:11px;line-height:1;color:#4b5563;font-weight:700;white-space:nowrap;}
+    .core-btn-home-glyph{font-size:22px;line-height:1;color:#2563eb;font-weight:700;}
+    .title-nav-row .core-btn-side{min-width:58px;padding-top:2px;}
+    .core-panel-actions-icons{display:flex;gap:10px;flex-wrap:wrap;}
+    .core-option-btn-icon{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;}
+    .core-option-svg{width:20px;height:20px;display:block;}
   </style>
 </head>
 <body>
@@ -45,26 +109,27 @@
   <div class="page-inner">
 
     <div class="core-ui card" id="core-ui">
-      <div class="core-ui-toolbar">
-        <button class="core-btn core-btn-icon core-ui-iconbtn" id="ui-home" aria-label="首页"></button>
-        <button class="core-btn core-btn-pill core-btn-mini core-ui-iconbtn" id="ui-track" aria-label="轨道"></button>
-        <button class="core-btn core-btn-play core-ui-iconbtn" id="ui-play" aria-label="播放"></button>
-        <button class="core-btn core-btn-pill core-btn-mini core-ui-iconbtn" id="ui-text" aria-label="文字"></button>
-        <button class="core-btn core-btn-pill core-btn-mini core-ui-iconbtn" id="ui-staff" aria-label="谱"></button>
-        <button class="core-btn core-btn-icon core-ui-iconbtn" id="ui-lang" aria-label="语言"></button>
-        <button class="core-btn core-btn-icon core-ui-iconbtn" id="ui-search" aria-label="搜索"></button>
+      <div class="core-ui-toolbar core-ui-toolbar-icons">
+        <button class="core-btn core-btn-tile" id="ui-home" aria-label="首页"><span class="core-btn-icon-wrap core-btn-home-glyph">⌂</span><span class="core-btn-note">首页</span></button>
+        <button class="core-btn core-btn-tile core-btn-tile-rhythm" id="ui-rhythm" aria-label="原谱"><span class="core-btn-icon-wrap"><img class="core-btn-svg" src="assets/ui_icons/original.svg" alt=""></span><span class="core-btn-note" id="ui-rhythm-note">原谱</span></button>
+        <button class="core-btn core-btn-tile" id="ui-track" aria-label="轨道"><span class="core-btn-icon-wrap"><img class="core-btn-svg" src="assets/ui_icons/tracks.svg" alt=""></span><span class="core-btn-note">轨道</span></button>
+        <button class="core-btn core-btn-tile core-btn-tile-play" id="ui-play" aria-label="播放"><span class="core-btn-icon-wrap"><img class="core-btn-svg core-btn-svg-play" src="assets/ui_icons/play.svg" alt=""></span><span class="core-btn-note">播放</span></button>
+        <button class="core-btn core-btn-tile" id="ui-text" aria-label="文字"><span class="core-btn-icon-wrap"><img class="core-btn-svg" src="assets/ui_icons/text-settings.svg" alt=""></span><span class="core-btn-note">文字</span></button>
+        <button class="core-btn core-btn-tile" id="ui-staff" aria-label="谱"><span class="core-btn-icon-wrap"><img class="core-btn-svg" src="assets/ui_icons/staff-five.svg" alt=""></span><span class="core-btn-note">谱</span></button>
+        <button class="core-btn core-btn-tile" id="ui-lang" aria-label="语言"><span class="core-btn-icon-wrap"><img class="core-btn-svg" src="assets/ui_icons/language.svg" alt=""></span><span class="core-btn-note">语言</span></button>
+        <button class="core-btn core-btn-tile" id="ui-search" aria-label="搜索"><span class="core-btn-icon-wrap"><img class="core-btn-svg" src="assets/ui_icons/search.svg" alt=""></span><span class="core-btn-note">搜索</span></button>
       </div>
       <div class="core-ui-progress-wrap">
         <input class="core-ui-progress" id="ui-progress" type="range" min="0" max="1000" value="0" />
         <div class="core-ui-time" id="ui-time">00:00 / 00:00</div>
       </div>
       <div class="title-nav-row">
-        <button class="core-btn core-btn-icon moved-to-title" id="ui-prev" aria-label="上一首">⏮</button>
+        <button class="core-btn core-btn-tile core-btn-side moved-to-title" id="ui-prev" aria-label="上一首"><span class="core-btn-icon-wrap"><img class="core-btn-svg" src="assets/ui_icons/prev.svg" alt=""></span><span class="core-btn-note">上一首</span></button>
         <div class="title-nav-center">
           <div class="big-title-line" id="ui-title-big">诗歌</div>
           <div class="sub-title-line" id="ui-title-main"></div>
         </div>
-        <button class="core-btn core-btn-icon moved-to-title" id="ui-next" aria-label="下一首">⏭</button>
+        <button class="core-btn core-btn-tile core-btn-side moved-to-title" id="ui-next" aria-label="下一首"><span class="core-btn-icon-wrap"><img class="core-btn-svg" src="assets/ui_icons/next.svg" alt=""></span><span class="core-btn-note">下一首</span></button>
       </div>
       <div class="core-panel-layer" id="core-panel-layer" hidden>
         <div class="core-panel" id="panel-speed" hidden>
@@ -83,13 +148,6 @@
             <button type="button" class="core-step-btn" id="ui-key-plus">+</button>
           </div>
           <div class="core-panel-actions"><button type="button" class="core-panel-ghost" id="ui-key-reset">恢复</button></div>
-        </div>
-        <div class="core-panel" id="panel-mode" hidden style="display:none">
-          <div class="core-panel-head"><span>内容</span></div>
-          <div class="core-panel-actions core-panel-actions-left">
-            <button type="button" class="core-option-btn" id="ui-mode-score">吉他</button>
-            <button type="button" class="core-option-btn" id="ui-mode-lyrics">歌词</button>
-          </div>
         </div>
         <div class="core-panel" id="panel-text" hidden>
           <div class="core-panel-head"><span>文字</span></div>
@@ -130,10 +188,10 @@
         </div>
         <div class="core-panel" id="panel-staff" hidden>
           <div class="core-panel-head"><span>谱</span></div>
-          <div class="core-panel-actions core-panel-actions-left">
-            <button type="button" class="core-option-btn" id="ui-staff-five">五线谱</button>
-            <button type="button" class="core-option-btn" id="ui-staff-jian">简谱</button>
-            <button type="button" class="core-option-btn" id="ui-staff-lyrics">歌词</button>
+          <div class="core-panel-actions core-panel-actions-left core-panel-actions-icons">
+            <button type="button" class="core-option-btn core-option-btn-icon" id="ui-staff-five"><img class="core-option-svg" src="assets/ui_icons/staff-five.svg" alt=""><span>五线谱</span></button>
+            <button type="button" class="core-option-btn core-option-btn-icon" id="ui-staff-jian"><img class="core-option-svg" src="assets/ui_icons/jianpu.svg" alt=""><span>简谱</span></button>
+            <button type="button" class="core-option-btn core-option-btn-icon" id="ui-staff-lyrics"><img class="core-option-svg" src="assets/ui_icons/lyrics.svg" alt=""><span>歌词</span></button>
           </div>
           <div class="core-panel-note">切换后实时生效，点面板外空白处收起。</div>
         </div>
@@ -654,6 +712,26 @@ function remapTimelineTimesIfNeeded() {
 
   updatePlayButtonReadyState();
 
+
+
+  function applyStaffButtonVisual() {
+    try {
+      const btn = document.getElementById('ui-staff');
+      if (!btn) return;
+      const mode = (state.mode === 'lyrics') ? 'lyrics' : (localStorage.getItem('staffMode') || 'five');
+      const iconMap = {
+        five: 'assets/ui_icons/staff_notation.svg',
+        jian: 'assets/ui_icons/jianpu.svg',
+        lyrics: 'assets/ui_icons/lyrics_voice.svg'
+      };
+      const textMap = {
+        five: '五线谱',
+        jian: '简谱',
+        lyrics: '歌词'
+      };
+      btn.innerHTML = '<img src="' + iconMap[mode] + '" alt="" aria-hidden="true"><span>' + textMap[mode] + '</span>';
+    } catch(e) {}
+  }
 
   function togglePlayPause() {
     try {
@@ -2409,9 +2487,9 @@ function pad4(num) {
   }
   function updateCoreStaffUI(){
     const mode = getStaffMode();
-    document.getElementById('ui-staff-five')?.classList.toggle('active', state.mode === 'score' && mode === 'five');
-    document.getElementById('ui-staff-jian')?.classList.toggle('active', state.mode === 'score' && mode === 'jian');
-    document.getElementById('ui-staff-lyrics')?.classList.toggle('active', state.mode === 'lyrics');
+    document.getElementById('ui-staff-five')?.classList.toggle('active', mode === 'five');
+    document.getElementById('ui-staff-jian')?.classList.toggle('active', mode === 'jian');
+    
   }
   function applyStaffModeToTracks(score, mode){
     if (!score || !Array.isArray(score.tracks)) return;
@@ -2498,37 +2576,6 @@ function pad4(num) {
   }
   function closePanels(){ openPanel(null); }
 
-
-  function setToolbarButton(id, iconPath, label){
-    const el = $(id); if(!el) return;
-    const safeLabel = String(label || '');
-    const safeIcon = String(iconPath || '');
-    el.innerHTML = `<img class="ui-icon" src="${safeIcon}" alt=""><span class="ui-label">${safeLabel}</span>`;
-  }
-  function getStaffButtonState(){
-    if(state.mode === 'lyrics') return { icon:'assets/ui_icons/lyrics.svg', label:'歌词' };
-    try {
-      const mode = localStorage.getItem('staffMode') || 'five';
-      return mode === 'jian'
-        ? { icon:'assets/ui_icons/jianpu.svg', label:'简谱' }
-        : { icon:'assets/ui_icons/staff_five.svg', label:'五线谱' };
-    } catch(e) {
-      return { icon:'assets/ui_icons/staff_five.svg', label:'五线谱' };
-    }
-  }
-  function renderToolbarIcons(){
-    setToolbarButton('ui-home', 'assets/ui_icons/original.svg', '首页');
-    setToolbarButton('ui-track', 'assets/ui_icons/track.svg', '轨道');
-    setToolbarButton('ui-play', 'assets/ui_icons/play.svg', __playbackState.playing ? '暂停' : '播放');
-    setToolbarButton('ui-text', 'assets/ui_icons/text.svg', '文字');
-    const staff = getStaffButtonState();
-    setToolbarButton('ui-staff', staff.icon, staff.label);
-    setToolbarButton('ui-lang', 'assets/ui_icons/lang.svg', '语言');
-    setToolbarButton('ui-search', 'assets/ui_icons/search.svg', '搜索');
-    setToolbarButton('ui-prev', 'assets/ui_icons/prev.svg', '上一首');
-    setToolbarButton('ui-next', 'assets/ui_icons/next.svg', '下一首');
-  }
-
     function syncUI(){
     const tempoMeta = (__currentMeta && __currentMeta.tempo != null && __currentMeta.tempo !== '') ? String(__currentMeta.tempo) : '--';
     const keyMeta = computeDisplayedKeyName(__currentMeta || {});
@@ -2546,7 +2593,8 @@ function pad4(num) {
     if($('ui-speed')) $('ui-speed').textContent = String(displayTempo || tempoMeta || '95');
     if($('ui-key')) $('ui-key').textContent = keyMeta || '--';
     if($('ui-capo')) $('ui-capo').textContent = 'CP' + capoMeta;
-    renderToolbarIcons();
+    
+    
     if($('ui-time')) $('ui-time').textContent = currentTime;
     if($('ui-progress')) $('ui-progress').value = String(__playbackState.progress || 0);
     if($('ui-speed-range')) $('ui-speed-range').value = String(speedPct);
@@ -2564,6 +2612,7 @@ function pad4(num) {
     $('ui-mode-lyrics')?.classList.toggle('active', state.mode === 'lyrics');
     $('ui-lang-simp')?.classList.toggle('active', state.script === 'simplified');
     $('ui-lang-trad')?.classList.toggle('active', state.script === 'traditional');
+    $('ui-staff-lyrics')?.classList.toggle('active', state.mode === 'lyrics');
   }
 
   function initBindings(){
@@ -2573,7 +2622,7 @@ function pad4(num) {
     $('ui-next')?.addEventListener('click', ()=>{ goNextSong(); });
     $('ui-speed')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-speed'); });
     $('ui-key')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-key'); });
-    $('ui-text')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-text'); });
+        $('ui-text')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-text'); });
     $('ui-track')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openNewTrackPanel(); });
     $('ui-staff')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-staff'); });
     $('ui-lang')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-lang'); });
@@ -2593,7 +2642,7 @@ function pad4(num) {
     $('ui-key-minus')?.addEventListener('click', ()=>{ changeTranspose(-1); syncUI(); });
     $('ui-key-reset')?.addEventListener('click', ()=>{ resetTranspose(); syncUI(); });
 
-
+    
     $('ui-font-plus')?.addEventListener('click', ()=>{ changeScoreFont(2); syncUI(); });
     $('ui-font-minus')?.addEventListener('click', ()=>{ changeScoreFont(-2); syncUI(); });
     $('ui-spacing-plus')?.addEventListener('click', ()=>{ changeSpacing(0.1); syncUI(); });
@@ -2633,22 +2682,13 @@ function pad4(num) {
     });
 
     $('ui-staff-five')?.addEventListener('click', ()=>{
-      state.mode = 'score';
-      setMode('score');
       try { localStorage.setItem('staffMode', 'five'); } catch(e) {}
       if (typeof window.applyStaffMode === 'function') window.applyStaffMode();
       setTimeout(syncUI, 30);
     });
     $('ui-staff-jian')?.addEventListener('click', ()=>{
-      state.mode = 'score';
-      setMode('score');
       try { localStorage.setItem('staffMode', 'jian'); } catch(e) {}
       if (typeof window.applyStaffMode === 'function') window.applyStaffMode();
-      setTimeout(syncUI, 30);
-    });
-    $('ui-staff-lyrics')?.addEventListener('click', ()=>{
-      setMode('lyrics');
-      closePanels();
       setTimeout(syncUI, 30);
     });
 
