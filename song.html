@@ -1350,7 +1350,7 @@ function remapTimelineTimesIfNeeded() {
     api.playerStateChanged.on((args) => {
       const playing = (args.state === alphaTab.synth.PlayerState.Playing);
       __playbackState.playing = playing;
-      if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
+      updatePlayButtonVisual(playing);
     });
 
     let previousSec = -1;
@@ -1400,7 +1400,22 @@ function remapTimelineTimesIfNeeded() {
     return (min * 60 + sec) * 1000;
   }
 
-  function setPlayerUI({ current, total, playing }) {
+  
+  function updatePlayButtonVisual(playing) {
+    const btnPlay = document.getElementById("ui-play");
+    if (!btnPlay) return;
+    const img = btnPlay.querySelector("img");
+    const note = btnPlay.querySelector(".core-btn-note");
+    if (img) {
+      btnPlay.setAttribute("aria-label", playing ? "暂停" : "播放");
+      if (note) note.textContent = "播放";
+      return;
+    }
+    btnPlay.textContent = playing ? "⏸" : "▶";
+  }
+
+
+function setPlayerUI({ current, total, playing }) {
     __playbackState.current = current || 0;
     __playbackState.total = total || 0;
     __playbackState.playing = !!playing;
@@ -1409,8 +1424,7 @@ function remapTimelineTimesIfNeeded() {
     const progressEl = document.getElementById("ui-progress");
     if (timeEl) timeEl.textContent = `${msToMMSS(current)} / ${msToMMSS(total)}`;
     if (progressEl) progressEl.value = "0";
-    const btnPlay = document.getElementById("ui-play");
-    if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
+    updatePlayButtonVisual(!!playing);
   }
   // ===== /alphaTab + .gtz 加载 =====
 
@@ -2533,20 +2547,6 @@ function pad4(num) {
     $('ui-lang-simp')?.classList.toggle('active', state.script === 'simplified');
     $('ui-lang-trad')?.classList.toggle('active', state.script === 'traditional');
     $('ui-staff-lyrics')?.classList.toggle('active', state.mode === 'lyrics');
-    const staffBtn = $('ui-staff');
-    if (staffBtn) {
-      const img = staffBtn.querySelector('img');
-      const note = staffBtn.querySelector('.core-btn-note');
-      const mode = (state.mode === 'lyrics') ? 'lyrics' : ((function(){ try { return localStorage.getItem('staffMode') || 'five'; } catch(e) { return 'five'; } })());
-      if (img) {
-        img.src = mode === 'lyrics'
-          ? 'assets/ui_icons/lyrics.svg'
-          : (mode === 'jian' ? 'assets/ui_icons/jianpu.svg' : 'assets/ui_icons/staff-five.svg');
-      }
-      if (note) {
-        note.textContent = mode === 'lyrics' ? '歌词' : (mode === 'jian' ? '简谱' : '五线谱');
-      }
-    }
   }
 
   function initBindings(){
@@ -2617,21 +2617,12 @@ function pad4(num) {
 
     $('ui-staff-five')?.addEventListener('click', ()=>{
       try { localStorage.setItem('staffMode', 'five'); } catch(e) {}
-      setMode('score');
       if (typeof window.applyStaffMode === 'function') window.applyStaffMode();
-      closePanels();
       setTimeout(syncUI, 30);
     });
     $('ui-staff-jian')?.addEventListener('click', ()=>{
       try { localStorage.setItem('staffMode', 'jian'); } catch(e) {}
-      setMode('score');
       if (typeof window.applyStaffMode === 'function') window.applyStaffMode();
-      closePanels();
-      setTimeout(syncUI, 30);
-    });
-    $('ui-staff-lyrics')?.addEventListener('click', ()=>{
-      setMode('lyrics');
-      closePanels();
       setTimeout(syncUI, 30);
     });
 
