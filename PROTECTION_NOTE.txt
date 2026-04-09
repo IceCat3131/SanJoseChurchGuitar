@@ -1,7 +1,29 @@
-This package applies front-end protection intended to raise the reading barrier:
+Protected build generated from user-supplied _inline3.zip.
+
+What was changed:
 - HTML comments removed
 - CSS comments removed
-- External JS files wrapped in encoded loader form
-- Inline JS in HTML wrapped in encoded loader form
+- Non-assets JS files comment-stripped and encoded with a runtime XOR decoder wrapper
+- Inline <script> blocks in HTML comment-stripped and encoded with the same wrapper
+- Original directory structure preserved
+- assets/ left untouched
 
-This is deterrence, not perfect protection.
+Processed JS files:
+_inline.js
+app_main.js
+auto_engine.js
+index_main.js
+rhythm_engine.js
+scheme_engine.js
+script.js
+script2.js
+
+Processed HTML files:
+index.html
+song.html
+
+Processed CSS files:
+style.css
+
+Note:
+This raises the reverse-engineering barrier for casual readers, but it is still client-side code and cannot be made impossible to inspect.
