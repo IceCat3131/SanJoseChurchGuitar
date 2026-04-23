@@ -1,0 +1,1647 @@
+
+  const BOOKS = {
+    c: {
+      label: "大本诗歌",
+      folderText: "c_text",
+      gtzPrefix: "assets/c/c",
+      svgPrefix: "assets/c/c",
+      codePrefix: "c"
+    },
+    ts: {
+      label: "小本诗歌",
+      folderText: "ts_text",
+      gtzPrefix: "assets/ts/ts",
+      svgPrefix: "assets/ts/ts",
+      codePrefix: "ts"
+    }
+  };
+
+  const MAX_RANGES = 20; // 最多支持 2000 首（够用了）
+
+  const state = {
+    currentBook: "c",
+    currentNo: 1,
+    // “显示模式”：score=吉他谱，lyrics=歌词
+    mode: "score",
+    // 歌词当前显示：simplified=简体, traditional=繁体
+    script: "simplified",
+    lyricsFontSize: 24,
+    data: { c: [], ts: [] },
+    loadedRanges: { c: {}, ts: {} }
+  };
+
+  const DEFAULT_VIEWER_PREFS = {
+    scoreFontSizePx: 30,
+    scoreSpacingFactor: 2.0,
+    chordFontSizePx: 16,
+    pureLyricsFontSize: 24,
+    playbackSpeedPercent: 100,
+    transposeSemitones: 0
+  };
+
+  let viewerPrefs = loadViewerPrefs();
+  let __currentMeta = null;
+
+  let converterToTraditional = null; // 简 -> 繁
+  let converterToSimplified = null;  // 繁 -> 简
+
+  function setupConvertersIfNeeded() {
+    if (!window.OpenCC) return;
+    if (!converterToTraditional) {
+      // 简体（cn） -> 繁体（tw）
+      converterToTraditional = OpenCC.Converter({ from: "cn", to: "tw" });
+    }
+    if (!converterToSimplified) {
+      // 繁体（tw） -> 简体（cn）
+      converterToSimplified = OpenCC.Converter({ from: "tw", to: "cn" });
+    }
+  }
+
+  function convertTextByScript(text) {
+    setupConvertersIfNeeded();
+    if (state.script === "traditional" && converterToTraditional) {
+      return converterToTraditional(text);
+    }
+    if (state.script === "simplified" && converterToSimplified) {
+      return converterToSimplified(text); // 如果原 JSON 就是简体，这里基本等于原文
+    }
+    return text;
+  }
+
+  function loadViewerPrefs() {
+    try {
+      const raw = localStorage.getItem('sjcg.viewerPrefs.v1');
+      if (!raw) return { ...DEFAULT_VIEWER_PREFS };
+      const obj = JSON.parse(raw);
+      if (obj && Object.prototype.hasOwnProperty.call(obj, 'capoOverride')) {
+        try { delete obj.capoOverride; } catch (e) {}
+      }
+      return { ...DEFAULT_VIEWER_PREFS, ...obj };
+    } catch (e) {
+      return { ...DEFAULT_VIEWER_PREFS };
+    }
+  }
+
+  function saveViewerPrefs() {
+    try { localStorage.setItem('sjcg.viewerPrefs.v1', JSON.stringify(viewerPrefs)); } catch (e) {}
+  }
+
+  function getSongCapo() {
+    const metaCapo = parseInt(window.__gtzMeta?.capo, 10);
+    return Number.isFinite(metaCapo) ? Math.max(0, Math.min(12, metaCapo)) : 0;
+  }
+
+  function getEffectiveCapo() {
+    return getSongCapo();
+  }
+
+  function getDisplayedCapoLabel() {
+    return getSongCapo();
+  }
+
+  function getUserTranspose() {
+    const n = parseInt(viewerPrefs.transposeSemitones, 10);
+    return Number.isFinite(n) ? Math.max(-11, Math.min(11, n)) : 0;
+  }
+
+  function getEffectiveTranspose() {
+    // Capo 只作用于 6线谱（TAB）显示，
+    // 不再作用于五线谱 / 简谱 / 整体播放转调。
+    return getUserTranspose();
+  }
+
+  const NOTE_INDEX_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const NOTE_INDEX_FLAT  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  const NOTE_TO_INDEX = {
+    C: 0, 'B#': 0,
+    'C#': 1, Db: 1,
+    D: 2,
+    'D#': 3, Eb: 3,
+    E: 4, Fb: 4,
+    F: 5, 'E#': 5,
+    'F#': 6, Gb: 6,
+    G: 7,
+    'G#': 8, Ab: 8,
+    A: 9,
+    'A#': 10, Bb: 10,
+    B: 11, Cb: 11
+  };
+
+  function prefersFlatsFromKeyName(keyName) {
+    if (!keyName) return true;
+    return String(keyName).includes('b') || /^F(?:$|m)/i.test(String(keyName));
+  }
+
+  function transposePitchName(name, semitones, preferFlats) {
+    if (!name || !Number.isFinite(semitones)) return name || '--';
+    const normalized = String(name).trim();
+    const m = normalized.match(/^([A-G](?:#|b)?)(.*)$/);
+    if (!m) return normalized;
+    const root = m[1];
+    const suffix = m[2] || '';
+    const idx = NOTE_TO_INDEX[root];
+    if (idx == null) return normalized;
+    const next = (idx + semitones % 12 + 12) % 12;
+    const names = preferFlats ? NOTE_INDEX_FLAT : NOTE_INDEX_SHARP;
+    return names[next] + suffix;
+  }
+
+
+  function transposeChordSymbol(symbol, semitones, preferFlats) {
+    const raw = String(symbol || '').trim();
+    if (!raw || !Number.isFinite(semitones) || semitones === 0) return raw;
+    const m = raw.match(/^([A-G](?:#|b)?)([^/]*?)(?:\/([A-G](?:#|b)?))?$/);
+    if (!m) return raw;
+    const root = m[1];
+    const quality = m[2] || '';
+    const bass = m[3] || '';
+    if (NOTE_TO_INDEX[root] == null) return raw;
+    if (bass && NOTE_TO_INDEX[bass] == null) return raw;
+    const nextRoot = transposePitchName(root, semitones, preferFlats);
+    const nextBass = bass ? transposePitchName(bass, semitones, preferFlats) : '';
+    return nextRoot + quality + (nextBass ? '/' + nextBass : '');
+  }
+
+  function getChordFontSizePx() {
+    const n = parseInt(viewerPrefs?.chordFontSizePx, 10);
+    return Number.isFinite(n) ? Math.max(10, Math.min(36, n)) : 16;
+  }
+
+  function looksLikeChordSymbol(text) {
+    const s = String(text || '').trim();
+    if (!s || s.length > 20) return false;
+    if (!/^[A-G](?:#|b)?/.test(s)) return false;
+    if (/[^A-Ga-g0-9#b\/()\-+susmajdimaugaddnoø°△mM ]/.test(s)) return false;
+    return /^(?:[A-G](?:#|b)?)(?:m|maj|min|sus|dim|aug|add|[0-9]|\(|\/|$)/i.test(s);
+  }
+
+  function rewriteRenderedChordTexts() {
+    const root = document.getElementById('alphaTab');
+    if (!root) return;
+    const semitones = getUserTranspose();
+    const preferFlats = prefersFlatsFromKeyName((__currentMeta && __currentMeta.key_name) || '');
+    const chordFontPx = getChordFontSizePx();
+    const nodes = root.querySelectorAll('text, tspan');
+    nodes.forEach((el) => {
+      if (el.children && el.children.length) return;
+      const current = (el.textContent || '').trim();
+      if (!current) return;
+      const original = el.getAttribute('data-orig-chord') || current;
+      if (!looksLikeChordSymbol(original)) return;
+      if (!el.getAttribute('data-orig-chord')) {
+        el.setAttribute('data-orig-chord', original);
+      }
+      const next = semitones === 0 ? original : transposeChordSymbol(original, semitones, preferFlats);
+      if (next && next !== current) {
+        el.textContent = next;
+      }
+      try {
+        el.style.fontSize = chordFontPx + 'px';
+      } catch (e) {}
+    });
+  }
+
+  let __chordObserver = null;
+  let __chordRewriteTimer = null;
+  function scheduleChordRewrite(delay = 80) {
+    try { if (__chordRewriteTimer) clearTimeout(__chordRewriteTimer); } catch (e) {}
+    __chordRewriteTimer = setTimeout(() => {
+      rewriteRenderedChordTexts();
+    }, delay);
+  }
+
+  function ensureChordObserver() {
+    const root = document.getElementById('alphaTab');
+    if (!root || __chordObserver) return;
+    __chordObserver = new MutationObserver(() => {
+      scheduleChordRewrite(30);
+    });
+    __chordObserver.observe(root, { childList: true, subtree: true, characterData: false });
+  }
+
+  function computeDisplayedKeyName(meta) {
+    const m = meta || {};
+    const original = m.key_name || '--';
+    const semitones = getUserTranspose();
+    if (!original || original === '--' || semitones === 0) return original;
+    const preferFlats = prefersFlatsFromKeyName(original);
+    return transposePitchName(original, semitones, preferFlats);
+  }
+
+  function getAllTracks(api) {
+    const tracks = api?.score?.tracks || __currentScore?.tracks || [];
+    return Array.isArray(tracks) ? tracks : [];
+  }
+
+  function getSelectedTrackIndices(api) {
+    const tracks = getAllTracks(api);
+    if (!tracks.length) return [];
+    if (Array.isArray(__visibleTrackIndices)) return __visibleTrackIndices.slice();
+    return tracks.map((_, i) => i);
+  }
+
+  function applyPlaybackTrackVisibility(api) {
+    if (!api) return;
+    const tracks = getAllTracks(api);
+    if (!tracks.length || typeof api.changeTrackMute !== 'function') return;
+
+    const selected = new Set(getSelectedTrackIndices(api));
+    const hasExplicitSelection = Array.isArray(__visibleTrackIndices);
+    const useAll = !hasExplicitSelection;
+
+    tracks.forEach((track, i) => {
+      const muted = useAll ? false : !selected.has(i);
+      try { api.changeTrackMute([track], muted); } catch (e) {}
+    });
+  }
+
+  function applyScoreTransposition(api) {
+    if (!api || !api.settings) return;
+    const tracks = getAllTracks(api);
+    const trackCount = tracks.length;
+    const semitones = getEffectiveTranspose();
+    try {
+      if (!api.settings.notation) api.settings.notation = {};
+      api.settings.notation.transpositionPitches = trackCount > 0 ? Array(trackCount).fill(semitones) : [semitones];
+      api.updateSettings();
+      if (typeof api.changeTrackTranspositionPitch === 'function' && tracks.length) {
+        try { api.changeTrackTranspositionPitch(tracks, semitones); } catch (e) { console.warn('live transpose failed', e); }
+      }
+      try { api.render(); } catch (e) {}
+      scheduleChordRewrite(120);
+      scheduleTabCapoOverlay(140);
+    } catch (e) {
+      console.warn('applyScoreTransposition failed', e);
+    }
+  }
+
+  function updateMetaRow(meta) {
+    __currentMeta = meta || __currentMeta || {};
+    const m = __currentMeta || {};
+    const tempoEl = document.getElementById('meta-tempo');
+    const keyEl = document.getElementById('meta-key');
+    const capoEl = document.getElementById('meta-capo');
+    const speedEl = document.getElementById('meta-speed');
+    if (tempoEl) tempoEl.textContent = (m.tempo != null && m.tempo !== '') ? String(m.tempo) : '--';
+    if (keyEl) keyEl.textContent = computeDisplayedKeyName(m);
+    if (capoEl) capoEl.textContent = String(getDisplayedCapoLabel());
+    if (speedEl) speedEl.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
+  }
+
+  function refreshAdjustUI() {
+    const a = document.getElementById('score-font-value');
+    const b = document.getElementById('spacing-value');
+    const c = document.getElementById('tempo-slider');
+    const d = document.getElementById('tempo-slider-value');
+    const e = document.getElementById('meta-speed');
+    const f = document.getElementById('transpose-value');
+    const g = document.getElementById('capo-value');
+    if (a) a.textContent = String(viewerPrefs.scoreFontSizePx);
+    if (b) b.textContent = `${viewerPrefs.scoreSpacingFactor.toFixed(1)}x`;
+    if (c) c.value = String(viewerPrefs.playbackSpeedPercent);
+    if (d) d.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
+    if (e) e.textContent = `${viewerPrefs.playbackSpeedPercent}%`;
+    if (f) {
+      const t = getUserTranspose();
+      f.textContent = t > 0 ? `+${t}` : String(t);
+    }
+    if (g) g.textContent = String(getDisplayedCapoLabel());
+  }
+
+  function applyViewerPrefsToScore() {
+    if (!window.__atApi) return;
+    applyLyricsFont(window.__atApi, viewerPrefs.scoreFontSizePx);
+    applyLyricSpacing(window.__atApi, viewerPrefs.scoreSpacingFactor);
+    applyScoreTransposition(window.__atApi);
+    try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
+    scheduleChordRewrite(30);
+    scheduleTabCapoOverlay(120);
+  }
+
+
+  let __tabCapoOverlayTimer = null;
+
+  function ensureTabCapoOverlayRoot() {
+    const host = document.getElementById('alphaTab');
+    if (!host) return null;
+    host.style.position = host.style.position || 'relative';
+    let root = host.querySelector('.tab-capo-overlay-root');
+    if (!root) {
+      root = document.createElement('div');
+      root.className = 'tab-capo-overlay-root';
+      root.style.position = 'absolute';
+      root.style.left = '0';
+      root.style.top = '0';
+      root.style.right = '0';
+      root.style.bottom = '0';
+      root.style.pointerEvents = 'none';
+      root.style.zIndex = '20';
+      host.appendChild(root);
+    }
+    return root;
+  }
+
+  function clearTabCapoOverlay() {
+    const root = document.querySelector('#alphaTab .tab-capo-overlay-root');
+    if (root) root.innerHTML = '';
+  }
+
+  function isTabBarBounds(barBounds) {
+    const staff = barBounds?.bar?.staff;
+    if (!staff) return false;
+    // 只要这一条 staff 显示了 TAB，就允许 overlay；
+    // 不再要求它必须是“纯TAB无五线谱”的 staff。
+    return !!staff.showTablature;
+  }
+
+  function getDisplayedFretForCapo(note) {
+    if (!note || !Number.isFinite(note.fret) || note.fret < 0) return null;
+
+    const capo = getEffectiveCapo();
+    const transpose = getUserTranspose();
+
+    // 正确显示逻辑：
+    // TAB显示 = 原始品位 + Capo + 用户转调
+    const displayed = note.fret + capo + transpose;
+
+    if (!Number.isFinite(displayed) || displayed < 0) return null;
+    return displayed;
+  }
+
+  function renderTabCapoOverlay() {
+    const api = window.__atApi;
+    const root = ensureTabCapoOverlayRoot();
+    if (!api || !root) return;
+    root.innerHTML = '';
+
+    const capo = getEffectiveCapo();
+    const lookup = api.boundsLookup || api.renderer?.boundsLookup || null;
+    if (!capo || !lookup || !Array.isArray(lookup.staffSystems)) return;
+
+    for (const system of lookup.staffSystems) {
+      const masterBars = Array.isArray(system?.bars) ? system.bars : [];
+      for (const masterBar of masterBars) {
+        const barBoundsList = Array.isArray(masterBar?.bars) ? masterBar.bars : [];
+        for (const barBounds of barBoundsList) {
+          if (!isTabBarBounds(barBounds)) continue;
+          const beats = Array.isArray(barBounds?.beats) ? barBounds.beats : [];
+          for (const beatBounds of beats) {
+            const notes = Array.isArray(beatBounds?.notes) ? beatBounds.notes : [];
+            for (const noteBounds of notes) {
+              const note = noteBounds?.note;
+              const displayFret = getDisplayedFretForCapo(note);
+              const box = noteBounds?.noteHeadBounds || noteBounds;
+              if (displayFret === null || !box) continue;
+              const bw = box.w ?? box.width ?? 16;
+              const bh = box.h ?? box.height ?? 16;
+              const bx = box.x ?? 0;
+              const by = box.y ?? 0;
+
+              const el = document.createElement('div');
+              el.className = 'tab-capo-overlay-note';
+              el.textContent = String(displayFret);
+              el.style.position = 'absolute';
+              el.style.left = `${bx}px`;
+              el.style.top = `${by}px`;
+              el.style.width = `${bw}px`;
+              el.style.height = `${bh}px`;
+              el.style.display = 'flex';
+              el.style.alignItems = 'center';
+              el.style.justifyContent = 'center';
+              el.style.background = '#fff';
+              el.style.color = '#111';
+              el.style.fontWeight = '700';
+              el.style.fontSize = `${Math.max(12, Math.round(bh * 0.95))}px`;
+              el.style.lineHeight = '1';
+              el.style.borderRadius = '2px';
+              el.style.boxSizing = 'border-box';
+              root.appendChild(el);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function scheduleTabCapoOverlay(delay = 60) {
+    try { if (__tabCapoOverlayTimer) clearTimeout(__tabCapoOverlayTimer); } catch (e) {}
+    __tabCapoOverlayTimer = setTimeout(() => {
+      try { renderTabCapoOverlay(); } catch (e) { console.warn('renderTabCapoOverlay failed', e); }
+    }, delay);
+  }
+
+
+  function applyViewerPrefsToLyricsPage() {
+    state.lyricsFontSize = viewerPrefs.pureLyricsFontSize;
+    const root = document.getElementById('lyrics-view');
+    if (root) root.style.fontSize = state.lyricsFontSize + 'px';
+  }
+
+  function bindViewerControls() {
+    document.getElementById('btn-score-font-plus')?.addEventListener('click', () => {
+      viewerPrefs.scoreFontSizePx = Math.min(viewerPrefs.scoreFontSizePx + 2, 52);
+      saveViewerPrefs(); refreshAdjustUI(); applyViewerPrefsToScore();
+    });
+    document.getElementById('btn-score-font-minus')?.addEventListener('click', () => {
+      viewerPrefs.scoreFontSizePx = Math.max(viewerPrefs.scoreFontSizePx - 2, 14);
+      saveViewerPrefs(); refreshAdjustUI(); applyViewerPrefsToScore();
+    });
+    document.getElementById('btn-spacing-plus')?.addEventListener('click', () => {
+      viewerPrefs.scoreSpacingFactor = Math.min(Math.round((viewerPrefs.scoreSpacingFactor + 0.1) * 10) / 10, 3.5);
+      saveViewerPrefs(); refreshAdjustUI(); applyViewerPrefsToScore();
+    });
+    document.getElementById('btn-spacing-minus')?.addEventListener('click', () => {
+      viewerPrefs.scoreSpacingFactor = Math.max(Math.round((viewerPrefs.scoreSpacingFactor - 0.1) * 10) / 10, 1.0);
+      saveViewerPrefs(); refreshAdjustUI(); applyViewerPrefsToScore();
+    });
+    document.getElementById('tempo-slider')?.addEventListener('input', (ev) => {
+      viewerPrefs.playbackSpeedPercent = parseInt(ev.target.value, 10) || 100;
+      refreshAdjustUI();
+      updateMetaRow();
+      try { if (window.__atApi) window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
+    });
+    document.getElementById('tempo-slider')?.addEventListener('change', () => {
+      saveViewerPrefs();
+    });
+
+    document.getElementById('btn-transpose-plus')?.addEventListener('click', () => {
+      viewerPrefs.transposeSemitones = Math.min(getUserTranspose() + 1, 11);
+      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow(); applyViewerPrefsToScore();
+    });
+    document.getElementById('btn-transpose-minus')?.addEventListener('click', () => {
+      viewerPrefs.transposeSemitones = Math.max(getUserTranspose() - 1, -11);
+      saveViewerPrefs(); refreshAdjustUI(); updateMetaRow(); applyViewerPrefsToScore();
+    });
+
+  }
+
+  
+  
+  function setPlayerStatus(text) {
+    const el = document.getElementById("player-status");
+    if (el) el.textContent = text || "";
+  }
+// ===== alphaTab + .gtz 加载 =====
+  function base64ToUint8Array(b64) {
+    const binary = atob(b64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  async function loadGtzIntoAlphaTab(api, gtzUrl) {
+    try { api.stop(); } catch(e) {}
+    setPlayerUI({ current: 0, total: 0, playing: false });
+
+    const res = await fetch(gtzUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${gtzUrl}`);
+    const txt = await res.text();
+    let gtz;
+    try { gtz = JSON.parse(txt); } catch(e) { throw new Error('gtz 不是合法 JSON: ' + e.message); }
+
+    let scoreB64 = null;
+    if (gtz?.gpBase64) scoreB64 = gtz.gpBase64;
+    else if (gtz?.score?.data) scoreB64 = gtz.score.data;
+    else if (gtz?.scoreBase64) scoreB64 = gtz.scoreBase64;
+    if (!scoreB64) throw new Error('gtz 格式错误：缺少谱面数据');
+
+    const st = gtz?.state || null;
+    const vs = gtz?.viewerState || null;
+    window.__gtzState = {
+      fontSizePx: st?.fontSizePx ?? vs?.fontSizePx ?? DEFAULT_VIEWER_PREFS.scoreFontSizePx,
+      spacingFactor: st?.spacingFactor ?? vs?.spacingFactor ?? DEFAULT_VIEWER_PREFS.scoreSpacingFactor,
+      zoom: st?.zoom ?? (vs?.zoom != null ? Math.round(vs.zoom * 100) : 100),
+      visibleTrackIndices: st?.visibleTrackIndices ?? vs?.visibleTrackIndices ?? null
+    };
+    window.__gtzMeta = gtz?.meta || null;
+    updateMetaRow(window.__gtzMeta || null);
+
+    const bytes = base64ToUint8Array(scoreB64);
+    api.load(bytes);
+
+    setPlayerStatus('谱面已加载');
+    return gtz;
+  }
+
+  function msToMMSS(ms) {
+    const totalSec = Math.max(0, Math.floor(ms / 1000));
+    const m = String(Math.floor(totalSec / 60)).padStart(2, "0");
+    const s = String(totalSec % 60).padStart(2, "0");
+    return `${m}:${s}`;
+  }
+
+
+  // ===== 从 .gtz.state 还原“导出时的显示效果” =====
+  function applyLyricsFont(api, px) {
+    if (!api || !px) return;
+    try {
+      const settings = api.settings;
+      if (!settings.display) settings.display = {};
+      if (!settings.display.resources) settings.display.resources = {};
+      if (!settings.display.resources.elementFonts) settings.display.resources.elementFonts = new Map();
+
+      const FontCtor = window.alphaTab?.model?.Font || window.alphaTab?.Font;
+      const ne = window.alphaTab?.NotationElement;
+
+      if (settings.display.resources.elementFonts && typeof settings.display.resources.elementFonts.set === 'function' && FontCtor && ne) {
+        const fontObj = new FontCtor('Microsoft YaHei', px, window.alphaTab.model.FontStyle.Plain, window.alphaTab.model.FontWeight.Regular);
+        try { fontObj.families = ['Microsoft YaHei', 'Arial', 'sans-serif']; } catch (e) {}
+        if (ne.EffectLyrics != null) settings.display.resources.elementFonts.set(ne.EffectLyrics, fontObj);
+        api.updateSettings();
+      }
+    } catch (e) {
+      console.warn('applyLyricsFont failed', e);
+    }
+  }
+
+  function applyLyricSpacing(api, factor) {
+    if (!api || !factor) return;
+    // 与 gp-lyrics-fixed-export 保持一致：1.00x => 0px, 2.00x => 12px
+    const padding = Math.max(0, Math.round((factor - 1) * 12));
+    try {
+      const settings = api.settings;
+      if (!settings.display) settings.display = {};
+      if ('lyricLinesPaddingBetween' in settings.display) {
+        settings.display.lyricLinesPaddingBetween = padding;
+        api.updateSettings();
+      } else {
+        // 旧版本兜底：不报错即可（必要时再走 SVG 后处理）
+      }
+    } catch (e) {
+      console.warn('applyLyricSpacing failed', e);
+    }
+  }
+
+  function applyZoom(api, zoom) {
+    if (!api || !zoom) return;
+    try {
+      const settings = api.settings;
+      if (!settings.display) settings.display = {};
+      // 这里以 1.0 为基准缩放（你导出的 zoom=100 表示不缩放）
+      settings.display.scale = (zoom / 100);
+      __exportBaseScale = settings.display.scale || 1.0;
+      api.updateSettings();
+    } catch (e) {}
+  }
+
+  
+  // ===== 响应式：控制每行小节数（barsPerRow）与横竖屏 =====
+  // 目标：
+  // - 手机竖屏：>=2 小节/行
+  // - 手机横屏：>=3 小节/行
+  // - iPad/电脑：>=5 小节/行（宽屏可到 6）
+  let __exportBaseScale = 1.0; // 来自 .gtz.state.zoom
+  let __lastBarsPerRow = null;
+  let __lastResponsiveScale = null;
+
+  function computeBarsPerRow(width, isLandscape) {
+    // width: alphaTab 容器可用宽度
+    if (width <= 0 || !isFinite(width)) return -1;
+    if (width < 520) return isLandscape ? 3 : 2;        // 手机
+    if (width < 740) return isLandscape ? 4 : 3;        // 大屏手机/小平板
+    if (width < 1100) return 5;                         // iPad/笔记本
+    return 6;                                           // 大屏桌面
+  }
+
+  function computeResponsiveScale(width, isLandscape) {
+    // 为了保证“每行小节数”能达到目标，小屏适当缩放
+    if (width < 520) return isLandscape ? 0.88 : 0.92;
+    if (width < 740) return isLandscape ? 0.90 : 0.94;
+    if (width < 1100) return 0.96;
+    return 1.0;
+  }
+
+  function applyResponsiveLayout(api) {
+    if (!api) return;
+    const el = document.getElementById('score-view') || document.getElementById('alphaTab') || document.body;
+    const w = (el && el.clientWidth) ? el.clientWidth : window.innerWidth;
+    const isLandscape = window.matchMedia && window.matchMedia('(orientation: landscape)').matches;
+
+    const bars = computeBarsPerRow(w, isLandscape);
+    const mul = computeResponsiveScale(w, isLandscape);
+
+    try {
+      const settings = api.settings;
+      if (!settings.display) settings.display = {};
+
+      // 强制 Page 布局，barsPerRow 才会生效
+      if (window.alphaTab?.LayoutMode) {
+        settings.display.layoutMode = window.alphaTab.LayoutMode.Page;
+      }
+
+      // 使用系统自动布局（避免小屏变成 1 小节/行）
+      if (window.alphaTab?.SystemsLayoutMode) {
+        settings.display.systemsLayoutMode = window.alphaTab.SystemsLayoutMode.Automatic;
+      }
+
+      // 设置每行小节数
+      settings.display.barsPerRow = bars;
+
+      // 缩放：导出基准 * 响应式乘子
+      const responsiveScale = (__exportBaseScale || 1.0) * mul;
+      settings.display.scale = responsiveScale;
+
+      // 仅当有变化才更新，减少闪烁
+      if (__lastBarsPerRow !== bars || Math.abs((__lastResponsiveScale||0) - responsiveScale) > 0.001) {
+        __lastBarsPerRow = bars;
+        __lastResponsiveScale = responsiveScale;
+        api.updateSettings();
+        // alphaTab 会自动响应 resize，但 barsPerRow/scale 变化最好强制 render
+        try { api.render(); } catch(e) {}
+      }
+    } catch (e) {
+      console.warn('applyResponsiveLayout failed', e);
+    }
+  }
+
+  let __resizeTimer = null;
+  function scheduleResponsiveLayout(api) {
+    if (__resizeTimer) clearTimeout(__resizeTimer);
+    __resizeTimer = setTimeout(() => applyResponsiveLayout(api), 120);
+  }
+
+// ===== 多轨道同页显示 + 轨道开关 =====
+  let __currentScore = null;
+  let __visibleTrackIndices = null;
+
+  function renderVisibleTracks(api) {
+    if (!api || !__currentScore) return;
+    let idxs = Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : [];
+    if (!idxs.length) {
+      // 默认：全选
+      idxs = __currentScore.tracks.map((_, i) => i);
+    }
+    try {
+      api.renderScore(__currentScore, idxs);
+    } catch (e) {
+      console.warn('renderScore failed, fallback render', e);
+      try { api.render(); } catch(e2) {}
+    }
+    applyPlaybackTrackVisibility(api);
+  }
+
+  function buildTracksPanel(score) {
+    const panel = document.getElementById('tracks-panel');
+    const list = document.getElementById('tracks-list');
+    if (!panel || !list || !score) return;
+
+    list.innerHTML = '';
+    const tracks = score.tracks || [];
+    const selected = new Set(Array.isArray(__visibleTrackIndices) && __visibleTrackIndices.length ? __visibleTrackIndices : tracks.map((_, i) => i));
+
+    tracks.forEach((t, i) => {
+      const row = document.createElement('label');
+      row.className = 'track-item';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = selected.has(i);
+      cb.addEventListener('change', () => {
+        const now = new Set(Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices : []);
+        if (!now.size) tracks.forEach((_, k) => now.add(k)); // 如果之前为空=全选
+        if (cb.checked) now.add(i); else now.delete(i);
+        __visibleTrackIndices = Array.from(now).sort((a,b)=>a-b);
+        renderVisibleTracks(window.__atApi);
+        // 同步应用“每行小节数”与缩放
+        scheduleResponsiveLayout(window.__atApi);
+      });
+
+      const name = document.createElement('div');
+      name.className = 'track-name';
+      name.textContent = (t.name || t.shortName || `Track ${i+1}`);
+
+      row.appendChild(cb);
+      row.appendChild(name);
+      list.appendChild(row);
+    });
+
+    // 面板按钮
+    const btnAll = document.getElementById('tracks-all');
+    const btnNone = document.getElementById('tracks-none');
+    const btnClose = document.getElementById('tracks-close');
+
+    if (btnAll) btnAll.onclick = () => {
+      __visibleTrackIndices = tracks.map((_, i) => i);
+      buildTracksPanel(__currentScore);
+      renderVisibleTracks(window.__atApi);
+    };
+    if (btnNone) btnNone.onclick = () => {
+      __visibleTrackIndices = [];
+      buildTracksPanel(__currentScore);
+      renderVisibleTracks(window.__atApi);
+    };
+    if (btnClose) btnClose.onclick = () => panel.classList.add('hidden');
+  }
+
+  function setupTracksButton() {
+    const btn = document.getElementById('btn-tracks');
+    const panel = document.getElementById('tracks-panel');
+    if (!btn || !panel) return;
+
+    btn.addEventListener('click', () => {
+      if (!__currentScore) return;
+      buildTracksPanel(__currentScore);
+      panel.classList.toggle('hidden');
+    });
+
+    // 点击遮罩关闭
+    panel.addEventListener('click', (e) => {
+      if (e.target === panel) panel.classList.add('hidden');
+    });
+  }
+
+  // ===== 播放位置标记（长竖线光标） =====
+  function enableCursor(api) {
+    try {
+      const settings = api.settings;
+      if (!settings.player) settings.player = {};
+      if ('enableCursor' in settings.player) settings.player.enableCursor = true;
+      if ('enableAnimatedBeatCursor' in settings.player) settings.player.enableAnimatedBeatCursor = true;
+      api.updateSettings();
+    } catch (e) {}
+  }
+  let __playerUi = null;
+  let __playbackState = { current: 0, total: 0, playing: false, progress: 0 };
+  function setupPlayerBar(api) {
+    if (__playerUi) return;
+    const btnPrev = document.getElementById("btn-player-prev");
+    const btnPlay = document.getElementById("btn-player-play");
+    const btnNext = document.getElementById("btn-player-next");
+    const timeEl = document.getElementById("player-time");
+    const progressEl = document.getElementById("player-progress");
+    const indicatorEl = document.getElementById("player-indicator");
+
+    __playerUi = { btnPrev, btnPlay, btnNext, timeEl, progressEl, indicatorEl, isSeeking: false };
+
+    // 复用页面已有上一首/下一首逻辑（按钮在顶部）
+    btnPrev.addEventListener("click", () => document.getElementById("btn-prev")?.click());
+    btnNext.addEventListener("click", () => document.getElementById("btn-next")?.click());
+    btnPlay.addEventListener("click", () => api.playPause());
+
+    // SoundFont 加载指示
+    api.soundFontLoad.on((e) => {
+      const pct = Math.floor((e.loaded / e.total) * 100);
+      indicatorEl.textContent = `<span id="player-status">音源未加载</span> ${pct}%`;
+      indicatorEl.style.display = "block";
+    });
+    api.playerReady.on(() => {
+      indicatorEl.style.display = "none";
+      btnPlay.disabled = false;
+      btnPrev.disabled = false;
+      btnNext.disabled = false;
+    });
+
+    // 播放状态变化：切换 ▶ / ⏸
+    api.playerStateChanged.on((args) => {
+      const playing = (args.state === alphaTab.synth.PlayerState.Playing);
+      __playbackState.playing = playing;
+      btnPlay.textContent = playing ? "⏸" : "▶";
+    });
+
+    // 进度刷新
+    let previousSec = -1;
+    api.playerPositionChanged.on((args) => {
+      const currentSec = Math.floor(args.currentTime / 1000);
+      if (currentSec === previousSec) return;
+      previousSec = currentSec;
+
+      if (!__playerUi.isSeeking) {
+        const max = Math.max(1, args.endTime);
+        const v = Math.floor((args.currentTime / max) * 1000);
+        progressEl.value = String(isFinite(v) ? v : 0);
+      }
+      timeEl.textContent = `${msToMMSS(args.currentTime)} / ${msToMMSS(args.endTime)}`;
+    });
+
+    // 拖动进度条进行 seek（通过 api.timePosition）
+    progressEl.addEventListener("input", () => {
+      __playerUi.isSeeking = true;
+      const v = parseInt(progressEl.value, 10);
+      // 这里拿不到 endTime，只能读最近一次 UI 上的总时长
+      const text = timeEl.textContent || "00:00 / 00:00";
+      const total = parseTimeFromText(text.split("/")[1] || "00:00");
+      const target = Math.floor(total * (v / 1000));
+      timeEl.textContent = `${msToMMSS(target)} / ${msToMMSS(total)}`;
+    });
+
+    progressEl.addEventListener("change", () => {
+      const v = parseInt(progressEl.value, 10);
+      const text = timeEl.textContent || "00:00 / 00:00";
+      const total = parseTimeFromText(text.split("/")[1] || "00:00");
+      const target = Math.floor(total * (v / 1000));
+      try { api.timePosition = target; } catch(e) {}
+      __playerUi.isSeeking = false;
+    });
+
+    // 初始禁用，直到 playerReady
+    btnPlay.disabled = true;
+    btnPrev.disabled = true;
+    btnNext.disabled = true;
+  }
+
+  function parseTimeFromText(t) {
+    // t like " 03:12" or "03:12"
+    const s = (t || "").trim();
+    const m = s.match(/^(\d+):(\d{2})$/);
+    if (!m) return 0;
+    const min = parseInt(m[1], 10);
+    const sec = parseInt(m[2], 10);
+    return (min * 60 + sec) * 1000;
+  }
+
+  function setPlayerUI({ current, total, playing }) {
+    __playbackState.current = current || 0;
+    __playbackState.total = total || 0;
+    __playbackState.playing = !!playing;
+    __playbackState.progress = 0;
+    const timeEl = document.getElementById("player-time");
+    const progressEl = document.getElementById("player-progress");
+    if (timeEl) timeEl.textContent = `${msToMMSS(current)} / ${msToMMSS(total)}`;
+    if (progressEl) progressEl.value = "0";
+    const btnPlay = document.getElementById("btn-player-play");
+    if (btnPlay) btnPlay.textContent = playing ? "⏸" : "▶";
+  }
+  // ===== /alphaTab + .gtz 加载 =====
+
+function pad4(num) {
+    return String(num).padStart(4, "0");
+  }
+
+  function parseQuery() {
+    const params = new URLSearchParams(window.location.search);
+    const book = params.get("book") || "c";
+    let no = parseInt(params.get("no") || "1", 10);
+    if (!Number.isFinite(no) || no < 1) no = 1;
+    state.currentBook = (book === "ts") ? "ts" : "c";
+    state.currentNo = no;
+  }
+
+  function getRangeIndex(no) {
+    return Math.floor((no - 1) / 100); // 1-100 -> 0, 101-200 -> 1 ...
+  }
+
+  function getRangeFilePath(bookKey, rangeIndex) {
+    const start = rangeIndex * 100 + 1;
+    const end = (rangeIndex + 1) * 100;
+    const folder = BOOKS[bookKey].folderText;
+    return `assets/${folder}/${bookKey}_${start}_${end}.json`;
+  }
+
+  async function loadRange(bookKey, rangeIndex) {
+    if (state.loadedRanges[bookKey][rangeIndex]) return true;
+    const url = getRangeFilePath(bookKey, rangeIndex);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        state.loadedRanges[bookKey][rangeIndex] = true;
+        return false;
+      }
+      const json = await res.json();
+      if (!Array.isArray(json) || json.length === 0) {
+        state.loadedRanges[bookKey][rangeIndex] = true;
+        return false;
+      }
+      state.data[bookKey] = state.data[bookKey].concat(json);
+      state.loadedRanges[bookKey][rangeIndex] = true;
+      return true;
+    } catch (e) {
+      console.error("加载区间失败", bookKey, rangeIndex, e);
+      state.loadedRanges[bookKey][rangeIndex] = true;
+      return false;
+    }
+  }
+
+  async function ensureRangeForNo(bookKey, no) {
+    const rangeIndex = getRangeIndex(no);
+    return await loadRange(bookKey, rangeIndex);
+  }
+
+  function findLocalSong(bookKey, no) {
+    const songs = state.data[bookKey] || [];
+    return songs.find(s => s.no === no) || null;
+  }
+
+  async function getSong(bookKey, no) {
+    await ensureRangeForNo(bookKey, no);
+    return findLocalSong(bookKey, no);
+  }
+
+  function renderScore(bookKey, no) {
+    const container = document.getElementById("score-view");
+    // alphaTab 渲染容器（在 HTML 里我们放了 #alphaTab）
+    const atEl = document.getElementById("alphaTab");
+
+    // 首次初始化 alphaTab API
+    if (!window.__atApi) {
+      const settings = {
+        core: {
+          includeNoteBounds: true
+        },
+        // 文件由我们手动 load(ArrayBuffer) 提供，因此这里不设置 file
+        display: {
+          scale: 1.0
+        },
+        player: {
+          enablePlayer: true,
+          // alphaTab 官方教程示例音源（SoundFont2）
+          soundFont: 'https://cdn.jsdelivr.net/npm/@coderline/alphatab@latest/dist/soundfont/sonivox.sf2',
+          // 播放时滚动这个元素
+          scrollElement: container
+        }
+      };
+
+      window.__atApi = new alphaTab.AlphaTabApi(atEl, settings);
+
+      // 轨道开关按钮（只影响多轨显示）
+      setupTracksButton();
+
+      // 响应式：根据屏幕宽度/横竖屏调整每行小节数
+      applyResponsiveLayout(window.__atApi);
+      window.addEventListener('resize', () => scheduleResponsiveLayout(window.__atApi));
+      window.addEventListener('orientationchange', () => scheduleResponsiveLayout(window.__atApi));
+
+      // 载入谱面后：还原歌词字号/行距/缩放/多轨
+      window.__atApi.scoreLoaded.on((e) => {
+        __currentScore = e.score || window.__atApi.score;
+        const st = window.__gtzState || {};
+        __visibleTrackIndices = Array.isArray(st.visibleTrackIndices) ? st.visibleTrackIndices.slice() : null;
+
+        if (!viewerPrefs.__initializedFromSong) {
+          viewerPrefs.scoreFontSizePx = st.fontSizePx || viewerPrefs.scoreFontSizePx;
+          viewerPrefs.scoreSpacingFactor = st.spacingFactor || viewerPrefs.scoreSpacingFactor;
+          viewerPrefs.__initializedFromSong = true;
+          saveViewerPrefs();
+        }
+        applyZoom(window.__atApi, st.zoom);
+        applyViewerPrefsToScore();
+        refreshAdjustUI();
+        updateMetaRow(window.__gtzMeta || null);
+
+        enableCursor(window.__atApi);
+
+        renderVisibleTracks(window.__atApi);
+        applyScoreTransposition(window.__atApi);
+        applyPlaybackTrackVisibility(window.__atApi);
+        scheduleTabCapoOverlay(180);
+      });
+
+      window.__atApi.renderFinished.on(() => {
+        scheduleTabCapoOverlay(40);
+      });
+
+      // 播放条绑定
+      setupPlayerBar(window.__atApi);
+    }
+
+    // 加载 .gtz (JSON) -> 解 base64 -> load 到 alphaTab
+    const gtzPrefix = BOOKS[bookKey].gtzPrefix || BOOKS[bookKey].svgPrefix;
+    const gtzUrl = `${gtzPrefix}${pad4(no)}_cn_g.gtz`; // 如 assets/c/c0001_cn_g.gtz
+
+    loadGtzIntoAlphaTab(window.__atApi, gtzUrl).catch(err => {
+      console.error("加载 gtz 失败:", err);
+      setPlayerStatus('加载失败: ' + (err && err.message ? err.message : err));
+      // fallback: 如果没有 gtz，就尝试旧的 svg（便于过渡）
+      try {
+        container.innerHTML = "";
+        const folderPrefix = BOOKS[bookKey].svgPrefix;
+        const src = `${folderPrefix}${pad4(no)}_cn_g.svg`;
+        const img = document.createElement("img");
+        img.alt = `${BOOKS[bookKey].label} 第 ${no} 首 吉他谱`;
+        img.src = src;
+        container.appendChild(img);
+      } catch (e) {}
+    });
+  }
+
+
+  function renderLyrics(song) {
+    const root = document.getElementById("lyrics-view");
+    root.innerHTML = "";
+    if (!song || !song.lyrics) return;
+
+    state.lyricsFontSize = viewerPrefs.pureLyricsFontSize;
+    root.style.fontSize = state.lyricsFontSize + "px";
+
+    song.lyrics.forEach(section => {
+      const sec = document.createElement("div");
+      sec.className = "lyrics-section";
+
+      const noDiv = document.createElement("div");
+      noDiv.className = "lyrics-section-no";
+      noDiv.textContent = section.section_no || "";
+
+      const linesWrap = document.createElement("div");
+      linesWrap.className = "lyrics-lines";
+
+      (section.lines || []).forEach(lineText => {
+        const p = document.createElement("p");
+        p.textContent = convertTextByScript(lineText || "");
+        linesWrap.appendChild(p);
+      });
+
+      sec.appendChild(noDiv);
+      sec.appendChild(linesWrap);
+      root.appendChild(sec);
+    });
+  }
+
+  function updateTitle(song) {
+    const titleEl = document.getElementById("song-title");
+    if (song && song.title) {
+      titleEl.textContent = song.title;
+      document.title = song.title + " - 召会诗歌吉他谱";
+    } else {
+      titleEl.textContent = `${BOOKS[state.currentBook].label} 第 ${state.currentNo} 首`;
+      document.title = titleEl.textContent;
+    }
+  }
+
+  function setMode(mode) {
+    state.mode = mode;
+    const scoreView = document.getElementById("score-view");
+    const lyricsView = document.getElementById("lyrics-view");
+
+    const btnScore = document.getElementById("btn-mode-score");
+    const btnLyrics = document.getElementById("btn-mode-lyrics");
+
+    if (mode === "score") {
+      scoreView.style.display = "";
+      scoreView.setAttribute("aria-hidden", "false");
+      lyricsView.style.display = "none";
+      lyricsView.setAttribute("aria-hidden", "true");
+      btnScore.classList.add("active");
+      btnLyrics.classList.remove("active");
+    } else {
+      scoreView.style.display = "none";
+      scoreView.setAttribute("aria-hidden", "true");
+      lyricsView.style.display = "";
+      lyricsView.setAttribute("aria-hidden", "false");
+      btnScore.classList.remove("active");
+      btnLyrics.classList.add("active");
+    }
+  }
+
+  function syncBookButtons() {
+    document.getElementById("btn-book-c").classList.toggle("active", state.currentBook === "c");
+    document.getElementById("btn-book-ts").classList.toggle("active", state.currentBook === "ts");
+  }
+
+  function syncScriptButton() {
+    const btn = document.getElementById("btn-script");
+    // 当前歌词是简体 -> 按钮显示“繁”；当前歌词繁体 -> 按钮显示“简”
+    if (state.script === "simplified") {
+      btn.textContent = "繁";
+      btn.classList.remove("active");
+    } else {
+      btn.textContent = "简";
+      btn.classList.add("active");
+    }
+  }
+
+  function updateURL() {
+    const url = new URL(window.location.href);
+    url.searchParams.set("book", state.currentBook);
+    url.searchParams.set("no", String(state.currentNo));
+    window.history.replaceState({}, "", url.toString());
+  }
+
+  async function loadAndRenderCurrentSong() {
+    const song = await getSong(state.currentBook, state.currentNo);
+    if (!song) {
+      alert("找不到这首诗歌的歌词数据。");
+      return;
+    }
+    updateTitle(song);
+    renderScore(state.currentBook, state.currentNo);
+    renderLyrics(song);
+    setMode(state.mode); // 保持当前 吉他 / 歌词 模式
+    syncScriptButton();
+  }
+
+  async function tryGoTo(delta) {
+    const newNo = state.currentNo + delta;
+    if (newNo <= 0) {
+      alert("已经是第一首了。");
+      return;
+    }
+    const song = await getSong(state.currentBook, newNo);
+    if (!song) {
+      alert(delta > 0 ? "已经是最后一首了。" : "已经是第一首了。");
+      return;
+    }
+    state.currentNo = newNo;
+    updateURL();
+    await loadAndRenderCurrentSong();
+  }
+
+  function goToNumber(no) {
+    state.currentNo = no;
+    updateURL();
+    loadAndRenderCurrentSong();
+  }
+
+  function handleSearch() {
+    performSearch(document.getElementById("search-input").value);
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    parseQuery();
+    document.getElementById("search-input").value = state.currentNo;  // ★ 显示当前编号
+    syncBookButtons();
+    syncScriptButton(); // 默认：歌词简体，按钮显示“繁”
+
+    document.getElementById("btn-back").addEventListener("click", goHome);
+
+    document.getElementById("btn-prev").addEventListener("click", () => {
+      goPrevSong();
+    });
+
+    document.getElementById("btn-next").addEventListener("click", () => {
+      goNextSong();
+    });
+
+    // 大本 / 小本切换
+    document.querySelectorAll(".search-book-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const book = btn.dataset.book;
+        if (state.currentBook === book) return;
+        state.currentBook = book;
+        syncBookButtons();
+        // 同编号若不存在，会在 loadAndRenderCurrentSong 里提示
+        updateURL();
+        await loadAndRenderCurrentSong();
+      });
+    });
+
+    // 搜索
+    document.getElementById("btn-search").addEventListener("click", () => performSearch(document.getElementById("search-input").value));
+    document.getElementById("search-input").addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        performSearch(document.getElementById("search-input").value);
+      }
+    });
+
+    // 吉他 / 歌词模式
+    document.getElementById("btn-mode-score").addEventListener("click", () => {
+      setMode("score");
+    });
+    document.getElementById("btn-mode-lyrics").addEventListener("click", () => {
+      setMode("lyrics");
+    });
+
+    // 简繁按钮：一个位置，文字互换
+    document.getElementById("btn-script").addEventListener("click", () => {
+      setScriptMode(state.script === "simplified" ? "traditional" : "simplified");
+    });
+
+    bindViewerControls();
+    refreshAdjustUI();
+    applyViewerPrefsToLyricsPage();
+
+    // 字号 + / - ：歌词页调纯歌词字号；乐谱页调谱内歌词字号
+    document.getElementById("btn-font-plus").addEventListener("click", () => {
+      if (state.mode === 'lyrics') {
+        viewerPrefs.pureLyricsFontSize = Math.min(viewerPrefs.pureLyricsFontSize + 3, 48);
+        saveViewerPrefs();
+        applyViewerPrefsToLyricsPage();
+        getSong(state.currentBook, state.currentNo).then(song => { if (song) renderLyrics(song); });
+      } else {
+        viewerPrefs.scoreFontSizePx = Math.min(viewerPrefs.scoreFontSizePx + 2, 52);
+        saveViewerPrefs();
+        refreshAdjustUI();
+        applyViewerPrefsToScore();
+      }
+    });
+    document.getElementById("btn-font-minus").addEventListener("click", () => {
+      if (state.mode === 'lyrics') {
+        viewerPrefs.pureLyricsFontSize = Math.max(viewerPrefs.pureLyricsFontSize - 3, 12);
+        saveViewerPrefs();
+        applyViewerPrefsToLyricsPage();
+        getSong(state.currentBook, state.currentNo).then(song => { if (song) renderLyrics(song); });
+      } else {
+        viewerPrefs.scoreFontSizePx = Math.max(viewerPrefs.scoreFontSizePx - 2, 14);
+        saveViewerPrefs();
+        refreshAdjustUI();
+        applyViewerPrefsToScore();
+      }
+    });
+
+    await loadAndRenderCurrentSong();
+  });
+
+
+// ===== 五线谱 / 简谱 切换（增量集成）=====
+(function(){
+  function getStaffMode(){
+    try { return localStorage.getItem('staffMode') || 'five'; } catch(e) { return 'five'; }
+  }
+  function setStaffMode(mode){
+    try { localStorage.setItem('staffMode', mode); } catch(e) {}
+  }
+  function updateStaffToggleUI(){
+    const btn = document.getElementById('btn-staff-toggle');
+    if (!btn) return;
+    btn.textContent = (getStaffMode() === 'jian') ? '五' : '简';
+  }
+  function ensureStaffToggleButton(){
+    if (document.getElementById('btn-staff-toggle')) return;
+    const host =
+      document.querySelector('.controls-row .controls-left') ||
+      document.querySelector('.controls-row') ||
+      document.body;
+    const btn = document.createElement('button');
+    btn.id = 'btn-staff-toggle';
+    btn.className = 'script-toggle-btn';
+    btn.style.marginLeft = '8px';
+    btn.addEventListener('click', function(){
+      const next = getStaffMode() === 'jian' ? 'five' : 'jian';
+      setStaffMode(next);
+      applyStaffMode();
+      updateStaffToggleUI();
+    });
+    host.appendChild(btn);
+    updateStaffToggleUI();
+  }
+  window.applyStaffMode = function applyStaffMode(){
+    const api = window.__atApi;
+    if (!api || !api.score || !Array.isArray(api.score.tracks)) return;
+    const mode = getStaffMode();
+    document.body.classList.toggle('jian-mode', mode === 'jian');
+
+    for (const track of api.score.tracks){
+      if (!track || !Array.isArray(track.staves)) continue;
+      for (const staff of track.staves){
+        // 只处理非TAB staff；TAB 保持原样
+        if (staff.showTablature) continue;
+        staff.showStandardNotation = (mode !== 'jian');
+        if ('showNumbered' in staff) staff.showNumbered = (mode === 'jian');
+        if ('showNumberedNotation' in staff) staff.showNumberedNotation = (mode === 'jian');
+      }
+    }
+    try { api.render(); } catch(e) { console.warn(e); }
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    ensureStaffToggleButton();
+    const t = setInterval(function(){
+      if (window.__atApi){
+        clearInterval(t);
+        try{
+          if (window.__atApi.renderFinished && window.__atApi.renderFinished.on){
+            window.__atApi.renderFinished.on(function(){
+              updateStaffToggleUI();
+            });
+          }
+        }catch(e){}
+        applyStaffMode();
+      }
+    }, 300);
+  });
+})();
+
+// ===== 简谱首行 1=bA 微调（增量补丁）=====
+(function(){
+  function adjustJianKeyPosition(){
+    const isJian = document.body.classList.contains('jian-mode');
+    if (!isJian) return;
+
+    const svg = document.querySelector('#alphaTab svg');
+    if (!svg) return;
+
+    const texts = svg.querySelectorAll('text');
+    texts.forEach(el => {
+      const txt = (el.textContent || '').trim();
+      if (txt === '1=' || /^1\s*=/.test(txt)) {
+        const g = el.parentElement;
+        if (!g) return;
+        if (g.dataset.adjustedJianKey) return;
+        g.dataset.adjustedJianKey = "1";
+
+        const old = g.getAttribute('transform') || '';
+        const m = old.match(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/);
+        if (m) {
+          const x = parseFloat(m[1]);
+          const y = parseFloat(m[2]) - 30;
+          g.setAttribute('transform', `translate(${x} ${y})`);
+        } else {
+          g.setAttribute('transform', `${old} translate(0 -30)`);
+        }
+
+        let sib = g.nextElementSibling;
+        let count = 0;
+        while (sib && count < 4) {
+          const old2 = sib.getAttribute('transform') || '';
+          const m2 = old2.match(/translate\(([-0-9.]+)[ ,]([-0-9.]+)\)/);
+          if (m2) {
+            const x2 = parseFloat(m2[1]);
+            const y2 = parseFloat(m2[2]) - 30;
+            sib.setAttribute('transform', `translate(${x2} ${y2})`);
+          } else {
+            sib.setAttribute('transform', `${old2} translate(0 -30)`);
+          }
+          sib = sib.nextElementSibling;
+          count++;
+        }
+      }
+    });
+  }
+  function run(){
+    setTimeout(adjustJianKeyPosition, 50);
+    setTimeout(adjustJianKeyPosition, 200);
+    setTimeout(adjustJianKeyPosition, 500);
+  }
+  document.addEventListener('DOMContentLoaded', run);
+  const t = setInterval(()=>{
+    if (window.__atApi){
+      clearInterval(t);
+      try{
+        if (window.__atApi.renderFinished){
+          window.__atApi.renderFinished.on(run);
+        }
+      }catch(e){}
+      run();
+    }
+  },300);
+})();
+
+
+(function(){
+  function $(id){ return document.getElementById(id); }
+  function qa(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
+  function click(id){ const el=$(id); if(el) el.click(); }
+  function openPanel(id){
+    const layer = $('core-panel-layer');
+    if(!layer) return;
+    qa('.core-panel', layer).forEach(p=>p.hidden=true);
+    if(!id){ layer.hidden = true; return; }
+    layer.hidden = false;
+    const p = $(id); if(p) p.hidden = false;
+  }
+  function closePanels(){ openPanel(null); }
+
+  function syncTitles(){
+    const main = $('song-title')?.textContent || document.title || '诗歌';
+    if($('ui-title-main')) $('ui-title-main').textContent = main;
+    if($('ui-title-sub')) $('ui-title-sub').textContent = '';
+  }
+
+  function syncUI(){
+    const tempoMeta = (__currentMeta && __currentMeta.tempo != null && __currentMeta.tempo !== '') ? String(__currentMeta.tempo) : '--';
+    const keyMeta = computeDisplayedKeyName(__currentMeta || {});
+    const capoMeta = String(getDisplayedCapoLabel());
+    const speedPct = parseInt(viewerPrefs.playbackSpeedPercent, 10) || 100;
+    const transVal = getUserTranspose();
+    const transText = transVal > 0 ? `+${transVal}` : String(transVal);
+    const fontText = String(viewerPrefs.scoreFontSizePx);
+    const spacingText = `${viewerPrefs.scoreSpacingFactor.toFixed(1)}x`;
+    const chordText = String(getChordFontSizePx());
+    const currentTime = msToMMSS(__playbackState.current || 0);
+    const originalTempo = parseInt(tempoMeta,10);
+    const displayTempo = Number.isFinite(originalTempo) ? Math.round(originalTempo * speedPct / 100) : speedPct;
+
+    if($('ui-speed')) $('ui-speed').textContent = String(displayTempo || tempoMeta || '95');
+    if($('ui-key')) $('ui-key').textContent = keyMeta || '--';
+    if($('ui-capo')) $('ui-capo').textContent = 'CP' + capoMeta;
+    if($('ui-mode')) $('ui-mode').textContent = state.mode === 'lyrics' ? '词' : '吉';
+    if($('ui-play')) $('ui-play').textContent = __playbackState.playing ? '⏸' : '▶';
+    if($('ui-time')) $('ui-time').textContent = currentTime;
+    if($('ui-progress')) $('ui-progress').value = String(__playbackState.progress || 0);
+    if($('ui-speed-range')) $('ui-speed-range').value = String(speedPct);
+    if($('ui-speed-value')) $('ui-speed-value').textContent = speedPct + '%';
+    if($('ui-key-value')) $('ui-key-value').textContent = transText;
+    if($('ui-font-value')) $('ui-font-value').textContent = fontText;
+    if($('ui-spacing-value')) $('ui-spacing-value').textContent = spacingText;
+    if($('ui-chord-value')) $('ui-chord-value').textContent = chordText;
+    if($('ui-search-input') && document.activeElement !== $('ui-search-input')) $('ui-search-input').value = String(state.currentNo || '');
+    if($('search-input') && document.activeElement !== $('search-input')) $('search-input').value = String(state.currentNo || '');
+    $('ui-book-c')?.classList.toggle('active', state.currentBook === 'c');
+    $('ui-book-ts')?.classList.toggle('active', state.currentBook === 'ts');
+    $('ui-mode-score')?.classList.toggle('active', state.mode === 'score');
+    $('ui-mode-lyrics')?.classList.toggle('active', state.mode === 'lyrics');
+    $('ui-lang-simp')?.classList.toggle('active', state.script === 'simplified');
+    $('ui-lang-trad')?.classList.toggle('active', state.script === 'traditional');
+    syncTitles();
+  }
+
+  function initBindings(){
+    $('ui-home')?.addEventListener('click', goHome);
+    $('ui-prev')?.addEventListener('click', ()=>{ goPrevSong(); });
+    $('ui-play')?.addEventListener('click', togglePlayPause);
+    $('ui-next')?.addEventListener('click', ()=>{ goNextSong(); });
+    $('ui-speed')?.addEventListener('click', ()=>openPanel('panel-speed'));
+    $('ui-key')?.addEventListener('click', ()=>openPanel('panel-key'));
+    $('ui-mode')?.addEventListener('click', ()=>openPanel('panel-mode'));
+    $('ui-text')?.addEventListener('click', ()=>openPanel('panel-text'));
+    $('ui-track')?.addEventListener('click', ()=>{ openNewTrackPanel(); });
+    $('ui-staff')?.addEventListener('click', ()=>openPanel('panel-staff'));
+    $('ui-lang')?.addEventListener('click', ()=>openPanel('panel-lang'));
+    $('ui-search')?.addEventListener('click', ()=>openPanel('panel-search'));
+    qa('[data-close-panel]').forEach(btn=>btn.addEventListener('click', closePanels));
+
+    $('ui-speed-range')?.addEventListener('input', e=>{
+      setPlaybackSpeedPercent(e.target.value);
+      syncUI();
+    });
+    $('ui-speed-reset')?.addEventListener('click', ()=>{
+      setPlaybackSpeedPercent(100);
+      syncUI();
+    });
+
+    $('ui-key-plus')?.addEventListener('click', ()=>{ changeTranspose(1); syncUI(); });
+    $('ui-key-minus')?.addEventListener('click', ()=>{ changeTranspose(-1); syncUI(); });
+    $('ui-key-reset')?.addEventListener('click', ()=>{ resetTranspose(); syncUI(); });
+
+    $('ui-mode-score')?.addEventListener('click', ()=>{ setMode('score'); syncUI(); });
+    $('ui-mode-lyrics')?.addEventListener('click', ()=>{ setMode('lyrics'); syncUI(); });
+
+    $('ui-font-plus')?.addEventListener('click', ()=>{ changeScoreFont(2); syncUI(); });
+    $('ui-font-minus')?.addEventListener('click', ()=>{ changeScoreFont(-2); syncUI(); });
+    $('ui-spacing-plus')?.addEventListener('click', ()=>{ changeSpacing(0.1); syncUI(); });
+    $('ui-spacing-minus')?.addEventListener('click', ()=>{ changeSpacing(-0.1); syncUI(); });
+    $('ui-chord-plus')?.addEventListener('click', ()=>{ changeChordFont(1); syncUI(); });
+    $('ui-chord-minus')?.addEventListener('click', ()=>{ changeChordFont(-1); syncUI(); });
+
+    $('ui-lang-simp')?.addEventListener('click', ()=>{ setScriptMode('simplified'); syncUI(); });
+    $('ui-lang-trad')?.addEventListener('click', ()=>{ setScriptMode('traditional'); syncUI(); });
+
+    $('ui-book-c')?.addEventListener('click', ()=>{ setBook('c').then(syncUI); });
+    $('ui-book-ts')?.addEventListener('click', ()=>{ setBook('ts').then(syncUI); });
+    $('ui-search-go')?.addEventListener('click', ()=>{
+      performSearch($('ui-search-input')?.value || '');
+      closePanels();
+      syncUI();
+    });
+    $('ui-search-input')?.addEventListener('keydown', e=>{
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch($('ui-search-input')?.value || '');
+        closePanels();
+        syncUI();
+      }
+    });
+
+    $('ui-staff-five')?.addEventListener('click', ()=>{
+      try { localStorage.setItem('staffMode', 'five'); } catch(e) {}
+      if (typeof window.applyStaffMode === 'function') window.applyStaffMode();
+      setTimeout(syncUI, 30);
+    });
+    $('ui-staff-jian')?.addEventListener('click', ()=>{
+      try { localStorage.setItem('staffMode', 'jian'); } catch(e) {}
+      if (typeof window.applyStaffMode === 'function') window.applyStaffMode();
+      setTimeout(syncUI, 30);
+    });
+
+    $('ui-progress')?.addEventListener('input', ()=>{
+      if(!$('player-progress')) return; $('player-progress').value = $('ui-progress').value; $('player-progress').dispatchEvent(new Event('input',{bubbles:true}));
+    });
+    $('ui-progress')?.addEventListener('change', ()=>{
+      if(!$('player-progress')) return; $('player-progress').value = $('ui-progress').value; $('player-progress').dispatchEvent(new Event('change',{bubbles:true}));
+    });
+
+    document.addEventListener('click', (e)=>{
+      const insidePanel = e.target.closest('.core-panel-layer');
+      const insideToolbar = e.target.closest('.core-ui-toolbar');
+      const insideTracks = e.target.closest('#tracks-panel');
+      if(!insidePanel && !insideToolbar && !insideTracks) closePanels();
+    });
+  }
+
+  function positionTracksPanel(){
+    const panel = $('tracks-panel');
+    if(!panel) return;
+    panel.style.position = 'fixed';
+    panel.style.right = '12px';
+    panel.style.top = '168px';
+    panel.style.zIndex = '9999';
+  }
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+    initBindings();
+    syncUI();
+    setInterval(syncUI, 400);
+    setTimeout(syncUI, 1200);
+    positionTracksPanel();
+  });
+})();
+
+
+(function(){
+  function trackEl(id){ return document.getElementById(id); }
+
+  function getCurrentTracks(){
+    try {
+      const score = (typeof __currentScore !== 'undefined' && __currentScore) ? __currentScore : (window.__atApi && window.__atApi.score ? window.__atApi.score : null);
+      return (score && Array.isArray(score.tracks)) ? score.tracks : [];
+    } catch(e) { return []; }
+  }
+
+  function getSelectedTrackIndicesSafe(){
+    try {
+      const tracks = getCurrentTracks();
+      if (!tracks.length) return [];
+      if (typeof __visibleTrackIndices !== 'undefined' && Array.isArray(__visibleTrackIndices) && __visibleTrackIndices.length) {
+        return __visibleTrackIndices.slice();
+      }
+      return tracks.map((_, i) => i);
+    } catch(e) {
+      return [];
+    }
+  }
+
+  function setSelectedTrackIndicesSafe(indices){
+    try {
+      if (typeof __visibleTrackIndices !== 'undefined') {
+        __visibleTrackIndices = indices.slice().sort((a,b)=>a-b);
+      } else {
+        window.__visibleTrackIndices = indices.slice().sort((a,b)=>a-b);
+      }
+    } catch(e) {
+      window.__visibleTrackIndices = indices.slice().sort((a,b)=>a-b);
+    }
+  }
+
+  function applyTrackSelection(){
+    try {
+      if (window.__atApi && typeof renderVisibleTracks === 'function') {
+        renderVisibleTracks(window.__atApi);
+      } else if (window.__atApi && typeof applyPlaybackTrackVisibility === 'function') {
+        applyPlaybackTrackVisibility(window.__atApi);
+      }
+    } catch(e) {
+      console.warn('applyTrackSelection failed', e);
+    }
+  }
+
+  function buildNewTrackPanel(){
+    const list = trackEl('new-track-list');
+    if (!list) return;
+    const tracks = getCurrentTracks();
+    const selected = new Set(getSelectedTrackIndicesSafe());
+    list.innerHTML = '';
+
+    tracks.forEach((t, i) => {
+      const row = document.createElement('label');
+      row.className = 'new-track-item';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = selected.has(i);
+      cb.addEventListener('change', () => {
+        const now = new Set(getSelectedTrackIndicesSafe());
+        if (!now.size) tracks.forEach((_, k) => now.add(k));
+        if (cb.checked) now.add(i); else now.delete(i);
+        setSelectedTrackIndicesSafe(Array.from(now));
+        applyTrackSelection();
+      });
+
+      const name = document.createElement('div');
+      name.className = 'new-track-name';
+      name.textContent = (t && (t.name || t.shortName)) ? (t.name || t.shortName) : ('Track ' + (i + 1));
+
+      row.appendChild(cb);
+      row.appendChild(name);
+      list.appendChild(row);
+    });
+  }
+
+  function openNewTrackPanel(){
+    const panel = trackEl('new-track-panel');
+    if (!panel) return;
+    buildNewTrackPanel();
+    panel.classList.remove('hidden');
+  }
+
+  function closeNewTrackPanel(){
+    const panel = trackEl('new-track-panel');
+    if (!panel) return;
+    panel.classList.add('hidden');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    trackEl('new-track-close')?.addEventListener('click', closeNewTrackPanel);
+    trackEl('new-track-all')?.addEventListener('click', () => {
+      const tracks = getCurrentTracks();
+      setSelectedTrackIndicesSafe(tracks.map((_, i) => i));
+      buildNewTrackPanel();
+      applyTrackSelection();
+    });
+    trackEl('new-track-none')?.addEventListener('click', () => {
+      setSelectedTrackIndicesSafe([]);
+      buildNewTrackPanel();
+      applyTrackSelection();
+    });
+
+    document.addEventListener('click', (e) => {
+      const panel = trackEl('new-track-panel');
+      if (!panel || panel.classList.contains('hidden')) return;
+      if (e.target.closest('#new-track-panel')) return;
+      if (e.target.closest('#ui-track')) return;
+      closeNewTrackPanel();
+    });
+
+    const old = trackEl('tracks-panel');
+    if (old) old.classList.add('hidden');
+  });
+
+  window.openNewTrackPanel = openNewTrackPanel;
+})();
