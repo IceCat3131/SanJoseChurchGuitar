@@ -94,7 +94,7 @@
           <div class="core-text-grid">
             <div class="core-control-card">
               <div class="core-control-label">谱词字号</div>
-              <div class="core-panel-stepper"><button type="button" class="core-step-btn" id="ui-font-minus">−</button><div class="core-panel-value" id="ui-font-value">30</div><button type="button" class="core-step-btn" id="ui-font-plus">+</button></div>
+              <div class="core-panel-stepper"><button type="button" class="core-step-btn" id="ui-font-minus">−</button><div class="core-panel-value" id="ui-font-value">16</div><button type="button" class="core-step-btn" id="ui-font-plus">+</button></div>
             </div>
             <div class="core-control-card">
               <div class="core-control-label">谱词距</div>
@@ -329,7 +329,7 @@ function remapTimelineTimesIfNeeded() {
   };
 
   const DEFAULT_VIEWER_PREFS = {
-    scoreFontSizePx: 30,
+    scoreFontSizePx: 16,
     scoreSpacingFactor: 2.0,
     chordFontSizePx: 16,
     pureLyricsFontSize: 24,
@@ -374,7 +374,7 @@ function remapTimelineTimesIfNeeded() {
 
   function loadViewerPrefs() {
     try {
-      const raw = localStorage.getItem('sjcg.viewerPrefs.v1');
+      const raw = localStorage.getItem('sjcg.viewerPrefs.v2');
       if (!raw) return { ...DEFAULT_VIEWER_PREFS };
       const obj = JSON.parse(raw);
       if (obj && Object.prototype.hasOwnProperty.call(obj, 'capoOverride')) {
@@ -387,7 +387,7 @@ function remapTimelineTimesIfNeeded() {
   }
 
   function saveViewerPrefs() {
-    try { localStorage.setItem('sjcg.viewerPrefs.v1', JSON.stringify(viewerPrefs)); } catch (e) {}
+    try { localStorage.setItem('sjcg.viewerPrefs.v2', JSON.stringify(viewerPrefs)); } catch (e) {}
   }
 
   function getSongCapo() {
@@ -1067,7 +1067,7 @@ function remapTimelineTimesIfNeeded() {
     const st = gtz?.state || null;
     const vs = gtz?.viewerState || null;
     window.__gtzState = {
-      fontSizePx: st?.fontSizePx ?? vs?.fontSizePx ?? DEFAULT_VIEWER_PREFS.scoreFontSizePx,
+      fontSizePx: DEFAULT_VIEWER_PREFS.scoreFontSizePx,
       spacingFactor: st?.spacingFactor ?? vs?.spacingFactor ?? DEFAULT_VIEWER_PREFS.scoreSpacingFactor,
       zoom: st?.zoom ?? (vs?.zoom != null ? Math.round(vs.zoom * 100) : 100),
       visibleTrackIndices: st?.visibleTrackIndices ?? vs?.visibleTrackIndices ?? null
@@ -2244,7 +2244,7 @@ function pad4(num) {
         window.__visibleTrackIndices = Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : [];
 
         if (!viewerPrefs.__initializedFromSong) {
-          viewerPrefs.scoreFontSizePx = st.fontSizePx || viewerPrefs.scoreFontSizePx;
+          // 谱词字号不再从 GTZ 的 state.fontSizePx 初始化，避免旧 GTZ 里 30 覆盖网页默认 16。
           viewerPrefs.scoreSpacingFactor = st.spacingFactor || viewerPrefs.scoreSpacingFactor;
           viewerPrefs.__initializedFromSong = true;
           saveViewerPrefs();

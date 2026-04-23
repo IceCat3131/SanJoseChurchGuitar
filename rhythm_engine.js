@@ -41,10 +41,12 @@
 
   const RHYTHM_LIBRARY = {
     '4/4': [
+      /* 暂时隐藏以下 4 个节奏组选项，不显示到顶部“节”菜单二级菜单中。
       convertLegacyPatternToTemplate({ id:'arp_53231323', name:'分解 53231323', type:'arpeggio', steps:['5','3','2','3','1','3','2','3'], difficulty:1 }, '4/4', 'arpeggio'),
       convertLegacyPatternToTemplate({ id:'arp_53212323', name:'分解 53212323', type:'arpeggio', steps:['5','3','2','1','2','3','2','3'], difficulty:1 }, '4/4', 'arpeggio'),
       convertLegacyPatternToTemplate({ id:'strum_basic_44', name:'扫弦 基础', type:'strum', steps:['↓','↓','↑','↑','↓','↑'], difficulty:1 }, '4/4', 'strum'),
       convertLegacyPatternToTemplate({ id:'strum_pop_44', name:'扫弦 流行', type:'strum', steps:['↓','-','↓↑','-','↑↓↑'], difficulty:2 }, '4/4', 'strum')
+      */
     ],
     '3/4': [
       convertLegacyPatternToTemplate({ id:'arp_531531', name:'分解 531531', type:'arpeggio', steps:['5','3','1','5','3','1'], difficulty:1 }, '3/4', 'arpeggio'),
