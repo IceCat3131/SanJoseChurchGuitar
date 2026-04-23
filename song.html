@@ -1359,13 +1359,16 @@ function remapTimelineTimesIfNeeded() {
     return;
   }
 
-  // ===== 播放位置标记（长竖线光标） =====
+  // ===== 播放位置标记（长竖线光标 + 当前音符高亮） =====
   function enableCursor(api) {
     try {
       const settings = api.settings;
       if (!settings.player) settings.player = {};
-      if ('enableCursor' in settings.player) settings.player.enableCursor = true;
-      if ('enableAnimatedBeatCursor' in settings.player) settings.player.enableAnimatedBeatCursor = true;
+      // 这里不能用 `if ('enableCursor' in settings.player)` 判断；
+      // 初始 settings 里可能没有这些字段，必须主动写入，否则播放时不会显示光标/音符高亮。
+      settings.player.enableCursor = true;
+      settings.player.enableAnimatedBeatCursor = true;
+      settings.player.enableElementHighlighting = true;
       api.updateSettings();
     } catch (e) {}
   }
@@ -2227,6 +2230,9 @@ function pad4(num) {
         },
         player: {
           enablePlayer: true,
+          enableCursor: true,
+          enableAnimatedBeatCursor: true,
+          enableElementHighlighting: true,
           // alphaTab 官方教程示例音源（SoundFont2）
           soundFont: 'https://cdn.jsdelivr.net/npm/@coderline/alphatab@latest/dist/soundfont/sonivox.sf2',
           // 播放时滚动这个元素
