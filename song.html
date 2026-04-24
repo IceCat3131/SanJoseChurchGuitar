@@ -63,6 +63,44 @@
     .new-track-item-wrap{background:#f8fbff;border-radius:12px;padding:8px 10px;}
     .new-track-item-wrap .new-track-item{background:transparent;padding:0;min-height:30px;}
 
+
+    /* 英文谱面下方参考歌词：只在 book=e 的五线谱/简谱模式显示 */
+    .score-extra-lyrics-root{
+      margin:18px 4px 8px;
+      padding:12px 14px;
+      border-radius:14px;
+      background:#f8fbff;
+      border:1px solid #dbeafe;
+      color:#1f2937;
+      font-size:16px;
+      line-height:2.0;
+    }
+    .score-extra-lyrics-title{
+      font-size:13px;
+      font-weight:800;
+      color:#2563eb;
+      margin-bottom:8px;
+    }
+    .score-extra-lyrics-section{
+      display:flex;
+      align-items:flex-start;
+      gap:8px;
+      margin-bottom:8px;
+    }
+    .score-extra-lyrics-no{
+      flex:0 0 auto;
+      min-width:22px;
+      font-weight:800;
+      color:#2563eb;
+    }
+    .score-extra-lyrics-lines{
+      flex:1 1 auto;
+      min-width:0;
+    }
+    .score-extra-lyrics-lines p{
+      margin:0 0 4px;
+    }
+
   </style>
 </head>
 <body>
@@ -176,6 +214,9 @@
       </div>
       <div id="score-view" class="score-wrap" aria-hidden="false">
         <div id="alphaTab" class="at-viewport"></div>
+      </div>
+      <div id="score-extra-lyrics-view" class="score-extra-lyrics-root" style="display:none;" aria-hidden="true">
+        <!-- 英文谱面下方参考歌词：仅显示第2段及以上 -->
       </div>
       <div id="lyrics-view" class="lyrics-root" style="display: none;" aria-hidden="true">
         <!-- 歌词 -->
@@ -805,6 +846,7 @@ function remapTimelineTimesIfNeeded() {
     refreshAdjustUI();
     applyViewerPrefsToScore();
     applyViewerPrefsToLyricsPage();
+    applyViewerPrefsToScoreExtraLyrics();
   }
 
   function changeSpacing(delta) {
@@ -814,6 +856,7 @@ function remapTimelineTimesIfNeeded() {
     refreshAdjustUI();
     applyViewerPrefsToScore();
     applyViewerPrefsToLyricsPage();
+    applyViewerPrefsToScoreExtraLyrics();
   }
 
   function rerenderScorePreserveScroll() {
@@ -852,6 +895,7 @@ function remapTimelineTimesIfNeeded() {
     saveViewerPrefs();
     applyViewerPrefsToScore();
     applyViewerPrefsToLyricsPage();
+    applyViewerPrefsToScoreExtraLyrics();
     rerenderScorePreserveScroll();
     refreshAdjustUI();
   }
@@ -2723,6 +2767,85 @@ function pad4(num) {
     applyViewerPrefsToLyricsPage();
   }
 
+  function getExtraEnglishLyricSections(song) {
+    if (!song || state.currentBook !== 'e' || !Array.isArray(song.lyrics)) return [];
+    // 英文原谱只带第1段对齐歌词；这里把 JSON 里的第2段及以上追加到谱面下方作为参考。
+    return song.lyrics
+      .map((section, index) => ({ section, index }))
+      .filter(item => item.index >= 1)
+      .map(item => item.section)
+      .filter(section => Array.isArray(section.lines) && section.lines.some(line => String(line || '').trim()));
+  }
+
+  function applyViewerPrefsToScoreExtraLyrics() {
+    const root = document.getElementById('score-extra-lyrics-view');
+    if (!root) return;
+    const fontPx = Math.max(14, Math.min(52, parseInt(viewerPrefs.scoreFontSizePx, 10) || DEFAULT_VIEWER_PREFS.scoreFontSizePx));
+    const spacing = Math.max(1.0, Math.min(3.5, Number(viewerPrefs.scoreSpacingFactor) || DEFAULT_VIEWER_PREFS.scoreSpacingFactor));
+    root.style.fontSize = fontPx + 'px';
+    root.style.lineHeight = String(spacing);
+    root.querySelectorAll('.score-extra-lyrics-section').forEach(sec => {
+      sec.style.marginBottom = Math.round(4 * spacing) + 'px';
+    });
+    root.querySelectorAll('.score-extra-lyrics-lines p').forEach(p => {
+      p.style.marginBottom = Math.round(2 * spacing) + 'px';
+    });
+  }
+
+  function renderScoreExtraLyrics(song) {
+    const root = document.getElementById('score-extra-lyrics-view');
+    if (!root) return;
+
+    root.innerHTML = '';
+    const sections = getExtraEnglishLyricSections(song);
+    if (!sections.length) {
+      root.style.display = 'none';
+      root.setAttribute('aria-hidden', 'true');
+      return;
+    }
+
+    const title = document.createElement('div');
+    title.className = 'score-extra-lyrics-title';
+    title.textContent = '参考歌词';
+    root.appendChild(title);
+
+    sections.forEach(section => {
+      const sec = document.createElement('div');
+      sec.className = 'score-extra-lyrics-section';
+
+      const noDiv = document.createElement('div');
+      noDiv.className = 'score-extra-lyrics-no';
+      noDiv.textContent = section.section_no || '';
+
+      const linesWrap = document.createElement('div');
+      linesWrap.className = 'score-extra-lyrics-lines';
+
+      (section.lines || []).forEach(lineText => {
+        const line = String(lineText || '').trim();
+        if (!line) return;
+        const p = document.createElement('p');
+        p.textContent = line;
+        linesWrap.appendChild(p);
+      });
+
+      sec.appendChild(noDiv);
+      sec.appendChild(linesWrap);
+      root.appendChild(sec);
+    });
+
+    applyViewerPrefsToScoreExtraLyrics();
+    syncScoreExtraLyricsVisibility();
+  }
+
+  function syncScoreExtraLyricsVisibility() {
+    const root = document.getElementById('score-extra-lyrics-view');
+    if (!root) return;
+    const hasContent = !!root.querySelector('.score-extra-lyrics-section');
+    const shouldShow = state.currentBook === 'e' && state.mode === 'score' && hasContent;
+    root.style.display = shouldShow ? '' : 'none';
+    root.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+  }
+
   function getCurrentSongCodeLabel() {
     const bookKey = normalizeBook(state.currentBook, 'c');
     const prefix = (BOOKS[bookKey]?.codePrefix || bookKey).toUpperCase();
@@ -2759,6 +2882,7 @@ function pad4(num) {
       if (scoreView) { scoreView.style.display = "none"; scoreView.setAttribute("aria-hidden", "true"); }
       if (lyricsView) { lyricsView.style.display = ""; lyricsView.setAttribute("aria-hidden", "false"); }
     }
+    syncScoreExtraLyricsVisibility();
   }
 
   function syncBookButtons() {
@@ -2787,6 +2911,7 @@ function pad4(num) {
     updateSongCodeBadge();
     renderScore(state.currentBook, state.currentNo);
     renderLyrics(song);
+    renderScoreExtraLyrics(song);
     setMode(state.mode); // 保持当前 吉他 / 歌词 模式
     syncScriptButton();
   }
