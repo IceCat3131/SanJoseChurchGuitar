@@ -804,6 +804,7 @@ function remapTimelineTimesIfNeeded() {
     saveViewerPrefs();
     refreshAdjustUI();
     applyViewerPrefsToScore();
+    applyViewerPrefsToLyricsPage();
   }
 
   function changeSpacing(delta) {
@@ -812,6 +813,7 @@ function remapTimelineTimesIfNeeded() {
     saveViewerPrefs();
     refreshAdjustUI();
     applyViewerPrefsToScore();
+    applyViewerPrefsToLyricsPage();
   }
 
   function rerenderScorePreserveScroll() {
@@ -849,6 +851,7 @@ function remapTimelineTimesIfNeeded() {
     viewerPrefs.chordFontSizePx = DEFAULT_VIEWER_PREFS.chordFontSizePx;
     saveViewerPrefs();
     applyViewerPrefsToScore();
+    applyViewerPrefsToLyricsPage();
     rerenderScorePreserveScroll();
     refreshAdjustUI();
   }
@@ -1112,9 +1115,23 @@ function remapTimelineTimesIfNeeded() {
 
 
   function applyViewerPrefsToLyricsPage() {
-    state.lyricsFontSize = viewerPrefs.pureLyricsFontSize;
     const root = document.getElementById('lyrics-view');
-    if (root) root.style.fontSize = state.lyricsFontSize + 'px';
+    if (!root) return;
+
+    const fontPx = Math.max(14, Math.min(52, parseInt(viewerPrefs.scoreFontSizePx, 10) || DEFAULT_VIEWER_PREFS.scoreFontSizePx));
+    const spacing = Math.max(1.0, Math.min(3.5, Number(viewerPrefs.scoreSpacingFactor) || DEFAULT_VIEWER_PREFS.scoreSpacingFactor));
+
+    // “文字”二级菜单里的“谱词字号 / 谱词距”同步作用于纯文字歌词。
+    state.lyricsFontSize = fontPx;
+    root.style.fontSize = fontPx + 'px';
+    root.style.lineHeight = String(spacing);
+
+    root.querySelectorAll('.lyrics-section').forEach(sec => {
+      sec.style.marginBottom = Math.round(4 * spacing) + 'px';
+    });
+    root.querySelectorAll('.lyrics-lines p').forEach(p => {
+      p.style.marginBottom = Math.round(2 * spacing) + 'px';
+    });
   }
 
   function bindViewerControls() {
@@ -2678,8 +2695,7 @@ function pad4(num) {
     root.innerHTML = "";
     if (!song || !song.lyrics) return;
 
-    state.lyricsFontSize = viewerPrefs.pureLyricsFontSize;
-    root.style.fontSize = state.lyricsFontSize + "px";
+    applyViewerPrefsToLyricsPage();
 
     song.lyrics.forEach(section => {
       const sec = document.createElement("div");
@@ -2702,6 +2718,9 @@ function pad4(num) {
       sec.appendChild(linesWrap);
       root.appendChild(sec);
     });
+
+    // 生成歌词 DOM 后再次应用字号/间距，确保新段落也生效。
+    applyViewerPrefsToLyricsPage();
   }
 
   function getCurrentSongCodeLabel() {
