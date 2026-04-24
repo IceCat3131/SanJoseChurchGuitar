@@ -339,6 +339,19 @@ function remapTimelineTimesIfNeeded() {
 
   let viewerPrefs = loadViewerPrefs();
   let __currentMeta = null;
+  let __lastLoadedSongKey = null;
+
+  function resetSongScopedPrefsIfNeeded(bookKey, no) {
+    const key = `${bookKey}:${no}`;
+    // 首次进入页面不重置；只有真正切到另一首歌时，重置只应作用于单首歌的临时操作。
+    if (__lastLoadedSongKey && __lastLoadedSongKey !== key) {
+      viewerPrefs.transposeSemitones = DEFAULT_VIEWER_PREFS.transposeSemitones;
+      viewerPrefs.playbackSpeedPercent = DEFAULT_VIEWER_PREFS.playbackSpeedPercent;
+      saveViewerPrefs();
+      try { if (window.__atApi) window.__atApi.playbackSpeed = 1; } catch (e) {}
+    }
+    __lastLoadedSongKey = key;
+  }
 
   let converterToTraditional = null; // 简 -> 繁
   let converterToSimplified = null;  // 繁 -> 简
@@ -2404,6 +2417,7 @@ function pad4(num) {
       alert("找不到这首诗歌的歌词数据。");
       return;
     }
+    resetSongScopedPrefsIfNeeded(state.currentBook, state.currentNo);
     updateTitle(song);
     updateSongCodeBadge();
     renderScore(state.currentBook, state.currentNo);
