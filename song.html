@@ -26,6 +26,13 @@
     .content-card{background:transparent !important;box-shadow:none !important;border:none !important;padding:0 !important;}
     #score-view.score-wrap{background:transparent !important;box-shadow:none !important;border:none !important;}
     #alphaTab.at-viewport{background:transparent !important;}
+
+    /* alphaTab 播放光标/当前音符高亮：必须显式给这些 class 样式，否则部分版本只生成 DOM 但不可见 */
+    #alphaTab{position:relative !important;}
+    #alphaTab .at-cursor-bar{background:rgba(255,214,10,.30) !important;z-index:50 !important;pointer-events:none !important;}
+    #alphaTab .at-cursor-beat{background:#2563eb !important;width:3px !important;min-width:3px !important;z-index:60 !important;pointer-events:none !important;}
+    #alphaTab .at-selection div{background:rgba(37,99,235,.12) !important;pointer-events:none !important;}
+    #alphaTab .at-highlight *{fill:#dc2626 !important;stroke:#dc2626 !important;}
     html,body,.page,.page-inner{background:#fff !important;}
     .core-ui-title-wrap{display:none !important;}
     .core-ui-toolbar .moved-to-title{display:none !important;}
@@ -1359,15 +1366,36 @@ function remapTimelineTimesIfNeeded() {
     return;
   }
 
-  // ===== 播放位置标记（长竖线光标） =====
+  // ===== 播放位置标记（长竖线光标 + 当前音符高亮） =====
+  function ensureAlphaTabCursorCss() {
+    if (document.getElementById('alphatab-cursor-visible-css')) return;
+    const style = document.createElement('style');
+    style.id = 'alphatab-cursor-visible-css';
+    style.textContent = `
+      #alphaTab{position:relative !important;}
+      #alphaTab .at-cursor-bar{background:rgba(255,214,10,.30) !important;z-index:50 !important;pointer-events:none !important;}
+      #alphaTab .at-cursor-beat{background:#2563eb !important;width:3px !important;min-width:3px !important;z-index:60 !important;pointer-events:none !important;}
+      #alphaTab .at-selection div{background:rgba(37,99,235,.12) !important;pointer-events:none !important;}
+      #alphaTab .at-highlight *{fill:#dc2626 !important;stroke:#dc2626 !important;}
+    `;
+    document.head.appendChild(style);
+  }
+
   function enableCursor(api) {
     try {
+      ensureAlphaTabCursorCss();
+      if (!api || !api.settings) return;
       const settings = api.settings;
+      if (!settings.core) settings.core = {};
+      settings.core.includeNoteBounds = true;
       if (!settings.player) settings.player = {};
-      if ('enableCursor' in settings.player) settings.player.enableCursor = true;
-      if ('enableAnimatedBeatCursor' in settings.player) settings.player.enableAnimatedBeatCursor = true;
-      api.updateSettings();
-    } catch (e) {}
+      // 这里不能用 `if ('enableCursor' in settings.player)` 判断；
+      // 初始 settings 里可能没有这些字段，必须主动写入，否则播放时不会显示光标/音符高亮。
+      settings.player.enableCursor = true;
+      settings.player.enableAnimatedBeatCursor = true;
+      settings.player.enableElementHighlighting = true;
+      if (typeof api.updateSettings === 'function') api.updateSettings();
+    } catch (e) { console.warn('enableCursor failed', e); }
   }
   let __playerUi = null;
   let __playbackState = { current: 0, total: 0, playing: false, progress: 0 };
@@ -1382,6 +1410,7 @@ function remapTimelineTimesIfNeeded() {
     __playerUi = { btnPrev, btnPlay, btnNext, timeEl, progressEl, isSeeking: false };
 
     api.playerStateChanged.on((args) => {
+      try { enableCursor(api); } catch(e) {}
       const playing = (args.state === alphaTab.synth.PlayerState.Playing);
       __playbackState.playing = playing;
       updatePlayButtonVisual(playing);
@@ -2217,6 +2246,7 @@ function pad4(num) {
 
     // 首次初始化 alphaTab API
     if (!window.__atApi) {
+      try { ensureAlphaTabCursorCss(); } catch(e) {}
       const settings = {
         core: {
           includeNoteBounds: true
@@ -2227,6 +2257,9 @@ function pad4(num) {
         },
         player: {
           enablePlayer: true,
+          enableCursor: true,
+          enableAnimatedBeatCursor: true,
+          enableElementHighlighting: true,
           // alphaTab 官方教程示例音源（SoundFont2）
           soundFont: 'https://cdn.jsdelivr.net/npm/@coderline/alphatab@latest/dist/soundfont/sonivox.sf2',
           // 播放时滚动这个元素
@@ -2287,6 +2320,7 @@ function pad4(num) {
       });
 
       window.__atApi.renderFinished.on(() => {
+        enableCursor(window.__atApi);
         scheduleTabCapoOverlay(40);
         scheduleChordRewrite(40);
         scheduleChordRewrite(180);
