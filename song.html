@@ -6,33 +6,9 @@
   <title>诗歌</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="stylesheet" href="style.css" />
-  <script src="assets/alphatab/alphaTab.js">
-
-// 自动监听谱面变化并应用简繁
-setTimeout(() => {
-  const root = document.getElementById('alphaTab');
-  if (!root) return;
-  const observer = new MutationObserver(() => {
-    applyScriptToScore();
-  });
-  observer.observe(root, { childList: true, subtree: true });
-}, 500);
-
-</script>
+  <script src="assets/alphatab/alphaTab.js"></script>
   <!-- 简繁转换库：opencc-js（浏览器 UMD 完整版） -->
-  <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js">
-
-// 自动监听谱面变化并应用简繁
-setTimeout(() => {
-  const root = document.getElementById('alphaTab');
-  if (!root) return;
-  const observer = new MutationObserver(() => {
-    applyScriptToScore();
-  });
-  observer.observe(root, { childList: true, subtree: true });
-}, 500);
-
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
 
   <style>
     .title-nav-row{display:flex;align-items:center;justify-content:center;gap:12px;padding:6px 12px 2px;}
@@ -427,37 +403,59 @@ function remapTimelineTimesIfNeeded() {
     if (state.script === "simplified" && converterToSimplified) {
       return converterToSimplified(text); // 如果原 JSON 就是简体，这里基本等于原文
     }
-
-// ===== 把简繁转换应用到谱面（alphaTab SVG）=====
-function applyScriptToScore() {
-  const root = document.querySelector('#alphaTab');
-  if (!root) return;
-
-  const nodes = root.querySelectorAll('text, tspan');
-
-  nodes.forEach(el => {
-    const txt = el.textContent;
-    if (!txt) return;
-
-    if (!/[\u4e00-\u9fa5]/.test(txt)) return;
-
-    if (!el.dataset.origText) {
-      el.dataset.origText = txt;
-    }
-
-    let base = el.dataset.origText;
-
-    if (state.script === 'traditional' && converterToTraditional) {
-      base = converterToTraditional(base);
-    } else if (state.script === 'simplified' && converterToSimplified) {
-      base = converterToSimplified(base);
-    }
-
-    el.textContent = base;
-  });
-}
-
     return text;
+  }
+
+  // ===== 简繁同步到 alphaTab 谱面歌词 =====
+  // 说明：纯歌词页面来自 JSON，原本已经会转；谱面歌词是 alphaTab 渲染后的 SVG 文本，
+  // 所以必须在 renderFinished / 切换简繁 / 切换谱种后，对 #alphaTab 内的中文 text/tspan 做 DOM 后处理。
+  function isChineseTextForScriptConvert(text) {
+    return /[㐀-鿿]/.test(String(text || ''));
+  }
+
+  function isLeafSvgTextElement(el) {
+    if (!el) return false;
+    const tag = String(el.tagName || '').toLowerCase();
+    if (tag !== 'text' && tag !== 'tspan') return false;
+    // 只改叶子节点，避免改 parent <text> 时把子 <tspan> 结构破坏。
+    return !Array.from(el.children || []).some(child => {
+      const t = String(child.tagName || '').toLowerCase();
+      return t === 'text' || t === 'tspan';
+    });
+  }
+
+  function applyScriptToScore() {
+    setupConvertersIfNeeded();
+    const root = document.getElementById('alphaTab');
+    if (!root) return;
+
+    const nodes = root.querySelectorAll('text, tspan');
+    nodes.forEach((el) => {
+      if (!isLeafSvgTextElement(el)) return;
+      const current = String(el.textContent || '');
+      if (!current || !isChineseTextForScriptConvert(current)) return;
+
+      // 记录 alphaTab 原始渲染文本。之后反复切换简/繁都从原文转换，避免多次转换累积误差。
+      if (!el.getAttribute('data-sjcg-orig-script-text')) {
+        el.setAttribute('data-sjcg-orig-script-text', current);
+      }
+      const original = el.getAttribute('data-sjcg-orig-script-text') || current;
+      let next = original;
+
+      if (state.script === 'traditional' && converterToTraditional) {
+        next = converterToTraditional(original);
+      } else if (state.script === 'simplified' && converterToSimplified) {
+        next = converterToSimplified(original);
+      }
+
+      if (next !== current) el.textContent = next;
+    });
+  }
+
+  function scheduleApplyScriptToScore(delay = 80) {
+    setTimeout(() => {
+      try { applyScriptToScore(); } catch (e) { console.warn('applyScriptToScore failed', e); }
+    }, delay);
   }
 
   function loadViewerPrefs() {
@@ -877,7 +875,9 @@ function applyScriptToScore() {
     getSong(state.currentBook, state.currentNo).then(song => {
       if (song) renderLyrics(song);
     });
-    setTimeout(() => applyScriptToScore(), 80);
+    scheduleApplyScriptToScore(30);
+    scheduleApplyScriptToScore(160);
+    scheduleApplyScriptToScore(420);
   }
 
   async function setBook(book) {
@@ -954,6 +954,7 @@ function applyScriptToScore() {
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
     scheduleChordRewrite(30);
     scheduleTabCapoOverlay(120);
+    scheduleApplyScriptToScore(160);
   }
 
 
@@ -2620,6 +2621,8 @@ function pad4(num) {
         }
         applyTrackVolumes(window.__atApi);
         scheduleTabCapoOverlay(180);
+        scheduleApplyScriptToScore(120);
+        scheduleApplyScriptToScore(360);
         if (!window.__lastRenderedAutoXml) {
           scheduleAutoTabRewrite(120);
         }
@@ -2631,6 +2634,8 @@ function pad4(num) {
         scheduleChordRewrite(40);
         scheduleChordRewrite(180);
         try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode({ domOnly: true }); } catch (e) {}
+        scheduleApplyScriptToScore(40);
+        scheduleApplyScriptToScore(180);
         try { applyTrackVolumes(window.__atApi); } catch (e) {}
       });
 
@@ -2798,18 +2803,6 @@ function pad4(num) {
     applyViewerPrefsToLyricsPage();
     await loadAndRenderCurrentSong();
   });
-
-
-// 自动监听谱面变化并应用简繁
-setTimeout(() => {
-  const root = document.getElementById('alphaTab');
-  if (!root) return;
-  const observer = new MutationObserver(() => {
-    applyScriptToScore();
-  });
-  observer.observe(root, { childList: true, subtree: true });
-}, 500);
-
 </script>
 
 
@@ -2842,6 +2835,7 @@ setTimeout(() => {
     document.querySelectorAll('#alphaTab .atj-keysig, #alphaTab .atj-jianpu, #alphaTab .atj-time-signature').forEach(el => {
       el.style.display = showJian ? '' : 'none';
     });
+    scheduleApplyScriptToScore(40);
   }
   let __staffModeRendering = false;
   function rerenderForStaffMode(){
@@ -2887,18 +2881,6 @@ setTimeout(() => {
     }
   }, 300);
 })();
-
-
-// 自动监听谱面变化并应用简繁
-setTimeout(() => {
-  const root = document.getElementById('alphaTab');
-  if (!root) return;
-  const observer = new MutationObserver(() => {
-    applyScriptToScore();
-  });
-  observer.observe(root, { childList: true, subtree: true });
-}, 500);
-
 </script>
 
 <script>
@@ -3121,59 +3103,11 @@ setTimeout(() => {
     setTimeout(syncUI, 1200);
   });
 })();
-
-
-// 自动监听谱面变化并应用简繁
-setTimeout(() => {
-  const root = document.getElementById('alphaTab');
-  if (!root) return;
-  const observer = new MutationObserver(() => {
-    applyScriptToScore();
-  });
-  observer.observe(root, { childList: true, subtree: true });
-}, 500);
-
 </script>
 
 
-<script src="scheme_engine.js">
-
-// 自动监听谱面变化并应用简繁
-setTimeout(() => {
-  const root = document.getElementById('alphaTab');
-  if (!root) return;
-  const observer = new MutationObserver(() => {
-    applyScriptToScore();
-  });
-  observer.observe(root, { childList: true, subtree: true });
-}, 500);
-
-</script>
-<script src="rhythm_engine.js">
-
-// 自动监听谱面变化并应用简繁
-setTimeout(() => {
-  const root = document.getElementById('alphaTab');
-  if (!root) return;
-  const observer = new MutationObserver(() => {
-    applyScriptToScore();
-  });
-  observer.observe(root, { childList: true, subtree: true });
-}, 500);
-
-</script>
-<script src="auto_engine.js">
-
-// 自动监听谱面变化并应用简繁
-setTimeout(() => {
-  const root = document.getElementById('alphaTab');
-  if (!root) return;
-  const observer = new MutationObserver(() => {
-    applyScriptToScore();
-  });
-  observer.observe(root, { childList: true, subtree: true });
-}, 500);
-
-</script>
+<script src="scheme_engine.js"></script>
+<script src="rhythm_engine.js"></script>
+<script src="auto_engine.js"></script>
 </body>
 </html>
