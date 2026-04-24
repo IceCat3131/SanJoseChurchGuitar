@@ -26,6 +26,7 @@
     .content-card{background:transparent !important;box-shadow:none !important;border:none !important;padding:0 !important;}
     #score-view.score-wrap{background:transparent !important;box-shadow:none !important;border:none !important;}
     #alphaTab.at-viewport{background:transparent !important;}
+    #alphaTab.at-viewport{display:block !important;}
 
     /* alphaTab 播放光标/当前音符高亮：蓝色系最终版 */
     #alphaTab{position:relative !important;}
@@ -215,9 +216,9 @@
       </div>
       <div id="score-view" class="score-wrap" aria-hidden="false">
         <div id="alphaTab" class="at-viewport"></div>
-      </div>
-      <div id="score-extra-lyrics-view" class="score-extra-lyrics-root" style="display:none;" aria-hidden="true">
-        <!-- 英文谱面下方参考歌词：仅显示第2段及以上 -->
+        <div id="score-extra-lyrics-view" class="score-extra-lyrics-root" style="display:none;" aria-hidden="true">
+          <!-- 英文谱面下方参考歌词：仅显示第2段及以上 -->
+        </div>
       </div>
       <div id="lyrics-view" class="lyrics-root" style="display: none;" aria-hidden="true">
         <!-- 歌词 -->
@@ -2867,27 +2868,37 @@ function pad4(num) {
     if (!scoreView || !alpha || !extra) return;
     if (extra.style.display === 'none') return;
 
-    // 有些 alphaTab 渲染层高度不完全进入普通文档流，导致下面的参考歌词像固定在某个 Y 位置。
-    // 这里根据 alphaTab 内部实际渲染内容的最大 bottom，动态给 score-view 补足 min-height。
+    // 关键修正：
+    // 参考歌词现在是 #score-view 内部、#alphaTab 后面的普通文档流元素。
+    // 因此必须动态撑开 #alphaTab 自身高度，而不是只改外层 #score-view。
     let maxBottom = 0;
     const baseRect = alpha.getBoundingClientRect();
 
-    const candidates = alpha.querySelectorAll('svg, canvas, .at-surface, .at-page, .at-stave, .at-system, .at-cursor-bar, .at-cursor-beat');
-    candidates.forEach(el => {
+    // alphaTab 不同版本的页面 class 不完全一致，所以不要只依赖 .at-page。
+    // 取 alphaTab 内所有可见元素的最大 bottom，保证最后一行谱面之后再显示参考歌词。
+    const nodes = alpha.querySelectorAll('svg, canvas, [class*="at-"], text, tspan, path, g, rect');
+    nodes.forEach(el => {
       try {
         const r = el.getBoundingClientRect();
-        if (r && Number.isFinite(r.bottom) && r.height > 0) {
-          maxBottom = Math.max(maxBottom, r.bottom - baseRect.top);
-        }
+        if (!r || !Number.isFinite(r.bottom) || !Number.isFinite(r.height)) return;
+        if (r.height <= 0 || r.width <= 0) return;
+        const bottom = r.bottom - baseRect.top;
+        if (bottom > 0) maxBottom = Math.max(maxBottom, bottom);
       } catch (e) {}
     });
 
-    // scrollHeight 仍然作为兜底。
+    // 兜底：如果 DOM 尺寸拿不到，使用 scrollHeight/offsetHeight。
     maxBottom = Math.max(maxBottom, alpha.scrollHeight || 0, alpha.offsetHeight || 0);
 
     if (maxBottom > 0) {
-      scoreView.style.minHeight = Math.ceil(maxBottom + 12) + 'px';
+      const h = Math.ceil(maxBottom + 16);
+      alpha.style.minHeight = h + 'px';
+      alpha.style.height = h + 'px';
     }
+
+    // 确保参考歌词紧跟在谱面真实高度后面。
+    extra.style.position = 'relative';
+    extra.style.marginTop = '18px';
   }
 
   function getCurrentSongCodeLabel() {
