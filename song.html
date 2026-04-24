@@ -27,33 +27,17 @@
     #score-view.score-wrap{background:transparent !important;box-shadow:none !important;border:none !important;}
     #alphaTab.at-viewport{background:transparent !important;}
 
-    /* alphaTab 播放光标/当前音符高亮：必须显式给这些 class 样式，否则部分版本只生成 DOM 但不可见 */
-    /* === AlphaTab 蓝色高亮（最终稳定版） === */
-
-#alphaTab{position:relative !important;}
-
-/* 小节背景（淡蓝） */
-#alphaTab .at-cursor-bar{
-    background: rgba(59,130,246,0.10) !important;
-}
-
-/* 播放竖线（深蓝） */
-#alphaTab .at-cursor-beat{
-    background: #2563eb !important;
-    width: 3px !important;
-}
-
-/* 选区 */
-#alphaTab .at-selection div{
-    background: rgba(59,130,246,0.18) !important;
-}
-
-/* 当前音符（重点） */
-#alphaTab .at-highlight,
-#alphaTab .at-highlight *{
-    fill: #3b82f6 !important;
-    stroke: #2563eb !important;
-}
+    /* alphaTab 播放光标/当前音符高亮：蓝色系最终版 */
+    #alphaTab{position:relative !important;}
+    #alphaTab .at-cursor-bar{background:rgba(59,130,246,.10) !important;z-index:50 !important;pointer-events:none !important;}
+    #alphaTab .at-cursor-beat{background:#2563eb !important;width:3px !important;min-width:3px !important;z-index:60 !important;pointer-events:none !important;}
+    #alphaTab .at-selection div{background:rgba(59,130,246,.18) !important;pointer-events:none !important;}
+    #alphaTab .at-highlight,
+    #alphaTab .at-highlight *,
+    #alphaTab g.at-highlight,
+    #alphaTab path.at-highlight,
+    #alphaTab text.at-highlight,
+    #alphaTab tspan.at-highlight{fill:#3b82f6 !important;stroke:#2563eb !important;}
     html,body,.page,.page-inner{background:#fff !important;}
     .core-ui-title-wrap{display:none !important;}
     .core-ui-toolbar .moved-to-title{display:none !important;}
@@ -1394,10 +1378,15 @@ function remapTimelineTimesIfNeeded() {
     style.id = 'alphatab-cursor-visible-css';
     style.textContent = `
       #alphaTab{position:relative !important;}
-      #alphaTab .at-cursor-bar{background:rgba(255,214,10,.30) !important;z-index:50 !important;pointer-events:none !important;}
+      #alphaTab .at-cursor-bar{background:rgba(59,130,246,.10) !important;z-index:50 !important;pointer-events:none !important;}
       #alphaTab .at-cursor-beat{background:#2563eb !important;width:3px !important;min-width:3px !important;z-index:60 !important;pointer-events:none !important;}
-      #alphaTab .at-selection div{background:rgba(37,99,235,.12) !important;pointer-events:none !important;}
-      #alphaTab .at-highlight *{fill:#dc2626 !important;stroke:#dc2626 !important;}
+      #alphaTab .at-selection div{background:rgba(59,130,246,.18) !important;pointer-events:none !important;}
+      #alphaTab .at-highlight,
+      #alphaTab .at-highlight *,
+      #alphaTab g.at-highlight,
+      #alphaTab path.at-highlight,
+      #alphaTab text.at-highlight,
+      #alphaTab tspan.at-highlight{fill:#3b82f6 !important;stroke:#2563eb !important;}
     `;
     document.head.appendChild(style);
   }
