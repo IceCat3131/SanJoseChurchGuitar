@@ -704,12 +704,9 @@ function remapTimelineTimesIfNeeded() {
       const btn = document.getElementById('ui-play');
       if (!btn) return;
       const ready = !!window.__playerReady;
-      btn.style.opacity = ready ? '1' : '0.45';
-      btn.style.filter = ready ? 'none' : 'grayscale(0.35)';
+      btn.style.opacity = ready ? '1' : '0.55';
+      btn.style.filter = ready ? 'none' : 'grayscale(0.2)';
       btn.title = ready ? '播放 / 暂停' : '音频加载中，请稍候';
-      // 不用 disabled，避免部分 iPad Safari 禁用按钮后点击状态恢复不一致；
-      // togglePlayPause 内部做 ready 锁即可。
-      btn.setAttribute('aria-disabled', ready ? 'false' : 'true');
     } catch (e) {}
   }
 
@@ -722,19 +719,19 @@ function remapTimelineTimesIfNeeded() {
       updatePlayButtonReadyState();
 
       const markReady = () => {
-        // 正式稳定版：playerReady 只负责解锁播放按钮。
-        // 不在回调里自动 playPause，避免异步时序造成“假播放/无声”。
         window.__playerReady = true;
-        window.__pendingPlayRequested = false;
         updatePlayButtonReadyState();
+        if (window.__pendingPlayRequested) {
+          window.__pendingPlayRequested = false;
+          setTimeout(() => {
+            try { if (window.__atApi === api) api.playPause(); } catch (e) {}
+          }, 0);
+        }
       };
 
       if (api.playerReady && api.playerReady.on) {
         api.playerReady.on(() => {
           markReady();
-          setTimeout(() => {
-            try { if (typeof applyTrackVolumes === 'function') applyTrackVolumes(api); } catch (e) {}
-          }, 80);
         });
       }
 
@@ -767,17 +764,11 @@ function remapTimelineTimesIfNeeded() {
     try {
       const api = window.__atApi;
       if (!api) return;
-
-      // iPad/Safari 关键稳定点：
-      // alphaTab 必须走到 playerReady 后才允许播放。
-      // 如果未 ready，直接忽略本次播放，避免进入“看似播放但无声音”的竞态状态。
       if (!window.__playerReady) {
-        window.__pendingPlayRequested = false;
+        window.__pendingPlayRequested = true;
         updatePlayButtonReadyState();
-        console.warn('player 未准备好，等待 playerReady 后再点击播放');
         return;
       }
-
       api.playPause();
     } catch (e) {
       console.warn('togglePlayPause failed', e);
@@ -1450,7 +1441,6 @@ function remapTimelineTimesIfNeeded() {
       try { api.render(); } catch(e2) {}
     }
     applyPlaybackTrackVisibility(api);
-    applyTrackVolumes(api);
   }
 
   window.renderVisibleTracks = renderVisibleTracks;
@@ -1512,10 +1502,10 @@ function remapTimelineTimesIfNeeded() {
 
     if (typeof api.changeTrackVolume === 'function') {
       try {
-        api.changeTrackVolume([track], volume16);
+        api.changeTrackVolume([track], volume01);
         return;
       } catch (e1) {
-        try { api.changeTrackVolume([track], volume01); return; } catch (e2) {}
+        try { api.changeTrackVolume([track], volume16); return; } catch (e2) {}
       }
     }
 
@@ -1525,12 +1515,11 @@ function remapTimelineTimesIfNeeded() {
   }
 
   function applyTrackVolumes(api) {
-    if (!api) return;
-    // 避免播放器未 ready 时修改轨道音量，减少 iPad/Safari 初始化竞态。
-    if (!window.__playerReady) return;
-    const tracks = getAllTracks(api);
-    if (!tracks.length) return;
-    tracks.forEach((_, i) => applySingleTrackVolume(api, i, getTrackVolumePercent(i)));
+    // iPad 稳定版：
+    // 不在 scoreLoaded/renderFinished/renderVisibleTracks 阶段自动调用 changeTrackVolume。
+    // 这些阶段如果改轨道音量，iPad/Safari 容易出现播放器已进入状态但无声。
+    // 轨道音量仍可在用户手动拖动滑块时通过 setTrackVolumePercent() 生效。
+    return;
   }
 
   function getTrackDisplayName(track, index) {
@@ -1620,7 +1609,6 @@ function remapTimelineTimesIfNeeded() {
       __trackSelectionRenderTimer = setTimeout(() => {
         try {
           if (window.__atApi) window.renderVisibleTracks(window.__atApi);
-          applyTrackVolumes(window.__atApi);
         } catch (e) {}
       }, 80);
     };
@@ -1669,11 +1657,9 @@ function remapTimelineTimesIfNeeded() {
         const idx = parseInt(range.getAttribute('data-track-index'), 10);
         const label = panel.querySelector(`.new-track-volume-value[data-track-index="${idx}"]`);
         if (label) label.textContent = '100%';
-        applySingleTrackVolume(window.__atApi, idx, 100);
       });
     });
 
-    applyTrackVolumes(window.__atApi);
     return panel;
   }
 
@@ -2647,7 +2633,6 @@ function pad4(num) {
         } else {
           applyPlaybackTrackVisibility(window.__atApi);
         }
-        applyTrackVolumes(window.__atApi);
         scheduleTabCapoOverlay(180);
         scheduleApplyScriptToScore(120);
         scheduleApplyScriptToScore(360);
@@ -2664,7 +2649,6 @@ function pad4(num) {
         try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode({ domOnly: true }); } catch (e) {}
         scheduleApplyScriptToScore(40);
         scheduleApplyScriptToScore(180);
-        try { applyTrackVolumes(window.__atApi); } catch (e) {}
       });
 
       // 播放条绑定
