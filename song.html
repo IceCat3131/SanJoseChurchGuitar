@@ -720,18 +720,18 @@ function remapTimelineTimesIfNeeded() {
 
       const markReady = () => {
         window.__playerReady = true;
-        window.__pendingPlayRequested = false;
         updatePlayButtonReadyState();
-        // iPad/iPhone 上播放必须发生在用户手势内。
-        // 不再在 playerReady 回调里自动 playPause，避免被 Safari 拦截导致无声。
+        if (window.__pendingPlayRequested) {
+          window.__pendingPlayRequested = false;
+          setTimeout(() => {
+            try { if (window.__atApi === api) api.playPause(); } catch (e) {}
+          }, 0);
+        }
       };
 
       if (api.playerReady && api.playerReady.on) {
         api.playerReady.on(() => {
           markReady();
-          setTimeout(() => {
-            try { applyTrackVolumes(api); } catch (e) {}
-          }, 80);
         });
       }
 
@@ -760,43 +760,15 @@ function remapTimelineTimesIfNeeded() {
   updatePlayButtonReadyState();
 
 
-  let __iosAudioUnlockTried = false;
-  function unlockAudioForIOS(api) {
-    if (!api || __iosAudioUnlockTried) return;
-    __iosAudioUnlockTried = true;
-    try {
-      const candidates = [
-        api?.player?.output?.context,
-        api?.player?.output?.audioContext,
-        api?.player?.synth?.context,
-        api?.player?.synth?.audioContext,
-        api?.player?.context,
-        api?.player?.audioContext
-      ];
-      candidates.forEach(ctx => {
-        try { if (ctx && typeof ctx.resume === 'function') ctx.resume(); } catch (e) {}
-      });
-    } catch (e) {}
-  }
-
   function togglePlayPause() {
     try {
       const api = window.__atApi;
       if (!api) return;
-
-      // iPad/iPhone：必须在用户点击这个手势内尽量解锁 AudioContext。
-      unlockAudioForIOS(api);
-
       if (!window.__playerReady) {
         window.__pendingPlayRequested = true;
         updatePlayButtonReadyState();
-
-        // 尝试在用户手势内触发一次播放初始化。
-        // 如果 alphaTab 还没 ready，失败也没关系；ready 后请再点一次播放。
-        try { api.playPause(); } catch (e) {}
         return;
       }
-
       api.playPause();
     } catch (e) {
       console.warn('togglePlayPause failed', e);
@@ -1183,7 +1155,6 @@ function remapTimelineTimesIfNeeded() {
   async function loadGtzIntoAlphaTab(api, gtzUrl) {
     window.__playerReady = false;
     window.__pendingPlayRequested = false;
-    __iosAudioUnlockTried = false;
     updatePlayButtonReadyState();
     try { api.stop(); } catch(e) {}
     setPlayerUI({ current: 0, total: 0, playing: false });
@@ -1532,11 +1503,10 @@ function remapTimelineTimesIfNeeded() {
 
     if (typeof api.changeTrackVolume === 'function') {
       try {
-        // alphaTab 新版 API 更接近 0.0–1.0；先用 0–1，避免 iPad 上 16 被当成超大音量。
-        api.changeTrackVolume([track], volume01);
+        api.changeTrackVolume([track], volume16);
         return;
       } catch (e1) {
-        try { api.changeTrackVolume([track], volume16); return; } catch (e2) {}
+        try { api.changeTrackVolume([track], volume01); return; } catch (e2) {}
       }
     }
 
@@ -1547,8 +1517,6 @@ function remapTimelineTimesIfNeeded() {
 
   function applyTrackVolumes(api) {
     if (!api) return;
-    // iPad/iPhone 上不要在播放器未 ready 时反复改轨道音量，容易造成 WebAudio 无声。
-    if (!window.__playerReady) return;
     const tracks = getAllTracks(api);
     if (!tracks.length) return;
     tracks.forEach((_, i) => applySingleTrackVolume(api, i, getTrackVolumePercent(i)));
