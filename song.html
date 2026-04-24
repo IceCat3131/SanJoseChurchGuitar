@@ -704,9 +704,12 @@ function remapTimelineTimesIfNeeded() {
       const btn = document.getElementById('ui-play');
       if (!btn) return;
       const ready = !!window.__playerReady;
-      btn.style.opacity = ready ? '1' : '0.55';
-      btn.style.filter = ready ? 'none' : 'grayscale(0.2)';
+      btn.style.opacity = ready ? '1' : '0.45';
+      btn.style.filter = ready ? 'none' : 'grayscale(0.35)';
       btn.title = ready ? '播放 / 暂停' : '音频加载中，请稍候';
+      // 不用 disabled，避免部分 iPad Safari 禁用按钮后点击状态恢复不一致；
+      // togglePlayPause 内部做 ready 锁即可。
+      btn.setAttribute('aria-disabled', ready ? 'false' : 'true');
     } catch (e) {}
   }
 
@@ -719,19 +722,19 @@ function remapTimelineTimesIfNeeded() {
       updatePlayButtonReadyState();
 
       const markReady = () => {
+        // 正式稳定版：playerReady 只负责解锁播放按钮。
+        // 不在回调里自动 playPause，避免异步时序造成“假播放/无声”。
         window.__playerReady = true;
+        window.__pendingPlayRequested = false;
         updatePlayButtonReadyState();
-        if (window.__pendingPlayRequested) {
-          window.__pendingPlayRequested = false;
-          setTimeout(() => {
-            try { if (window.__atApi === api) api.playPause(); } catch (e) {}
-          }, 0);
-        }
       };
 
       if (api.playerReady && api.playerReady.on) {
         api.playerReady.on(() => {
           markReady();
+          setTimeout(() => {
+            try { if (typeof applyTrackVolumes === 'function') applyTrackVolumes(api); } catch (e) {}
+          }, 80);
         });
       }
 
@@ -764,11 +767,17 @@ function remapTimelineTimesIfNeeded() {
     try {
       const api = window.__atApi;
       if (!api) return;
+
+      // iPad/Safari 关键稳定点：
+      // alphaTab 必须走到 playerReady 后才允许播放。
+      // 如果未 ready，直接忽略本次播放，避免进入“看似播放但无声音”的竞态状态。
       if (!window.__playerReady) {
-        window.__pendingPlayRequested = true;
+        window.__pendingPlayRequested = false;
         updatePlayButtonReadyState();
+        console.warn('player 未准备好，等待 playerReady 后再点击播放');
         return;
       }
+
       api.playPause();
     } catch (e) {
       console.warn('togglePlayPause failed', e);
@@ -1517,6 +1526,8 @@ function remapTimelineTimesIfNeeded() {
 
   function applyTrackVolumes(api) {
     if (!api) return;
+    // 避免播放器未 ready 时修改轨道音量，减少 iPad/Safari 初始化竞态。
+    if (!window.__playerReady) return;
     const tracks = getAllTracks(api);
     if (!tracks.length) return;
     tracks.forEach((_, i) => applySingleTrackVolume(api, i, getTrackVolumePercent(i)));
