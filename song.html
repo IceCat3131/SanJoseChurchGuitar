@@ -103,6 +103,15 @@
       margin:0 0 4px;
     }
 
+
+    /* 英文参考歌词贴近谱面：覆盖旧 style.css 里的 #alphaTab.at-viewport min-height:60vh */
+    #score-view #alphaTab.at-viewport{
+      min-height:0 !important;
+    }
+    #score-view #score-extra-lyrics-view{
+      margin-top:4px !important;
+    }
+
   </style>
 </head>
 <body>
@@ -2901,13 +2910,13 @@ function pad4(num) {
 
     if (maxBottom > 0) {
       // 只留很小的缓冲，让参考歌词紧贴谱面下面。
-      const h = Math.ceil(maxBottom + 4);
+      const h = Math.ceil(maxBottom + 2);
       alpha.style.minHeight = h + 'px';
       alpha.style.height = h + 'px';
     }
 
     extra.style.position = 'relative';
-    extra.style.marginTop = '6px';
+    extra.style.marginTop = '4px';
   }
 
   function getCurrentSongCodeLabel() {
