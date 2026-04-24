@@ -67,7 +67,7 @@
 
     /* 英文谱面下方参考歌词：只在 book=e 的五线谱/简谱模式显示 */
     .score-extra-lyrics-root{
-      margin:18px 4px 8px;
+      margin:6px 4px 8px;
       padding:12px 14px;
       border-radius:14px;
       background:#f8fbff;
@@ -2800,6 +2800,11 @@ function pad4(num) {
 
   function renderScoreExtraLyrics(song) {
     const root = document.getElementById('score-extra-lyrics-view');
+    const alpha = document.getElementById('alphaTab');
+    if (alpha) {
+      alpha.style.minHeight = '';
+      alpha.style.height = '';
+    }
     if (!root) return;
 
     root.innerHTML = '';
@@ -2868,37 +2873,41 @@ function pad4(num) {
     if (!scoreView || !alpha || !extra) return;
     if (extra.style.display === 'none') return;
 
-    // 关键修正：
-    // 参考歌词现在是 #score-view 内部、#alphaTab 后面的普通文档流元素。
-    // 因此必须动态撑开 #alphaTab 自身高度，而不是只改外层 #score-view。
+    // 先清掉上一次动态写入的高度，避免切歌时把旧高度再次算进去，导致越切越往下。
+    alpha.style.minHeight = '';
+    alpha.style.height = '';
+
     let maxBottom = 0;
     const baseRect = alpha.getBoundingClientRect();
 
-    // alphaTab 不同版本的页面 class 不完全一致，所以不要只依赖 .at-page。
-    // 取 alphaTab 内所有可见元素的最大 bottom，保证最后一行谱面之后再显示参考歌词。
-    const nodes = alpha.querySelectorAll('svg, canvas, [class*="at-"], text, tspan, path, g, rect');
+    // 只测量 alphaTab 内真正的谱面内容，不测量 alphaTab 自身，也不测量参考歌词。
+    // 注意：不要把 offsetHeight/scrollHeight 在已撑高后反复参与计算，否则会累加。
+    const nodes = alpha.querySelectorAll('svg, canvas, .at-page, .at-surface, .at-system, .at-stave, .at-bar, g, text, tspan, path, rect');
     nodes.forEach(el => {
       try {
+        if (el === alpha || (extra.contains && extra.contains(el))) return;
         const r = el.getBoundingClientRect();
         if (!r || !Number.isFinite(r.bottom) || !Number.isFinite(r.height)) return;
         if (r.height <= 0 || r.width <= 0) return;
         const bottom = r.bottom - baseRect.top;
-        if (bottom > 0) maxBottom = Math.max(maxBottom, bottom);
+        if (bottom > 0 && bottom < 20000) maxBottom = Math.max(maxBottom, bottom);
       } catch (e) {}
     });
 
-    // 兜底：如果 DOM 尺寸拿不到，使用 scrollHeight/offsetHeight。
-    maxBottom = Math.max(maxBottom, alpha.scrollHeight || 0, alpha.offsetHeight || 0);
+    // 兜底：只有在没有测到任何内容时，才用当前自然高度。
+    if (!maxBottom) {
+      maxBottom = alpha.scrollHeight || alpha.offsetHeight || 0;
+    }
 
     if (maxBottom > 0) {
-      const h = Math.ceil(maxBottom + 16);
+      // 只留很小的缓冲，让参考歌词紧贴谱面下面。
+      const h = Math.ceil(maxBottom + 4);
       alpha.style.minHeight = h + 'px';
       alpha.style.height = h + 'px';
     }
 
-    // 确保参考歌词紧跟在谱面真实高度后面。
     extra.style.position = 'relative';
-    extra.style.marginTop = '18px';
+    extra.style.marginTop = '6px';
   }
 
   function getCurrentSongCodeLabel() {
