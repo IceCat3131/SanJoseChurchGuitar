@@ -74,6 +74,7 @@
       color:#1f2937;
       font-size:16px;
       line-height:2.0;
+      clear:both;
     }
     .score-extra-lyrics-title{
       font-size:13px;
@@ -2684,6 +2685,8 @@ function pad4(num) {
         scheduleTabCapoOverlay(180);
         scheduleApplyScriptToScore(120);
         scheduleApplyScriptToScore(360);
+        schedulePlaceScoreExtraLyrics(180);
+        schedulePlaceScoreExtraLyrics(500);
         if (!window.__lastRenderedAutoXml) {
           scheduleAutoTabRewrite(120);
         }
@@ -2697,6 +2700,8 @@ function pad4(num) {
         try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode({ domOnly: true }); } catch (e) {}
         scheduleApplyScriptToScore(40);
         scheduleApplyScriptToScore(180);
+        schedulePlaceScoreExtraLyrics(80);
+        schedulePlaceScoreExtraLyrics(300);
         try { applyTrackVolumes(window.__atApi); } catch (e) {}
       });
 
@@ -2844,6 +2849,45 @@ function pad4(num) {
     const shouldShow = state.currentBook === 'e' && state.mode === 'score' && hasContent;
     root.style.display = shouldShow ? '' : 'none';
     root.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+    if (shouldShow) schedulePlaceScoreExtraLyrics();
+  }
+
+  let __scoreExtraLyricsPlaceTimer = null;
+  function schedulePlaceScoreExtraLyrics(delay = 120) {
+    try { if (__scoreExtraLyricsPlaceTimer) clearTimeout(__scoreExtraLyricsPlaceTimer); } catch (e) {}
+    __scoreExtraLyricsPlaceTimer = setTimeout(() => {
+      try { placeScoreExtraLyricsAfterScore(); } catch (e) { console.warn('placeScoreExtraLyricsAfterScore failed', e); }
+    }, delay);
+  }
+
+  function placeScoreExtraLyricsAfterScore() {
+    const scoreView = document.getElementById('score-view');
+    const alpha = document.getElementById('alphaTab');
+    const extra = document.getElementById('score-extra-lyrics-view');
+    if (!scoreView || !alpha || !extra) return;
+    if (extra.style.display === 'none') return;
+
+    // 有些 alphaTab 渲染层高度不完全进入普通文档流，导致下面的参考歌词像固定在某个 Y 位置。
+    // 这里根据 alphaTab 内部实际渲染内容的最大 bottom，动态给 score-view 补足 min-height。
+    let maxBottom = 0;
+    const baseRect = alpha.getBoundingClientRect();
+
+    const candidates = alpha.querySelectorAll('svg, canvas, .at-surface, .at-page, .at-stave, .at-system, .at-cursor-bar, .at-cursor-beat');
+    candidates.forEach(el => {
+      try {
+        const r = el.getBoundingClientRect();
+        if (r && Number.isFinite(r.bottom) && r.height > 0) {
+          maxBottom = Math.max(maxBottom, r.bottom - baseRect.top);
+        }
+      } catch (e) {}
+    });
+
+    // scrollHeight 仍然作为兜底。
+    maxBottom = Math.max(maxBottom, alpha.scrollHeight || 0, alpha.offsetHeight || 0);
+
+    if (maxBottom > 0) {
+      scoreView.style.minHeight = Math.ceil(maxBottom + 12) + 'px';
+    }
   }
 
   function getCurrentSongCodeLabel() {
