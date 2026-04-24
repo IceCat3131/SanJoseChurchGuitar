@@ -406,6 +406,58 @@ function remapTimelineTimesIfNeeded() {
     return text;
   }
 
+  // ===== 简繁同步到 alphaTab 谱面歌词 =====
+  // 说明：纯歌词页面来自 JSON，原本已经会转；谱面歌词是 alphaTab 渲染后的 SVG 文本，
+  // 所以必须在 renderFinished / 切换简繁 / 切换谱种后，对 #alphaTab 内的中文 text/tspan 做 DOM 后处理。
+  function isChineseTextForScriptConvert(text) {
+    return /[㐀-鿿]/.test(String(text || ''));
+  }
+
+  function isLeafSvgTextElement(el) {
+    if (!el) return false;
+    const tag = String(el.tagName || '').toLowerCase();
+    if (tag !== 'text' && tag !== 'tspan') return false;
+    // 只改叶子节点，避免改 parent <text> 时把子 <tspan> 结构破坏。
+    return !Array.from(el.children || []).some(child => {
+      const t = String(child.tagName || '').toLowerCase();
+      return t === 'text' || t === 'tspan';
+    });
+  }
+
+  function applyScriptToScore() {
+    setupConvertersIfNeeded();
+    const root = document.getElementById('alphaTab');
+    if (!root) return;
+
+    const nodes = root.querySelectorAll('text, tspan');
+    nodes.forEach((el) => {
+      if (!isLeafSvgTextElement(el)) return;
+      const current = String(el.textContent || '');
+      if (!current || !isChineseTextForScriptConvert(current)) return;
+
+      // 记录 alphaTab 原始渲染文本。之后反复切换简/繁都从原文转换，避免多次转换累积误差。
+      if (!el.getAttribute('data-sjcg-orig-script-text')) {
+        el.setAttribute('data-sjcg-orig-script-text', current);
+      }
+      const original = el.getAttribute('data-sjcg-orig-script-text') || current;
+      let next = original;
+
+      if (state.script === 'traditional' && converterToTraditional) {
+        next = converterToTraditional(original);
+      } else if (state.script === 'simplified' && converterToSimplified) {
+        next = converterToSimplified(original);
+      }
+
+      if (next !== current) el.textContent = next;
+    });
+  }
+
+  function scheduleApplyScriptToScore(delay = 80) {
+    setTimeout(() => {
+      try { applyScriptToScore(); } catch (e) { console.warn('applyScriptToScore failed', e); }
+    }, delay);
+  }
+
   function loadViewerPrefs() {
     try {
       const raw = localStorage.getItem('sjcg.viewerPrefs.v2');
@@ -823,6 +875,9 @@ function remapTimelineTimesIfNeeded() {
     getSong(state.currentBook, state.currentNo).then(song => {
       if (song) renderLyrics(song);
     });
+    scheduleApplyScriptToScore(30);
+    scheduleApplyScriptToScore(160);
+    scheduleApplyScriptToScore(420);
   }
 
   async function setBook(book) {
@@ -899,6 +954,7 @@ function remapTimelineTimesIfNeeded() {
     try { window.__atApi.playbackSpeed = viewerPrefs.playbackSpeedPercent / 100; } catch (e) {}
     scheduleChordRewrite(30);
     scheduleTabCapoOverlay(120);
+    scheduleApplyScriptToScore(160);
   }
 
 
@@ -2565,6 +2621,8 @@ function pad4(num) {
         }
         applyTrackVolumes(window.__atApi);
         scheduleTabCapoOverlay(180);
+        scheduleApplyScriptToScore(120);
+        scheduleApplyScriptToScore(360);
         if (!window.__lastRenderedAutoXml) {
           scheduleAutoTabRewrite(120);
         }
@@ -2576,6 +2634,8 @@ function pad4(num) {
         scheduleChordRewrite(40);
         scheduleChordRewrite(180);
         try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode({ domOnly: true }); } catch (e) {}
+        scheduleApplyScriptToScore(40);
+        scheduleApplyScriptToScore(180);
         try { applyTrackVolumes(window.__atApi); } catch (e) {}
       });
 
@@ -2775,6 +2835,7 @@ function pad4(num) {
     document.querySelectorAll('#alphaTab .atj-keysig, #alphaTab .atj-jianpu, #alphaTab .atj-time-signature').forEach(el => {
       el.style.display = showJian ? '' : 'none';
     });
+    scheduleApplyScriptToScore(40);
   }
   let __staffModeRendering = false;
   function rerenderForStaffMode(){
