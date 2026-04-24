@@ -1597,7 +1597,8 @@ function remapTimelineTimesIfNeeded() {
     const btn = document.getElementById('ui-track');
     if (!btn || btn.__trackPanelBound) return;
     btn.__trackPanelBound = true;
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (ev) => {
+      try { ev.preventDefault(); ev.stopPropagation(); } catch (e) {}
       if (__currentScore) buildTracksPanel(__currentScore);
       toggleTracksPanel();
     });
@@ -2929,7 +2930,7 @@ function pad4(num) {
     $('ui-speed')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-speed'); });
     $('ui-key')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-key'); });
         $('ui-text')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-text'); });
-    $('ui-track')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openNewTrackPanel(); });
+    // 轨道按钮由 setupTracksButton() 统一绑定，避免旧 openNewTrackPanel 与新音量面板互相冲突。
     $('ui-staff')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-staff'); });
     $('ui-lang')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-lang'); });
     $('ui-search')?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPanel('panel-search'); });
@@ -3040,153 +3041,6 @@ function pad4(num) {
     setInterval(syncUI, 400);
     setTimeout(syncUI, 1200);
   });
-})();
-</script>
-
-
-<div id="new-track-panel" class="new-track-panel hidden" role="dialog" aria-label="轨道开关">
-  <div class="new-track-panel-inner">
-    <div class="new-track-panel-head">
-      <span>轨道</span>
-      
-    </div>
-    <div class="new-track-panel-actions">
-      <button type="button" class="new-track-ghost" id="new-track-all">全选</button>
-      <button type="button" class="new-track-ghost" id="new-track-none">全不选</button>
-    </div>
-    <div id="new-track-list" class="new-track-list"></div>
-  </div>
-</div>
-
-
-<script>
-(function(){
-  function trackEl(id){ return document.getElementById(id); }
-
-  function getCurrentTracks(){
-    try {
-      const score = (typeof __currentScore !== 'undefined' && __currentScore) ? __currentScore : (window.__atApi && window.__atApi.score ? window.__atApi.score : null);
-      return (score && Array.isArray(score.tracks)) ? score.tracks : [];
-    } catch(e) { return []; }
-  }
-
-  function getSelectedTrackIndicesSafe(){
-    try {
-      const tracks = getCurrentTracks();
-      if (!tracks.length) return [];
-      if (typeof __visibleTrackIndices !== 'undefined' && Array.isArray(__visibleTrackIndices) && __visibleTrackIndices.length) {
-        return __visibleTrackIndices.slice();
-      }
-      return tracks.map((_, i) => i);
-    } catch(e) {
-      return [];
-    }
-  }
-
-  function setSelectedTrackIndicesSafe(indices){
-    const sorted = indices.slice().sort((a,b)=>a-b);
-    try {
-      __trackSelectionTouched = true;
-      if (typeof __visibleTrackIndices !== 'undefined') {
-        __visibleTrackIndices = sorted;
-      } else {
-        window.__visibleTrackIndices = sorted;
-      }
-    } catch(e) {
-      window.__visibleTrackIndices = sorted;
-    }
-    window.__visibleTrackIndices = sorted.slice();
-  }
-
-  function applyTrackSelection(){
-    try {
-      if (__trackSelectionRenderTimer) clearTimeout(__trackSelectionRenderTimer);
-      __trackSelectionRenderTimer = setTimeout(() => {
-        try {
-          if (window.__atApi && typeof renderVisibleTracks === 'function') {
-            renderVisibleTracks(window.__atApi);
-          } else if (window.__atApi && typeof applyPlaybackTrackVisibility === 'function') {
-            applyPlaybackTrackVisibility(window.__atApi);
-          }
-        } catch(err) {
-          console.warn('applyTrackSelection failed', err);
-        }
-      }, 10);
-    } catch(e) {
-      console.warn('applyTrackSelection failed', e);
-    }
-  }
-
-  function buildNewTrackPanel(){
-    const list = trackEl('new-track-list');
-    if (!list) return;
-    const tracks = getCurrentTracks();
-    const selected = new Set(getSelectedTrackIndicesSafe());
-    list.innerHTML = '';
-
-    tracks.forEach((t, i) => {
-      const row = document.createElement('label');
-      row.className = 'new-track-item';
-
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = selected.has(i);
-      cb.addEventListener('change', () => {
-        const now = new Set(getSelectedTrackIndicesSafe());
-        if (!now.size) tracks.forEach((_, k) => now.add(k));
-        if (cb.checked) now.add(i); else now.delete(i);
-        setSelectedTrackIndicesSafe(Array.from(now));
-        applyTrackSelection();
-      });
-
-      const name = document.createElement('div');
-      name.className = 'new-track-name';
-      name.textContent = (t && (t.name || t.shortName)) ? (t.name || t.shortName) : ('Track ' + (i + 1));
-
-      row.appendChild(cb);
-      row.appendChild(name);
-      list.appendChild(row);
-    });
-  }
-
-  function openNewTrackPanel(){
-    const panel = trackEl('new-track-panel');
-    if (!panel) return;
-    buildNewTrackPanel();
-    panel.classList.remove('hidden');
-  }
-
-  function closeNewTrackPanel(){
-    const panel = trackEl('new-track-panel');
-    if (!panel) return;
-    panel.classList.add('hidden');
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    trackEl('new-track-close')?.addEventListener('click', closeNewTrackPanel);
-    trackEl('new-track-all')?.addEventListener('click', () => {
-      const tracks = getCurrentTracks();
-      setSelectedTrackIndicesSafe(tracks.map((_, i) => i));
-      buildNewTrackPanel();
-      applyTrackSelection();
-    });
-    trackEl('new-track-none')?.addEventListener('click', () => {
-      setSelectedTrackIndicesSafe([]);
-      buildNewTrackPanel();
-      applyTrackSelection();
-    });
-
-    document.addEventListener('click', (e) => {
-      const panel = trackEl('new-track-panel');
-      if (!panel || panel.classList.contains('hidden')) return;
-      if (e.target.closest('#new-track-panel')) return;
-      if (e.target.closest('#ui-track')) return;
-      closeNewTrackPanel();
-    });
-
-  });
-
-  window.openNewTrackPanel = openNewTrackPanel;
 })();
 </script>
 
