@@ -56554,55 +56554,89 @@
                 accidentalNode.style.display = 'none';
                 accidentalNode.setAttribute('data-numbered-header-relocated', '1');
             }
-            const isLyricTextNode = (node) => {
-                if (!node || node.tagName?.toLowerCase() !== 'text') {
-                    return false;
+
+            // 第一行简谱整体上移后，歌词需要留在原位。
+            // 统一多语言规则：不按字符内容判断歌词/和弦，只找“第一行系统下方最密集的一条 Y 坐标歌词带”。
+            // 这样英文歌词里单独的 A/C/G 不会被误判为和弦。
+            const isClearlyNonLyric = (txt) => {
+                const raw = String(txt || '').trim();
+                const compact = normalizeHeaderText(raw);
+                if (!compact) {
+                    return true;
                 }
-                const txt = (node.textContent || '').trim();
-                if (!txt) {
-                    return false;
+                // 调号头、纯数字、纯符号不参与歌词带候选。
+                if (/^1=[#b]?[A-G]m?$/i.test(compact)) {
+                    return true;
                 }
-                // 通用修复：这里不能只用中文字符判断歌词。
-                // 英文/西班牙语等歌词也应该留在原位，不能跟第一行简谱一起上移。
-                // 先排除明显和弦，避免 C / G / Am / D7 这类上方和弦被误认为歌词。
-                const compact = txt.replace(/\s+/g, '');
-                if (/^[A-G](?:#|b|♯|♭)?(?:m|maj|min|sus|dim|aug|add|M)?\d*(?:\/[A-G](?:#|b|♯|♭)?)?$/.test(compact)) {
-                    return false;
-                }
-                if (/^(?:N\.C\.|NC)$/i.test(compact)) {
-                    return false;
-                }
-                // 排除纯数字、纯标点、调号头等非歌词文字。
-                if (/^[\d\s.,;:!?'"()\[\]{}<>+\-–—_/\\|]+$/.test(txt)) {
-                    return false;
-                }
-                if (/^1=[#b♯♭]?[A-G]m?$/i.test(compact)) {
-                    return false;
-                }
-                // 第一优先：位置判断，语言无关。
-                // tonicBox 是第一行简谱调号头 1=C 的位置；歌词必然在它下方较远处。
-                // 这样中文、英文、西班牙语等都能统一识别。
-                try {
-                    const box = node.getBBox?.();
-                    if (box && box.width > 0 && box.height > 0) {
-                        const headerY = Number.isFinite(tonicBox?.y) ? tonicBox.y : 0;
-                        const headerBottom = Number.isFinite(tonicBox?.y) && Number.isFinite(tonicBox?.height)
-                            ? tonicBox.y + tonicBox.height
-                            : headerY;
-                        if (box.y > headerBottom + 22) {
-                            return true;
-                        }
-                    }
-                }
-                catch (_a) {
-                    // ignore getBBox errors
-                }
-                // 兜底：中文原逻辑保留；其它语言如果像自然语言文本，也视为歌词。
-                if (/[㐀-鿿]/.test(txt)) {
+                if (/^[\d\s.,;:!?'"()\[\]{}<>+\-–—_/\\|]+$/.test(raw)) {
                     return true;
                 }
                 return false;
             };
+            const collectTextCandidates = (root) => {
+                const result = [];
+                const headerBottom = tonicBox.y + tonicBox.height;
+                const allTexts = Array.from(root.querySelectorAll('text'));
+                for (const node of allTexts) {
+                    const txt = (node.textContent || '').trim();
+                    if (isClearlyNonLyric(txt)) {
+                        continue;
+                    }
+                    try {
+                        const box = node.getBBox();
+                        if (!box || box.width <= 0 || box.height <= 0) {
+                            continue;
+                        }
+                        // 只看第一行简谱下面的合理范围：
+                        // 太靠上可能是和弦/简谱元素；太靠下大概率是第二行系统的和弦。
+                        const y = box.y;
+                        if (y <= headerBottom + 18) {
+                            continue;
+                        }
+                        if (y >= headerBottom + 95) {
+                            continue;
+                        }
+                        result.push({ node, y, box });
+                    }
+                    catch (_a) {
+                        // ignore getBBox errors
+                    }
+                }
+                return result;
+            };
+            const pickLyricBand = (candidates) => {
+                if (!candidates.length) {
+                    return [];
+                }
+                // 按 4px 分桶，找数量最多的水平带。
+                const buckets = new Map();
+                for (const item of candidates) {
+                    const key = Math.round(item.y / 4) * 4;
+                    const arr = buckets.get(key) || [];
+                    arr.push(item);
+                    buckets.set(key, arr);
+                }
+                let bestKey = null;
+                let bestItems = [];
+                for (const [key, arr] of buckets.entries()) {
+                    if (arr.length > bestItems.length || (arr.length === bestItems.length && (bestKey === null || key < bestKey))) {
+                        bestKey = key;
+                        bestItems = arr;
+                    }
+                }
+                if (!bestItems.length) {
+                    return [];
+                }
+                // 扩展同一歌词带：允许 y 误差约 5px。
+                const center = bestItems.reduce((sum, item) => sum + item.y, 0) / bestItems.length;
+                return candidates.filter(item => Math.abs(item.y - center) <= 5);
+            };
+            const appendTranslate = (node, dx, dy) => {
+                const old = node.getAttribute('transform') || '';
+                const add = `translate(${dx} ${dy})`;
+                node.setAttribute('transform', old ? `${old} ${add}` : add);
+            };
+
             let shiftGroup = svg.querySelector(':scope > g.at-first-system-shift-group');
             if (!shiftGroup) {
                 shiftGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -56613,12 +56647,19 @@
                     if (child === tonicNode || child === accidentalNode) {
                         continue;
                     }
-                    if (isLyricTextNode(child)) {
-                        continue;
-                    }
                     shiftGroup.appendChild(child);
                 }
                 svg.insertBefore(shiftGroup, svg.firstChild);
+            }
+
+            const lyricBand = pickLyricBand(collectTextCandidates(shiftGroup));
+            for (const item of lyricBand) {
+                const lyricNode = item.node;
+                if (lyricNode.getAttribute('data-at-lyric-countershift') === '1') {
+                    continue;
+                }
+                appendTranslate(lyricNode, 0, 20);
+                lyricNode.setAttribute('data-at-lyric-countershift', '1');
             }
         }
         beginAppendRenderResults(renderResult) {
