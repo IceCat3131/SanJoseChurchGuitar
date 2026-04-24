@@ -56562,49 +56562,7 @@
                 if (!txt) {
                     return false;
                 }
-                // 通用修复：这里不能只用中文字符判断歌词。
-                // 英文/西班牙语等歌词也应该留在原位，不能跟第一行简谱一起上移。
-                // 先排除明显和弦，避免 C / G / Am / D7 这类上方和弦被误认为歌词。
-                const compact = txt.replace(/\s+/g, '');
-                if (/^[A-G](?:#|b|♯|♭)?(?:m|maj|min|sus|dim|aug|add|M)?\d*(?:\/[A-G](?:#|b|♯|♭)?)?$/.test(compact)) {
-                    return false;
-                }
-                if (/^(?:N\.C\.|NC)$/i.test(compact)) {
-                    return false;
-                }
-                // 排除纯数字、纯标点、调号头等非歌词文字。
-                if (/^[\d\s.,;:!?'"()\[\]{}<>+\-–—_/\\|]+$/.test(txt)) {
-                    return false;
-                }
-                if (/^1=[#b♯♭]?[A-G]m?$/i.test(compact)) {
-                    return false;
-                }
-                // 第一优先：位置判断，语言无关。
-                // tonicBox 是第一行简谱调号头 1=C 的位置；歌词必然在它下方较远处。
-                // 这样中文、英文、西班牙语等都能统一识别。
-                try {
-                    const box = node.getBBox?.();
-                    if (box && box.width > 0 && box.height > 0) {
-                        const headerY = Number.isFinite(tonicBox?.y) ? tonicBox.y : 0;
-                        const headerBottom = Number.isFinite(tonicBox?.y) && Number.isFinite(tonicBox?.height)
-                            ? tonicBox.y + tonicBox.height
-                            : headerY;
-                        if (box.y > headerBottom + 22) {
-                            return true;
-                        }
-                    }
-                }
-                catch (_a) {
-                    // ignore getBBox errors
-                }
-                // 兜底：中文原逻辑保留；其它语言如果像自然语言文本，也视为歌词。
-                if (/[㐀-鿿]/.test(txt)) {
-                    return true;
-                }
-                if (/[A-Za-zÀ-ÿ]/.test(txt) && txt.length > 2) {
-                    return true;
-                }
-                return false;
+                return /[㐀-鿿]/.test(txt);
             };
             let shiftGroup = svg.querySelector(':scope > g.at-first-system-shift-group');
             if (!shiftGroup) {
