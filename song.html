@@ -54,6 +54,15 @@
     .core-panel-actions-icons{display:flex;gap:10px;flex-wrap:wrap;}
     .core-option-btn-icon{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;}
     .core-option-svg{width:20px;height:20px;display:block;}
+
+    /* 轨道菜单：每轨音量滑块 */
+    .new-track-volume-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-top:6px;padding-left:28px;}
+    .new-track-volume-label{font-size:12px;color:#6b7280;font-weight:700;white-space:nowrap;}
+    .new-track-volume-range{width:100%;accent-color:#2563eb;}
+    .new-track-volume-value{font-size:12px;color:#2563eb;font-weight:800;min-width:38px;text-align:right;}
+    .new-track-item-wrap{background:#f8fbff;border-radius:12px;padding:8px 10px;}
+    .new-track-item-wrap .new-track-item{background:transparent;padding:0;min-height:30px;}
+
   </style>
 </head>
 <body>
@@ -1359,16 +1368,245 @@ function remapTimelineTimesIfNeeded() {
       try { api.render(); } catch(e2) {}
     }
     applyPlaybackTrackVisibility(api);
+    applyTrackVolumes(api);
   }
 
   window.renderVisibleTracks = renderVisibleTracks;
 
+  const TRACK_VOLUME_STORE_KEY = 'sjcg.trackVolumes.v1';
+
+  function getCurrentTrackVolumeSongKey() {
+    const book = state.currentBook || window.__gtzMeta?.book || 'c';
+    const no = state.currentNo || window.__gtzMeta?.no || 1;
+    return `${book}:${no}`;
+  }
+
+  function loadAllTrackVolumes() {
+    try {
+      const raw = localStorage.getItem(TRACK_VOLUME_STORE_KEY);
+      const obj = raw ? JSON.parse(raw) : {};
+      return (obj && typeof obj === 'object') ? obj : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveAllTrackVolumes(obj) {
+    try { localStorage.setItem(TRACK_VOLUME_STORE_KEY, JSON.stringify(obj || {})); } catch (e) {}
+  }
+
+  function getTrackVolumePercent(trackIndex) {
+    const all = loadAllTrackVolumes();
+    const key = getCurrentTrackVolumeSongKey();
+    const songMap = all[key] || {};
+    const v = parseInt(songMap[String(trackIndex)], 10);
+    return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 100;
+  }
+
+  function setTrackVolumePercent(trackIndex, percent) {
+    const p = Math.max(0, Math.min(100, parseInt(percent, 10) || 0));
+    const all = loadAllTrackVolumes();
+    const key = getCurrentTrackVolumeSongKey();
+    if (!all[key] || typeof all[key] !== 'object') all[key] = {};
+    all[key][String(trackIndex)] = p;
+    saveAllTrackVolumes(all);
+    applySingleTrackVolume(window.__atApi, trackIndex, p);
+  }
+
+  function applySingleTrackVolume(api, trackIndex, percent) {
+    if (!api) return;
+    const tracks = getAllTracks(api);
+    const track = tracks[trackIndex];
+    if (!track) return;
+
+    const p = Math.max(0, Math.min(100, parseInt(percent, 10) || 0));
+    const volume16 = Math.round((p / 100) * 16);
+    const volume01 = p / 100;
+
+    try {
+      if (!track.playbackInfo) track.playbackInfo = {};
+      track.playbackInfo.volume = volume16;
+    } catch (e) {}
+
+    if (typeof api.changeTrackVolume === 'function') {
+      try {
+        api.changeTrackVolume([track], volume16);
+        return;
+      } catch (e1) {
+        try { api.changeTrackVolume([track], volume01); return; } catch (e2) {}
+      }
+    }
+
+    try {
+      if (typeof api.updateSettings === 'function') api.updateSettings();
+    } catch (e) {}
+  }
+
+  function applyTrackVolumes(api) {
+    if (!api) return;
+    const tracks = getAllTracks(api);
+    if (!tracks.length) return;
+    tracks.forEach((_, i) => applySingleTrackVolume(api, i, getTrackVolumePercent(i)));
+  }
+
+  function getTrackDisplayName(track, index) {
+    const name =
+      track?.name ||
+      track?.trackName ||
+      track?.shortName ||
+      track?.instrument?.name ||
+      track?.playbackInfo?.name ||
+      '';
+    const s = String(name || '').trim();
+    return s || `轨道 ${index + 1}`;
+  }
+
+  function closeTracksPanel() {
+    const panel = document.getElementById('new-track-panel');
+    if (panel) panel.classList.add('hidden');
+  }
+
+  function toggleTracksPanel() {
+    const panel = document.getElementById('new-track-panel');
+    if (!panel) return;
+    panel.classList.toggle('hidden');
+  }
+
   function buildTracksPanel(score) {
-    return score;
+    if (!score || !Array.isArray(score.tracks)) return null;
+    let panel = document.getElementById('new-track-panel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'new-track-panel';
+      panel.className = 'new-track-panel hidden';
+      document.body.appendChild(panel);
+    }
+
+    const tracks = score.tracks || [];
+    const selectedSet = new Set(
+      Array.isArray(__visibleTrackIndices) && __visibleTrackIndices.length
+        ? __visibleTrackIndices
+        : tracks.map((_, i) => i)
+    );
+
+    const rows = tracks.map((track, i) => {
+      const checked = selectedSet.has(i) ? 'checked' : '';
+      const vol = getTrackVolumePercent(i);
+      const name = escapeHtml(getTrackDisplayName(track, i));
+      return `
+        <div class="new-track-item-wrap" data-track-index="${i}">
+          <label class="new-track-item">
+            <input type="checkbox" class="new-track-check" data-track-index="${i}" ${checked}>
+            <span class="new-track-name">${name}</span>
+          </label>
+          <div class="new-track-volume-row">
+            <span class="new-track-volume-label">音量</span>
+            <input type="range" class="new-track-volume-range" data-track-index="${i}" min="0" max="100" step="5" value="${vol}">
+            <span class="new-track-volume-value" data-track-index="${i}">${vol}%</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    panel.innerHTML = `
+      <div class="new-track-panel-inner">
+        <div class="new-track-panel-head">
+          <span>轨道</span>
+          <button type="button" class="new-track-close" id="new-track-close">×</button>
+        </div>
+        <div class="new-track-panel-actions">
+          <button type="button" class="new-track-ghost" id="new-track-all">全选</button>
+          <button type="button" class="new-track-ghost" id="new-track-none">全不选</button>
+          <button type="button" class="new-track-ghost" id="new-track-volume-reset">音量恢复</button>
+        </div>
+        <div class="new-track-list">${rows || '<div class="core-panel-note">没有轨道</div>'}</div>
+      </div>
+    `;
+
+    const applySelection = () => {
+      const checks = Array.from(panel.querySelectorAll('.new-track-check'));
+      const idxs = checks
+        .filter(ch => ch.checked)
+        .map(ch => parseInt(ch.getAttribute('data-track-index'), 10))
+        .filter(n => Number.isFinite(n));
+      __trackSelectionTouched = true;
+      __visibleTrackIndices = idxs;
+      window.__visibleTrackIndices = idxs.slice();
+      if (__trackSelectionRenderTimer) clearTimeout(__trackSelectionRenderTimer);
+      __trackSelectionRenderTimer = setTimeout(() => {
+        try {
+          if (window.__atApi) window.renderVisibleTracks(window.__atApi);
+          applyTrackVolumes(window.__atApi);
+        } catch (e) {}
+      }, 80);
+    };
+
+    panel.querySelectorAll('.new-track-check').forEach(ch => {
+      ch.addEventListener('change', applySelection);
+    });
+
+    panel.querySelectorAll('.new-track-volume-range').forEach(range => {
+      const handler = () => {
+        const idx = parseInt(range.getAttribute('data-track-index'), 10);
+        const val = parseInt(range.value, 10) || 0;
+        const label = panel.querySelector(`.new-track-volume-value[data-track-index="${idx}"]`);
+        if (label) label.textContent = `${val}%`;
+        setTrackVolumePercent(idx, val);
+      };
+      range.addEventListener('input', handler);
+      range.addEventListener('change', handler);
+    });
+
+    const btnClose = panel.querySelector('#new-track-close');
+    if (btnClose) btnClose.addEventListener('click', closeTracksPanel);
+
+    const btnAll = panel.querySelector('#new-track-all');
+    if (btnAll) btnAll.addEventListener('click', () => {
+      panel.querySelectorAll('.new-track-check').forEach(ch => { ch.checked = true; });
+      applySelection();
+    });
+
+    const btnNone = panel.querySelector('#new-track-none');
+    if (btnNone) btnNone.addEventListener('click', () => {
+      panel.querySelectorAll('.new-track-check').forEach(ch => { ch.checked = false; });
+      applySelection();
+    });
+
+    const btnVolReset = panel.querySelector('#new-track-volume-reset');
+    if (btnVolReset) btnVolReset.addEventListener('click', () => {
+      const all = loadAllTrackVolumes();
+      const key = getCurrentTrackVolumeSongKey();
+      if (all[key]) {
+        delete all[key];
+        saveAllTrackVolumes(all);
+      }
+      panel.querySelectorAll('.new-track-volume-range').forEach(range => {
+        range.value = '100';
+        const idx = parseInt(range.getAttribute('data-track-index'), 10);
+        const label = panel.querySelector(`.new-track-volume-value[data-track-index="${idx}"]`);
+        if (label) label.textContent = '100%';
+        applySingleTrackVolume(window.__atApi, idx, 100);
+      });
+    });
+
+    applyTrackVolumes(window.__atApi);
+    return panel;
   }
 
   function setupTracksButton() {
-    return;
+    const btn = document.getElementById('ui-track');
+    if (!btn || btn.__trackPanelBound) return;
+    btn.__trackPanelBound = true;
+    btn.addEventListener('click', () => {
+      if (__currentScore) buildTracksPanel(__currentScore);
+      toggleTracksPanel();
+    });
+    document.addEventListener('click', (ev) => {
+      const panel = document.getElementById('new-track-panel');
+      if (!panel || panel.classList.contains('hidden')) return;
+      if (panel.contains(ev.target) || btn.contains(ev.target)) return;
+      panel.classList.add('hidden');
+    });
   }
 
   // ===== 播放位置标记（长竖线光标 + 当前音符高亮） =====
@@ -2318,11 +2556,13 @@ function pad4(num) {
         if (oldFallback) oldFallback.remove();
 
         applyScoreTransposition(window.__atApi);
+        buildTracksPanel(__currentScore);
         if (typeof window.renderVisibleTracks === 'function') {
           window.renderVisibleTracks(window.__atApi);
         } else {
           applyPlaybackTrackVisibility(window.__atApi);
         }
+        applyTrackVolumes(window.__atApi);
         scheduleTabCapoOverlay(180);
         if (!window.__lastRenderedAutoXml) {
           scheduleAutoTabRewrite(120);
@@ -2335,6 +2575,7 @@ function pad4(num) {
         scheduleChordRewrite(40);
         scheduleChordRewrite(180);
         try { if (typeof window.applyStaffMode === 'function') window.applyStaffMode({ domOnly: true }); } catch (e) {}
+        try { applyTrackVolumes(window.__atApi); } catch (e) {}
       });
 
       // 播放条绑定
