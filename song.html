@@ -94,7 +94,7 @@
           <div class="core-text-grid">
             <div class="core-control-card">
               <div class="core-control-label">谱词字号</div>
-              <div class="core-panel-stepper"><button type="button" class="core-step-btn" id="ui-font-minus">−</button><div class="core-panel-value" id="ui-font-value">16</div><button type="button" class="core-step-btn" id="ui-font-plus">+</button></div>
+              <div class="core-panel-stepper"><button type="button" class="core-step-btn" id="ui-font-minus">−</button><div class="core-panel-value" id="ui-font-value">30</div><button type="button" class="core-step-btn" id="ui-font-plus">+</button></div>
             </div>
             <div class="core-control-card">
               <div class="core-control-label">谱词距</div>
@@ -113,16 +113,10 @@
             <button type="button" class="core-option-btn" id="ui-lang-simp">简体</button>
             <button type="button" class="core-option-btn" id="ui-lang-trad">繁体</button>
           </div>
-          <div class="core-panel-actions core-panel-actions-left" style="margin-top:8px;">
-            <button type="button" class="core-option-btn" id="ui-switch-e">英文</button>
-            <button type="button" class="core-option-btn" id="ui-switch-c">大本</button>
-            <button type="button" class="core-option-btn" id="ui-switch-ts">小本</button>
-          </div>
         </div>
         <div class="core-panel" id="panel-search" hidden>
           <div class="core-panel-head"><span>搜索</span></div>
           <div class="core-book-row">
-            <button type="button" class="core-option-btn" id="ui-book-e">英文</button>
             <button type="button" class="core-option-btn" id="ui-book-c">大本</button>
             <button type="button" class="core-option-btn" id="ui-book-ts">小本</button>
           </div>
@@ -280,33 +274,18 @@ function remapTimelineTimesIfNeeded() {
 }
 
   const BOOKS = {
-    e: {
-      label: "英文诗歌",
-      shortLabel: "英文",
-      folderText: "e_text",
-      textSingleFile: "e_1-1360.json",
-      gtzPrefix: "assets/e/e",
-      gtzSuffix: "_g.gtz",
-      svgPrefix: "assets/e/e",
-      svgSuffix: "_g.svg",
-      codePrefix: "e"
-    },
     c: {
       label: "大本诗歌",
       folderText: "c_text",
       gtzPrefix: "assets/c/c",
-      gtzSuffix: "_cn_g.gtz",
       svgPrefix: "assets/c/c",
-      svgSuffix: "_cn_g.svg",
       codePrefix: "c"
     },
     ts: {
       label: "小本诗歌",
       folderText: "ts_text",
       gtzPrefix: "assets/ts/ts",
-      gtzSuffix: "_cn_g.gtz",
       svgPrefix: "assets/ts/ts",
-      svgSuffix: "_cn_g.svg",
       codePrefix: "ts"
     }
   };
@@ -321,15 +300,15 @@ function remapTimelineTimesIfNeeded() {
     // 歌词当前显示：simplified=简体, traditional=繁体
     script: "simplified",
     lyricsFontSize: 24,
-    data: { e: [], c: [], ts: [] },
-    loadedRanges: { e: {}, c: {}, ts: {} },
+    data: { c: [], ts: [] },
+    loadedRanges: { c: {}, ts: {} },
     searchBook: "c",
     searchDraft: "1",
     searchResults: []
   };
 
   const DEFAULT_VIEWER_PREFS = {
-    scoreFontSizePx: 16,
+    scoreFontSizePx: 30,
     scoreSpacingFactor: 2.0,
     chordFontSizePx: 16,
     pureLyricsFontSize: 24,
@@ -339,19 +318,6 @@ function remapTimelineTimesIfNeeded() {
 
   let viewerPrefs = loadViewerPrefs();
   let __currentMeta = null;
-  let __lastLoadedSongKey = null;
-
-  function resetSongScopedPrefsIfNeeded(bookKey, no) {
-    const key = `${bookKey}:${no}`;
-    // 首次进入页面不重置；只有真正切到另一首歌时，重置只应作用于单首歌的临时操作。
-    if (__lastLoadedSongKey && __lastLoadedSongKey !== key) {
-      viewerPrefs.transposeSemitones = DEFAULT_VIEWER_PREFS.transposeSemitones;
-      viewerPrefs.playbackSpeedPercent = DEFAULT_VIEWER_PREFS.playbackSpeedPercent;
-      saveViewerPrefs();
-      try { if (window.__atApi) window.__atApi.playbackSpeed = 1; } catch (e) {}
-    }
-    __lastLoadedSongKey = key;
-  }
 
   let converterToTraditional = null; // 简 -> 繁
   let converterToSimplified = null;  // 繁 -> 简
@@ -387,7 +353,7 @@ function remapTimelineTimesIfNeeded() {
 
   function loadViewerPrefs() {
     try {
-      const raw = localStorage.getItem('sjcg.viewerPrefs.v2');
+      const raw = localStorage.getItem('sjcg.viewerPrefs.v1');
       if (!raw) return { ...DEFAULT_VIEWER_PREFS };
       const obj = JSON.parse(raw);
       if (obj && Object.prototype.hasOwnProperty.call(obj, 'capoOverride')) {
@@ -400,7 +366,7 @@ function remapTimelineTimesIfNeeded() {
   }
 
   function saveViewerPrefs() {
-    try { localStorage.setItem('sjcg.viewerPrefs.v2', JSON.stringify(viewerPrefs)); } catch (e) {}
+    try { localStorage.setItem('sjcg.viewerPrefs.v1', JSON.stringify(viewerPrefs)); } catch (e) {}
   }
 
   function getSongCapo() {
@@ -781,7 +747,7 @@ function remapTimelineTimesIfNeeded() {
   }
 
   async function setSearchBook(book, autoSearch = false) {
-    state.searchBook = normalizeBook(book, state.searchBook || state.currentBook || 'c');
+    state.searchBook = (book === 'ts') ? 'ts' : 'c';
     const inputEl = document.getElementById('ui-search-input');
     const currentInput = String(inputEl?.value || '').trim();
     if (currentInput) state.searchDraft = currentInput;
@@ -805,7 +771,7 @@ function remapTimelineTimesIfNeeded() {
   }
 
   async function setBook(book) {
-    const nextBook = normalizeBook(book, state.currentBook || 'c');
+    const nextBook = (book === 'ts') ? 'ts' : 'c';
     if (state.currentBook === nextBook) return true;
     state.currentBook = nextBook;
     syncBookButtons();
@@ -822,9 +788,9 @@ function remapTimelineTimesIfNeeded() {
       return false;
     }
 
-    const targetBook = isValidBook(bookOverride)
+    const targetBook = (bookOverride === 'ts' || bookOverride === 'c')
       ? bookOverride
-      : normalizeBook(state.searchBook, state.currentBook || 'c');
+      : ((state.searchBook === 'ts') ? 'ts' : 'c');
 
     const digitsMatch = value.match(/^(\d{1,4})$/);
     if (digitsMatch) {
@@ -1080,7 +1046,7 @@ function remapTimelineTimesIfNeeded() {
     const st = gtz?.state || null;
     const vs = gtz?.viewerState || null;
     window.__gtzState = {
-      fontSizePx: DEFAULT_VIEWER_PREFS.scoreFontSizePx,
+      fontSizePx: st?.fontSizePx ?? vs?.fontSizePx ?? DEFAULT_VIEWER_PREFS.scoreFontSizePx,
       spacingFactor: st?.spacingFactor ?? vs?.spacingFactor ?? DEFAULT_VIEWER_PREFS.scoreSpacingFactor,
       zoom: st?.zoom ?? (vs?.zoom != null ? Math.round(vs.zoom * 100) : 100),
       visibleTrackIndices: st?.visibleTrackIndices ?? vs?.visibleTrackIndices ?? null
@@ -1981,16 +1947,12 @@ function pad4(num) {
     return String(num).padStart(4, "0");
   }
 
-  function isValidBook(bookKey) { return !!BOOKS[bookKey]; }
-  function normalizeBook(bookKey, fallback = "c") { return isValidBook(bookKey) ? bookKey : fallback; }
-  function getAllBookKeys() { return Object.keys(BOOKS); }
-
   function parseQuery() {
     const params = new URLSearchParams(window.location.search);
     const book = params.get("book") || "c";
     let no = parseInt(params.get("no") || "1", 10);
     if (!Number.isFinite(no) || no < 1) no = 1;
-    state.currentBook = normalizeBook(book, "c");
+    state.currentBook = (book === "ts") ? "ts" : "c";
     state.currentNo = no;
     state.searchBook = state.currentBook;
     state.searchDraft = String(state.currentNo || 1);
@@ -2001,17 +1963,13 @@ function pad4(num) {
   }
 
   function getRangeFilePath(bookKey, rangeIndex) {
-    const book = BOOKS[bookKey];
-    const folder = book.folderText;
-    if (book.textSingleFile) return `assets/${folder}/${book.textSingleFile}`;
     const start = rangeIndex * 100 + 1;
     const end = (rangeIndex + 1) * 100;
+    const folder = BOOKS[bookKey].folderText;
     return `assets/${folder}/${bookKey}_${start}_${end}.json`;
   }
 
   async function loadRange(bookKey, rangeIndex) {
-    if (!isValidBook(bookKey)) return false;
-    if (BOOKS[bookKey].textSingleFile && rangeIndex > 0) return false;
     if (state.loadedRanges[bookKey][rangeIndex]) return true;
     const url = getRangeFilePath(bookKey, rangeIndex);
     try {
@@ -2046,7 +2004,6 @@ function pad4(num) {
   }
 
   async function getSong(bookKey, no) {
-    bookKey = normalizeBook(bookKey, state.currentBook || 'c');
     await ensureRangeForNo(bookKey, no);
     return findLocalSong(bookKey, no);
   }
@@ -2185,7 +2142,7 @@ function pad4(num) {
   }
 
   async function searchSongsByKeywordAll(rawQuery) {
-    const allBooks = getAllBookKeys();
+    const allBooks = ['c', 'ts'];
     const groups = await Promise.all(allBooks.map(bookKey => searchSongsByKeyword(bookKey, rawQuery)));
     const merged = groups.flat();
     merged.sort((a, b) => (a.rank - b.rank) || (a.no - b.no) || a.book.localeCompare(b.book));
@@ -2257,7 +2214,7 @@ function pad4(num) {
         window.__visibleTrackIndices = Array.isArray(__visibleTrackIndices) ? __visibleTrackIndices.slice() : [];
 
         if (!viewerPrefs.__initializedFromSong) {
-          // 谱词字号不再从 GTZ 的 state.fontSizePx 初始化，避免旧 GTZ 里 30 覆盖网页默认 16。
+          viewerPrefs.scoreFontSizePx = st.fontSizePx || viewerPrefs.scoreFontSizePx;
           viewerPrefs.scoreSpacingFactor = st.spacingFactor || viewerPrefs.scoreSpacingFactor;
           viewerPrefs.__initializedFromSong = true;
           saveViewerPrefs();
@@ -2302,8 +2259,7 @@ function pad4(num) {
     if (oldFallback) oldFallback.remove();
 
     const gtzPrefix = BOOKS[bookKey].gtzPrefix || BOOKS[bookKey].svgPrefix;
-    const gtzSuffix = BOOKS[bookKey].gtzSuffix || '_cn_g.gtz';
-    const gtzUrl = `${gtzPrefix}${pad4(no)}${gtzSuffix}`;
+    const gtzUrl = `${gtzPrefix}${pad4(no)}_cn_g.gtz`; // 如 assets/c/c0001_cn_g.gtz
 
     loadGtzIntoAlphaTab(window.__atApi, gtzUrl).catch(err => {
       console.error("加载 gtz 失败:", err);
@@ -2315,8 +2271,7 @@ function pad4(num) {
         const oldFallback = document.getElementById('score-fallback-image');
         if (oldFallback) oldFallback.remove();
         const folderPrefix = BOOKS[bookKey].svgPrefix;
-        const svgSuffix = BOOKS[bookKey].svgSuffix || '_cn_g.svg';
-        const src = `${folderPrefix}${pad4(no)}${svgSuffix}`;
+        const src = `${folderPrefix}${pad4(no)}_cn_g.svg`;
         const img = document.createElement("img");
         img.id = 'score-fallback-image';
         img.alt = `${BOOKS[bookKey].label} 第 ${no} 首 吉他谱`;
@@ -2359,8 +2314,8 @@ function pad4(num) {
   }
 
   function getCurrentSongCodeLabel() {
-    const bookKey = normalizeBook(state.currentBook, 'c');
-    const prefix = (BOOKS[bookKey]?.codePrefix || bookKey).toUpperCase();
+    const bookKey = state.currentBook === 'ts' ? 'ts' : 'c';
+    const prefix = bookKey === 'ts' ? 'TS' : 'C';
     const no = Number.isFinite(Number(state.currentNo)) ? Number(state.currentNo) : 1;
     return `${prefix}_${no}`;
   }
@@ -2417,7 +2372,6 @@ function pad4(num) {
       alert("找不到这首诗歌的歌词数据。");
       return;
     }
-    resetSongScopedPrefsIfNeeded(state.currentBook, state.currentNo);
     updateTitle(song);
     updateSongCodeBadge();
     renderScore(state.currentBook, state.currentNo);
@@ -2586,13 +2540,8 @@ function pad4(num) {
     const searchPanelOpen = $('panel-search') && !$('panel-search').hidden;
     if($('ui-search-input') && document.activeElement !== $('ui-search-input') && !searchPanelOpen) $('ui-search-input').value = String(state.searchDraft || state.currentNo || '');
     if($('search-input') && document.activeElement !== $('search-input')) $('search-input').value = String(state.searchDraft || state.currentNo || '');
-    const activeBookForSearch = normalizeBook(state.searchBook || state.currentBook, 'c');
-    $('ui-book-e')?.classList.toggle('active', activeBookForSearch === 'e');
-    $('ui-book-c')?.classList.toggle('active', activeBookForSearch === 'c');
-    $('ui-book-ts')?.classList.toggle('active', activeBookForSearch === 'ts');
-    $('ui-switch-e')?.classList.toggle('active', state.currentBook === 'e');
-    $('ui-switch-c')?.classList.toggle('active', state.currentBook === 'c');
-    $('ui-switch-ts')?.classList.toggle('active', state.currentBook === 'ts');
+    $('ui-book-c')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'c');
+    $('ui-book-ts')?.classList.toggle('active', (state.searchBook || state.currentBook) === 'ts');
     $('ui-mode-score')?.classList.toggle('active', state.mode === 'score');
     $('ui-mode-lyrics')?.classList.toggle('active', state.mode === 'lyrics');
     $('ui-lang-simp')?.classList.toggle('active', state.script === 'simplified');
@@ -2612,28 +2561,6 @@ function pad4(num) {
         note.textContent = mode === 'lyrics' ? '歌词' : (mode === 'jian' ? '简谱' : '五线谱');
       }
     }
-  }
-
-  async function switchToLinkedBook(targetBook) {
-    targetBook = normalizeBook(targetBook, null);
-    if (!targetBook) return false;
-    if (state.currentBook === targetBook) { closePanels(); return true; }
-    const currentSong = await getSong(state.currentBook, state.currentNo);
-    const targetNo = currentSong?.links?.[targetBook];
-    if (targetNo == null || targetNo === '') {
-      alert(`这首没有对应的${BOOKS[targetBook]?.shortLabel || BOOKS[targetBook]?.label || targetBook}版本。`);
-      return false;
-    }
-    state.currentBook = targetBook;
-    state.searchBook = targetBook;
-    state.currentNo = parseInt(targetNo, 10);
-    state.searchDraft = String(state.currentNo);
-    clearSearchResults();
-    updateURL();
-    await loadAndRenderCurrentSong();
-    closePanels();
-    syncUI();
-    return true;
   }
 
   function initBindings(){
@@ -2675,14 +2602,6 @@ function pad4(num) {
     $('ui-lang-simp')?.addEventListener('click', ()=>{ setScriptMode('simplified'); syncUI(); });
     $('ui-lang-trad')?.addEventListener('click', ()=>{ setScriptMode('traditional'); syncUI(); });
 
-    $('ui-switch-e')?.addEventListener('click', async ()=>{ await switchToLinkedBook('e'); });
-    $('ui-switch-c')?.addEventListener('click', async ()=>{ await switchToLinkedBook('c'); });
-    $('ui-switch-ts')?.addEventListener('click', async ()=>{ await switchToLinkedBook('ts'); });
-
-    $('ui-book-e')?.addEventListener('click', async ()=>{
-      await setSearchBook('e', true);
-      syncUI();
-    });
     $('ui-book-c')?.addEventListener('click', async ()=>{
       await setSearchBook('c', true);
       syncUI();
