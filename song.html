@@ -6,9 +6,33 @@
   <title>诗歌</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="stylesheet" href="style.css" />
-  <script src="assets/alphatab/alphaTab.js"></script>
+  <script src="assets/alphatab/alphaTab.js">
+
+// 自动监听谱面变化并应用简繁
+setTimeout(() => {
+  const root = document.getElementById('alphaTab');
+  if (!root) return;
+  const observer = new MutationObserver(() => {
+    applyScriptToScore();
+  });
+  observer.observe(root, { childList: true, subtree: true });
+}, 500);
+
+</script>
   <!-- 简繁转换库：opencc-js（浏览器 UMD 完整版） -->
-  <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js">
+
+// 自动监听谱面变化并应用简繁
+setTimeout(() => {
+  const root = document.getElementById('alphaTab');
+  if (!root) return;
+  const observer = new MutationObserver(() => {
+    applyScriptToScore();
+  });
+  observer.observe(root, { childList: true, subtree: true });
+}, 500);
+
+</script>
 
   <style>
     .title-nav-row{display:flex;align-items:center;justify-content:center;gap:12px;padding:6px 12px 2px;}
@@ -403,6 +427,36 @@ function remapTimelineTimesIfNeeded() {
     if (state.script === "simplified" && converterToSimplified) {
       return converterToSimplified(text); // 如果原 JSON 就是简体，这里基本等于原文
     }
+
+// ===== 把简繁转换应用到谱面（alphaTab SVG）=====
+function applyScriptToScore() {
+  const root = document.querySelector('#alphaTab');
+  if (!root) return;
+
+  const nodes = root.querySelectorAll('text, tspan');
+
+  nodes.forEach(el => {
+    const txt = el.textContent;
+    if (!txt) return;
+
+    if (!/[\u4e00-\u9fa5]/.test(txt)) return;
+
+    if (!el.dataset.origText) {
+      el.dataset.origText = txt;
+    }
+
+    let base = el.dataset.origText;
+
+    if (state.script === 'traditional' && converterToTraditional) {
+      base = converterToTraditional(base);
+    } else if (state.script === 'simplified' && converterToSimplified) {
+      base = converterToSimplified(base);
+    }
+
+    el.textContent = base;
+  });
+}
+
     return text;
   }
 
@@ -823,6 +877,7 @@ function remapTimelineTimesIfNeeded() {
     getSong(state.currentBook, state.currentNo).then(song => {
       if (song) renderLyrics(song);
     });
+    setTimeout(() => applyScriptToScore(), 80);
   }
 
   async function setBook(book) {
@@ -2743,6 +2798,18 @@ function pad4(num) {
     applyViewerPrefsToLyricsPage();
     await loadAndRenderCurrentSong();
   });
+
+
+// 自动监听谱面变化并应用简繁
+setTimeout(() => {
+  const root = document.getElementById('alphaTab');
+  if (!root) return;
+  const observer = new MutationObserver(() => {
+    applyScriptToScore();
+  });
+  observer.observe(root, { childList: true, subtree: true });
+}, 500);
+
 </script>
 
 
@@ -2820,6 +2887,18 @@ function pad4(num) {
     }
   }, 300);
 })();
+
+
+// 自动监听谱面变化并应用简繁
+setTimeout(() => {
+  const root = document.getElementById('alphaTab');
+  if (!root) return;
+  const observer = new MutationObserver(() => {
+    applyScriptToScore();
+  });
+  observer.observe(root, { childList: true, subtree: true });
+}, 500);
+
 </script>
 
 <script>
@@ -3042,11 +3121,59 @@ function pad4(num) {
     setTimeout(syncUI, 1200);
   });
 })();
+
+
+// 自动监听谱面变化并应用简繁
+setTimeout(() => {
+  const root = document.getElementById('alphaTab');
+  if (!root) return;
+  const observer = new MutationObserver(() => {
+    applyScriptToScore();
+  });
+  observer.observe(root, { childList: true, subtree: true });
+}, 500);
+
 </script>
 
 
-<script src="scheme_engine.js"></script>
-<script src="rhythm_engine.js"></script>
-<script src="auto_engine.js"></script>
+<script src="scheme_engine.js">
+
+// 自动监听谱面变化并应用简繁
+setTimeout(() => {
+  const root = document.getElementById('alphaTab');
+  if (!root) return;
+  const observer = new MutationObserver(() => {
+    applyScriptToScore();
+  });
+  observer.observe(root, { childList: true, subtree: true });
+}, 500);
+
+</script>
+<script src="rhythm_engine.js">
+
+// 自动监听谱面变化并应用简繁
+setTimeout(() => {
+  const root = document.getElementById('alphaTab');
+  if (!root) return;
+  const observer = new MutationObserver(() => {
+    applyScriptToScore();
+  });
+  observer.observe(root, { childList: true, subtree: true });
+}, 500);
+
+</script>
+<script src="auto_engine.js">
+
+// 自动监听谱面变化并应用简繁
+setTimeout(() => {
+  const root = document.getElementById('alphaTab');
+  if (!root) return;
+  const observer = new MutationObserver(() => {
+    applyScriptToScore();
+  });
+  observer.observe(root, { childList: true, subtree: true });
+}, 500);
+
+</script>
 </body>
 </html>
